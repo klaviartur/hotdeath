@@ -4,7 +4,7 @@ import java.util.Random;
 import org.json.*;
 
 public class Hand {
-	private Player	m_player;
+	private final Player	m_player;
 	private Card[]	m_cards;
 	private int		m_numCards;
 	

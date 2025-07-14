@@ -767,13 +767,13 @@ public class CardDeck {
 		int i, j, k;
 		Card cTemp;
 
-		Random rgen = new Random();
+		Random rGen = new Random();
 		
 		for ( i = 0; i < numTimes; i++) 
 		{
 			for ( j = 0; j < m_numCards; j++) 
 			{
-				k = rgen.nextInt(m_numCards);
+				k = rGen.nextInt(m_numCards);
 
 				cTemp = m_oCards[j];
 				m_oCards[j] = m_oCards[k];

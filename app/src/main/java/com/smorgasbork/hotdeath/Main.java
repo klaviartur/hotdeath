@@ -12,9 +12,6 @@ import android.view.View.OnClickListener;
 import android.widget.TextView;
 import android.text.method.ScrollingMovementMethod;
 
-
-import com.smorgasbork.hotdeath.R;
-
 public class Main extends Activity implements OnClickListener 
 {
 	public static final int DIALOG_ABOUT = 0;
@@ -48,7 +45,7 @@ public class Main extends Activity implements OnClickListener
 			case DIALOG_ABOUT:
 				d.setTitle(this.getString(R.string.dlg_about_title));
 	
-				text = (TextView) d.findViewById(R.id.text);
+				text = d.findViewById(R.id.text);
 				text.setMovementMethod(ScrollingMovementMethod.getInstance());
 				
 				try
@@ -69,7 +66,7 @@ public class Main extends Activity implements OnClickListener
 			case DIALOG_HELP:
 				d.setTitle(this.getString(R.string.dlg_help_title));
 	
-				text = (TextView) d.findViewById(R.id.text);
+				text = d.findViewById(R.id.text);
 				text.setMovementMethod(ScrollingMovementMethod.getInstance());
 				text.setText(this.getString(R.string.dlg_help_text));
 	
@@ -102,7 +99,7 @@ public class Main extends Activity implements OnClickListener
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		String s = prefs.getString("gamestate", "");
 		
-		if (s == "")
+		if (s.isEmpty())
 		{
 			continueButton.setVisibility(View.GONE);
 		}
@@ -114,36 +111,30 @@ public class Main extends Activity implements OnClickListener
     
     public void onClick(View v) {
     	Intent intent;
-    	
-        switch (v.getId()) {
-        
-        case R.id.btn_new_game:
-            intent = new Intent(this, GameActivity.class);
-            intent.putExtra(GameActivity.STARTUP_MODE, GameActivity.STARTUP_MODE_NEW);
-            startActivity(intent);
-            break;
 
-        case R.id.btn_continue:
+		int id = v.getId();
+
+		if (id == R.id.btn_new_game) {
+			intent = new Intent(this, GameActivity.class);
+			intent.putExtra(GameActivity.STARTUP_MODE, GameActivity.STARTUP_MODE_NEW);
+			startActivity(intent);
+
+		} else if (id == R.id.btn_continue) {
 			intent = new Intent(this, GameActivity.class);
 			intent.putExtra(GameActivity.STARTUP_MODE, GameActivity.STARTUP_MODE_CONTINUE);
 			startActivity(intent);
-			break;
-			
-        case R.id.btn_settings:
-        	startActivity (new Intent (this, Prefs.class));
-        	break;
-           
-        case R.id.btn_help:
-        	this.showDialog(DIALOG_HELP);
-        	break;
 
-        case R.id.btn_about:
-        	this.showDialog(DIALOG_ABOUT);
-        	break;
+		} else if (id == R.id.btn_settings) {
+			startActivity(new Intent(this, Prefs.class));
 
-        case R.id.btn_exit:
+		} else if (id == R.id.btn_help) {
+			this.showDialog(DIALOG_HELP);
+
+		} else if (id == R.id.btn_about) {
+			this.showDialog(DIALOG_ABOUT);
+
+		} else if (id == R.id.btn_exit) {
 			finish();
-			break;
-        }
+		}
      }
 }

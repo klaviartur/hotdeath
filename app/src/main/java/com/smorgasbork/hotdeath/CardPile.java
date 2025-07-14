@@ -6,7 +6,7 @@ import org.json.*;
 public class CardPile 
 {
 	private int m_numCards = 0;
-	private Card[] m_cards;
+	final private Card[] m_cards;
 		
 	public int getNumCards() 
 	{ 
@@ -57,13 +57,13 @@ public class CardPile
 			m_cards[i].setFaceUp(false);
 		}
 
-		Random rgen = new Random();
+		Random rGen = new Random();
 		
 		for ( i = 0; i < numTimes; i++) 
 		{
 			for ( j = 0; j < m_numCards; j++) 
 			{
-				k = rgen.nextInt(m_numCards);
+				k = rGen.nextInt(m_numCards);
 
 				cTemp = m_cards[j];
 				m_cards[j] = m_cards[k];

@@ -24,26 +24,26 @@ public class GameTable extends View
 {
 	private static final int ID = 42;  
 	
-	private int[] m_cardoffset;
-	private int[] m_currentDrag;
+	private final int[] m_cardoffset;
+	private final int[] m_currentDrag;
 	
 	private int m_maxCardsDisplay = 7;
 	
-	private Matrix m_drawMatrix;
+	private final Matrix m_drawMatrix;
 	
 	private Point m_ptDiscardPile;
 	private Point m_ptDrawPile;
 		
-	private Point[] m_ptSeat;
-	private Point[] m_ptEmoticon;
-	private Point[] m_ptPlayerIndicator;
-	private Point[] m_ptCardBadge;
-	private Point[] m_ptScoreText;
+	private final Point[] m_ptSeat;
+	private final Point[] m_ptEmoticon;
+	private final Point[] m_ptPlayerIndicator;
+	private final Point[] m_ptCardBadge;
+	private final Point[] m_ptScoreText;
 	private Point m_ptDirColor;
 	private Point m_ptWinningMessage;	
 	private Point m_ptMessages;
 	
-	private Rect[] m_handBoundingRect;
+	private final Rect[] m_handBoundingRect;
 	private Rect m_drawPileBoundingRect;
 	private Rect m_discardPileBoundingRect;
 	
@@ -92,19 +92,19 @@ public class GameTable extends View
 	private Bitmap m_bmpDirColorCCW, m_bmpDirColorCCWRed, m_bmpDirColorCCWGreen, m_bmpDirColorCCWBlue, m_bmpDirColorCCWYellow;
 	private Bitmap m_bmpDirColorCW, m_bmpDirColorCWRed, m_bmpDirColorCWGreen, m_bmpDirColorCWBlue, m_bmpDirColorCWYellow;
 	private Bitmap m_bmpEmoticonAggressor, m_bmpEmoticonVictim;
-	private Bitmap[][] m_bmpPlayerIndicator;
-	private Bitmap[] m_bmpWinningMessage;
+	private final Bitmap[][] m_bmpPlayerIndicator;
+	private final Bitmap[] m_bmpWinningMessage;
 	private Bitmap m_bmpCardBadge;
 		
-	private Paint m_paintTable;
-	private Paint m_paintTableText;
-	private Paint m_paintScoreText;
-	private Paint m_paintCardBadgeText;
+	private final Paint m_paintTable;
+	private final Paint m_paintTableText;
+	private final Paint m_paintScoreText;
+	private final Paint m_paintCardBadgeText;
 	
 	private boolean m_readyToStartGame = false;
 	private boolean m_waitingToStartGame = false;
 	
-	private Handler m_handler = new Handler();
+	private final Handler m_handler = new Handler();
 	
 	private Toast m_toast = null;
 	
@@ -382,7 +382,7 @@ public class GameTable extends View
 		}
 	}
 
-	private Runnable m_touchAndHoldTask = new Runnable() 
+	private final Runnable m_touchAndHoldTask = new Runnable()
 	{
 		public void run() {
 
@@ -1029,9 +1029,9 @@ public class GameTable extends View
 		if (numcards > m_maxCardsDisplay)
 		{
 			Point pt = m_ptCardBadge[seat - 1];
-			
-            m_drawMatrix.reset();
-    		m_drawMatrix.setScale(1, 1);
+
+			m_drawMatrix.reset();
+			m_drawMatrix.setScale(1, 1);
     		m_drawMatrix.setTranslate(pt.x, pt.y);
     		
             cv.drawBitmap(m_bmpCardBadge, m_drawMatrix, null);
@@ -1067,19 +1067,19 @@ public class GameTable extends View
 
 	    BitmapFactory.Options opt = new BitmapFactory.Options();
 	    //opt.inScaled = false;
-	    
-	    m_bmpCardBack = BitmapFactory.decodeResource(res, R.drawable.card_back, opt);
+		//
+		// m_bmpCardBack = BitmapFactory.decodeResource(res, R.drawable.card_back, opt);
 
 		m_imageIDLookup.put (Card.ID_RED_0, R.drawable.card_red_0);
 		m_imageLookup.put (Card.ID_RED_0, BitmapFactory.decodeResource(res, R.drawable.card_red_0, opt));
 		m_cardHelpLookup.put (Card.ID_RED_0, R.string.cardhelp_0);
-        m_cardLookup.put (Card.ID_RED_0, new Card(-1, Card.COLOR_RED, 0, Card.ID_RED_0_HD, 0, 0));
-        
+		m_cardLookup.put (Card.ID_RED_0, new Card(-1, Card.COLOR_RED, 0, Card.ID_RED_0_HD, 0, 0));
+
 		m_imageIDLookup.put (Card.ID_RED_1, R.drawable.card_red_1);
 		m_imageLookup.put (Card.ID_RED_1, BitmapFactory.decodeResource(res, R.drawable.card_red_1, opt));
 		m_cardHelpLookup.put (Card.ID_RED_1, R.string.cardhelp_1);
-        m_cardLookup.put (Card.ID_RED_1, new Card(-1, Card.COLOR_RED, 1, Card.ID_RED_1, 1));
-		
+		m_cardLookup.put (Card.ID_RED_1, new Card(-1, Card.COLOR_RED, 1, Card.ID_RED_1, 1));
+
 		m_imageIDLookup.put (Card.ID_RED_2, R.drawable.card_red_2);
 		m_imageLookup.put (Card.ID_RED_2, BitmapFactory.decodeResource(res, R.drawable.card_red_2, opt));
 		m_cardHelpLookup.put (Card.ID_RED_2, R.string.cardhelp_2);
@@ -1713,10 +1713,10 @@ public class GameTable extends View
         Player pv = p.getVictim();
         if (pv != null) 
         {
-            pt = m_ptEmoticon[pv.getSeat() - 1];
-    		
-            m_drawMatrix.reset();
-    		m_drawMatrix.setScale(1, 1);
+			pt = m_ptEmoticon[pv.getSeat() - 1];
+
+			m_drawMatrix.reset();
+			m_drawMatrix.setScale(1, 1);
     		m_drawMatrix.setTranslate(pt.x, pt.y);
     		
             cv.drawBitmap(m_bmpEmoticonVictim, m_drawMatrix, null);
@@ -1725,10 +1725,10 @@ public class GameTable extends View
         Player pa = p.getGeneratingPlayer();
         if (pa != null) 
         {
-            pt = m_ptEmoticon[pa.getSeat() - 1];
-    		
-            m_drawMatrix.reset();
-    		m_drawMatrix.setScale(1, 1);
+			pt = m_ptEmoticon[pa.getSeat() - 1];
+
+			m_drawMatrix.reset();
+			m_drawMatrix.setScale(1, 1);
     		m_drawMatrix.setTranslate(pt.x, pt.y);
     		
             cv.drawBitmap(m_bmpEmoticonAggressor, m_drawMatrix, null);
@@ -1784,7 +1784,7 @@ public class GameTable extends View
 			}
 
 			String msg;
-			if (m_game.getRoundComplete() == false)
+			if (!m_game.getRoundComplete())
 			{
 				msg = "" + m_game.getPlayer(i).getTotalScore();
 			}

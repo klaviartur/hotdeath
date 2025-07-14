@@ -285,18 +285,14 @@ public class ComputerPlayer extends Player
 				if (this.m_skill >= 2)
 				{
 					// Expert
-					boolean considerColorBalance = false;
-					
+
 					// the higher the aggression, the longer the player is willing to try to 
 					// maintain color balance in his hand; for example, an aggression level 6
 					// is willing to wait until the opponent has 2 cards left; it's a bit like
 					// a game of chicken...
-					if ((opponent_card_count + m_aggression / 3) > 3)
-					{
-						considerColorBalance = true;
-					}
+					boolean considerColorBalance = (opponent_card_count + m_aggression / 3) > 3;
 
-					if (considerColorBalance)
+                    if (considerColorBalance)
 					{
 						double colorBalanceImprovement = computeChangeInColorBalance(tc);
 						
@@ -437,7 +433,7 @@ public class ComputerPlayer extends Player
 				continue;
 			}
 			
-			if (p.getActive() == false)
+			if (!p.getActive())
 			{
 				continue;
 			}

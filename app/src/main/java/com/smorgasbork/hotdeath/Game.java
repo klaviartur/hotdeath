@@ -3,7 +3,6 @@ package com.smorgasbork.hotdeath;
 import java.util.Random;
 import android.util.Log;
 
-import com.smorgasbork.hotdeath.R;
 import org.json.*;
 
 public class Game extends Thread {
@@ -27,7 +26,7 @@ public class Game extends Thread {
 	private GameTable	m_gt;
 	private GameOptions m_go;
 	private GameActivity m_ga;
-	private Player[]	m_players;
+	private final Player[]	m_players;
 
 	private Player		m_startPlayer;
 	private Player		m_currPlayer;
@@ -39,7 +38,6 @@ public class Game extends Thread {
 	private CardDeck	m_deck;
 	private CardPile    m_drawPile;
 	private CardPile    m_discardPile;
-	private int			m_numCardsPlayed;
 	private int			m_direction;
 	private int         m_currColor;
 	private int			m_cardsPlayed;
@@ -51,7 +49,7 @@ public class Game extends Thread {
 	
 	private boolean m_lastCardCheckedIsDefender = false;
 	
-	private Object m_pauseLock = new Object();  
+	private final Object m_pauseLock = new Object();
 	private boolean m_paused = false;
 	private boolean m_resumingSavedGame = false;
 	
@@ -96,11 +94,6 @@ public class Game extends Thread {
 		return m_roundComplete;
 	}
 
-	public Player getStartPlayer()
-    {
-        return m_startPlayer;
-    }
-
 	public Player getCurrPlayer()
     {
         return m_currPlayer;
@@ -124,11 +117,6 @@ public class Game extends Thread {
 	public Card getLastPlayedCard()
     {
         return m_currCard;
-    }
-
-	public int getNumCardsPlayed()
-    {
-        return m_numCardsPlayed;
     }
 
 	public CardPile getDrawPile()
@@ -186,15 +174,14 @@ public class Game extends Thread {
 		// on the second call, we'll really shut down; but also be careful
 		// in case we get called more than two times...
 		Log.d("HDU", "Game thread nulling out references and exiting...");
-    	if  (m_gt != null)
+		if  (m_gt != null)
     	{
     		m_gt.shutdown ();
     		m_go.shutdown ();
-    		
-    		for (int i = 0; i < m_players.length; i++)
-    		{
-    			m_players[i].shutdown();
-    		}
+
+            for (Player mPlayer : m_players) {
+                mPlayer.shutdown();
+            }
     	}
 		m_go = null;
 		m_ga = null;
@@ -539,14 +526,7 @@ public class Game extends Thread {
 						Card c = m_deck.getCard(k);
 						if ((c.getHand() == null) && (c.getID() == hands[i][j]))
 						{
-							if (p.getSeat() == SEAT_SOUTH)
-							{
-								c.setFaceUp(true);
-							}
-							else
-							{
-								c.setFaceUp(false);
-							}
+							c.setFaceUp(p.getSeat() == SEAT_SOUTH);
 							p.addCardToHand(c);
 							break;
 						}
@@ -568,15 +548,8 @@ public class Game extends Thread {
 			for (i = 0; i < 4 * m_numCardsToDeal; i++) 
 			{
 				Card c = m_deck.getCard(i);
-	
-				if (p.getSeat() == SEAT_SOUTH)
-				{
-					c.setFaceUp(true);
-				}
-				else
-				{
-					c.setFaceUp(false);
-				}
+
+                c.setFaceUp(p.getSeat() == SEAT_SOUTH);
 	
 				p.addCardToHand (c);
 	
@@ -757,7 +730,6 @@ public class Game extends Thread {
 		} while (m_currColor == Card.COLOR_WILD);
 
 		m_startPlayer = m_dealer.getLeftOpp();
-		m_numCardsPlayed = 0;
 
 		m_currPlayer = m_startPlayer;
 
@@ -779,27 +751,20 @@ public class Game extends Thread {
 	
 	private void runRound ()
 	{
-		while (true)
-		{
-			m_snapshot = this.toJSON();
-			waitUntilUnpaused ();
-			
-			if (m_roundComplete)
-			{
-				// this could conceivably happen if the round ends immediately after the deal
-				return;
-			}
-			
-			if (m_stopping)
-			{
-				return;
-			}
-			
-			if (advanceRound() == false)
-			{
-				break;
-			}
-		}
+        do {
+            m_snapshot = this.toJSON();
+            waitUntilUnpaused();
+
+            if (m_roundComplete) {
+                // this could conceivably happen if the round ends immediately after the deal
+                return;
+            }
+
+            if (m_stopping) {
+                return;
+            }
+
+        } while (advanceRound());
 	}
 
 	public void run ()
@@ -883,9 +848,7 @@ public class Game extends Thread {
 	{
 		m_currPlayer.resetLastDrawn();
 
-		Player p = getNextPlayer();
-
-		return p;
+        return getNextPlayer();
 	}
 	
 	public boolean advanceRound()
@@ -928,8 +891,6 @@ public class Game extends Thread {
 
 				m_currCard.setFaceUp(true);
 				m_discardPile.addCard(m_currCard);
-				
-				m_numCardsPlayed++;
 
 				redrawTable();
 
@@ -1151,13 +1112,8 @@ public class Game extends Thread {
 
 			// magic 5 is a defender against the hot death wild card only
 			// (although it can be played on any card)
-			if ((tid == Card.ID_WILD_HD) && (cid == Card.ID_RED_5_MAGIC)) 
-			{
-				return true;
-			}
-
-			return false;
-		}
+            return (tid == Card.ID_WILD_HD) && (cid == Card.ID_RED_5_MAGIC);
+        }
 		
 		m_lastCardCheckedIsDefender = false;
 
@@ -1176,16 +1132,9 @@ public class Game extends Thread {
 
 		if (cid == Card.ID_YELLOW_0_SHITTER) 
 		{
-			if ((id == Card.ID_RED_0_HD) 
-			   || (id == Card.ID_RED_5_MAGIC)
-			   || (h.getNumCards() == 1))
-			{				
-				return true;
-			}
-			else 
-			{
-				return false;
-			}
+            return (id == Card.ID_RED_0_HD)
+                    || (id == Card.ID_RED_5_MAGIC)
+                    || (h.getNumCards() == 1);
 		}
 
 		// 69 can be played on 6 or 9; likewise, 6 or 9 can be played on 69
@@ -1213,13 +1162,9 @@ public class Game extends Thread {
 		}
 
 		// cards of same color, wild cards, or cards of equal value
-		if ((c.getColor() == m_currColor) || (c.getColor() == Card.COLOR_WILD)
-				|| (cvalue == value)) {
-			return true;
-		}
-
-		return false;
-	}
+        return (c.getColor() == m_currColor) || (c.getColor() == Card.COLOR_WILD)
+                || (cvalue == value);
+    }
 
 
 	public void finishRound(Player p)
@@ -1276,13 +1221,8 @@ public class Game extends Thread {
 		{
 			return false;
 		}
-		if (m_gameOver)
-		{
-			return false;
-		}
-		
-		return true;
-	}
+        return !m_gameOver;
+    }
 	
 	private void waitForNextRound ()
 	{
@@ -1444,63 +1384,33 @@ public class Game extends Thread {
 	
 	private void redrawTable ()
 	{
-		m_ga.runOnUiThread(new Runnable () {
-			public void run ()
-			{
-				m_gt.RedrawTable();
-			}
-		});
+		m_ga.runOnUiThread(() -> m_gt.RedrawTable());
 	}
 	
 	private void showFastForwardButton (final boolean show)
 	{
-		m_ga.runOnUiThread(new Runnable () {
-			public void run ()
-			{
-				 m_gt.showFastForwardButton(show);
-			}
-		});
+		m_ga.runOnUiThread(() -> m_gt.showFastForwardButton(show));
 	}
 
 	private void showMenuButton (final boolean show)
 	{
-		m_ga.runOnUiThread(new Runnable () {
-			public void run ()
-			{
-				m_gt.showMenuButton(show);
-			}
-		});
+		m_ga.runOnUiThread(() -> m_gt.showMenuButton(show));
 	}
 
 
 	public void promptForNumCardsToDeal()
 	{
-		m_ga.runOnUiThread(new Runnable () {
-					public void run ()
-					{
-						m_gt.PromptForNumCardsToDeal();
-					}
-		});
+		m_ga.runOnUiThread(() -> m_gt.PromptForNumCardsToDeal());
 	}
 
 	public void promptForVictim()
 	{
-		m_ga.runOnUiThread(new Runnable () {
-			public void run ()
-			{
-				m_gt.PromptForVictim();
-			}
-		});
+		m_ga.runOnUiThread(() -> m_gt.PromptForVictim());
 	}
 	
 	public void promptForColor()
 	{
-		m_ga.runOnUiThread(new Runnable () {
-			public void run ()
-			{
-				m_gt.PromptForColor();
-			}
-		});
+		m_ga.runOnUiThread(() -> m_gt.PromptForColor());
 	}
 
 
@@ -1527,13 +1437,10 @@ public class Game extends Thread {
 			return;
 		}
 
-		m_ga.runOnUiThread(new Runnable () {
-			public void run ()
-			{
-				Log.d("HDU", "[promptUser] prompt: " + msg);
-				m_gt.Toast(msg);
-			}
-		});
+		m_ga.runOnUiThread(() -> {
+            Log.d("HDU", "[promptUser] prompt: " + msg);
+            m_gt.Toast(msg);
+        });
 		if (wait)
 		{
 			waitABit ();			
@@ -1685,13 +1592,8 @@ public class Game extends Thread {
 			if (id == Card.ID_YELLOW_0_SHITTER) bastardCount++;
 		}
 
-		if (bastardCount == 4) 
-		{
-			return true;
-		}
-		
-		return false;
-	}
+        return bastardCount == 4;
+    }
 
 
 	public void gotAllBastardCards(Player p)
@@ -2294,12 +2196,12 @@ public class Game extends Thread {
 	 * Convenience function; lets us retrieve resource strings with minimal syntax;
 	 * also lets the player objects retrieve strings without knowledge of the
 	 * Activity/View/Context.
-	 * @param resid
+	 * @param resId
 	 * @return
 	 */
-	public String getString(int resid)
+	public String getString(int resId)
 	{
-		return m_gt.getContext().getString(resid);
+		return m_gt.getContext().getString(resId);
 	}
 	
 

@@ -7,7 +7,7 @@
            android:summary="@string/game_speed_summary"
            android:defaultValue="1"
            android:entries="@array/game_speeds"
-           android:entryValues="@array/game_speed_values" />   
+           android:entryValues="@array/game_speed_values" />
 	<CheckBoxPreference
 		android:key="two_decks"
 		android:title="@string/two_decks_title"

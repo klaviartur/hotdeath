@@ -9,9 +9,9 @@ import android.widget.ImageView;
 import android.widget.GridView;
 
 public class CardImageAdapter extends BaseAdapter {
-    private Context mContext;
-    private Integer[] m_cardIDs;
-    private Integer[] m_thumbIDs;
+    private final Context mContext;
+    private final Integer[] m_cardIDs;
+    private final Integer[] m_thumbIDs;
 
     public Integer[] getCardIDs()
     {
