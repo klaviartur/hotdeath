@@ -3,30 +3,42 @@ plugins {
 }
 
 android {
-    namespace = 'com.smorgasbork.hotdeath'
-
-    compileSdk = 36
+    namespace 'com.smorgasbork.hotdeath'
+    compileSdk 36
 
     defaultConfig {
-        applicationId = 'com.smorgasbork.hotdeath'
-        minSdk = 28               // Updated minimum to Android 9 (Pie)
-        targetSdk = 36
-        versionCode = 20
-        versionName = "2.0.00"
+        minSdk 28 // Updated minimum to Android 9 (Pie)
+        targetSdk 36
+        versionCode 20
+        versionName "2.0.00"
+    }
+
+    flavorDimensions "version"
+    productFlavors {
+        production {
+            dimension "version"
+            applicationId "com.smorgasbork.hotdeath"
+            versionName "2.0.00"
+        }
+        staging {
+            dimension "version"
+            applicationId "com.smorgasbork.hotdeath.staging"
+            versionName "2.0.00-staging"
+        }
     }
 
     buildTypes {
         release {
-            minifyEnabled = true
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
-            versionNameSuffix = 'g'
+            versionNameSuffix 'g'
         }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 }
