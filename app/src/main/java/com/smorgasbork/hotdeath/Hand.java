@@ -1,15 +1,28 @@
 package com.smorgasbork.hotdeath;
 
+import java.util.Arrays;
 import java.util.Random;
+import java.util.List;
+import java.util.ArrayList;
 import org.json.*;
 
 public class Hand {
 	private final Player	m_player;
 	private Card[]	m_cards;
 	private int		m_numCards;
+
+	private int m_firstUnrevealed;
 	
 	Card[] getCards() { return m_cards; }
 	int getNumCards() { return m_numCards; }
+
+	public List<Card> getRevealedCards() {
+        return new ArrayList<>(Arrays.asList(m_cards).subList(0, m_firstUnrevealed));
+	}
+
+	public List<Card> getUnrevealedCards() {
+		return new ArrayList<>(Arrays.asList(m_cards).subList(m_firstUnrevealed, m_numCards));
+	}
 	
 	Card getCard(int i)
 	{ 
@@ -26,6 +39,7 @@ public class Hand {
 		m_player = p;
 		m_numCards = 0;
 		m_cards = new Card[Game.MAX_NUM_CARDS];
+		m_firstUnrevealed = 0;
 	}
 
 	public void reset()
@@ -36,6 +50,7 @@ public class Hand {
 		}
 		m_cards = new Card[Game.MAX_NUM_CARDS];
 		m_numCards = 0;
+		m_firstUnrevealed = 0;
 	}
 
 
@@ -67,16 +82,24 @@ public class Hand {
 		}
 	}
 
+	public void reveal()
+	{
+		setFaceUp(true);
+		m_firstUnrevealed = m_numCards;
+	}
+
 
 	public void removeCard (Card c)
 	{
 		boolean bRemoving = false;
+		boolean bRevealed = false;
 
 		for (int i = 0; i < m_numCards; i++) 
 		{
 			if (m_cards[i] == c)
 			{
 				bRemoving = true;
+				bRevealed = i < m_firstUnrevealed;
 			}
 			if (bRemoving) 
 			{
@@ -89,6 +112,10 @@ public class Hand {
 			c.setHand(null);
 			m_cards[m_numCards - 1] = null;
 			m_numCards--;
+			if (bRevealed)
+			{
+				m_firstUnrevealed--;
+			}
 		}
 	}
 
