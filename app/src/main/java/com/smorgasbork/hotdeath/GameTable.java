@@ -1067,8 +1067,8 @@ public class GameTable extends View
 
 	    BitmapFactory.Options opt = new BitmapFactory.Options();
 	    //opt.inScaled = false;
-		//
-		// m_bmpCardBack = BitmapFactory.decodeResource(res, R.drawable.card_back, opt);
+		
+		m_bmpCardBack = BitmapFactory.decodeResource(res, R.drawable.card_back, opt);
 
 		m_imageIDLookup.put (Card.ID_RED_0, R.drawable.card_red_0);
 		m_imageLookup.put (Card.ID_RED_0, BitmapFactory.decodeResource(res, R.drawable.card_red_0, opt));
