@@ -593,7 +593,7 @@ public class Game extends Thread {
 		for (i = 0; i < 4; i++) 
 		{
 			Hand h = (m_players[i]).getHand();
-			sortHand(h);
+			h.sort();
 		}
 	}	
 
@@ -1013,7 +1013,7 @@ public class Game extends Thread {
 				{
 					m_currPlayer.drawCard();
 		
-					sortHand (m_currPlayer.getHand());
+					m_currPlayer.getHand().sort();
 					redrawTable();
 		
 					String msg = String.format(getString (R.string.msg_player_draws_card), seatToString(m_currPlayer.getSeat()));
@@ -1181,7 +1181,7 @@ public class Game extends Thread {
 		{
 			m_players[i].setActive(true);
 			((m_players[i]).getHand()).setFaceUp(true);
-			sortHand ((m_players[i]).getHand());
+			(m_players[i]).getHand().sort();
 		}
 
 		redrawTable();
@@ -1333,54 +1333,6 @@ public class Game extends Thread {
 		}
 
 	}
-
-
-
-	public void sortHand (Hand h)
-	{
-		Card[] cards = new Card[MAX_NUM_CARDS];
-		int i;
-		
-		int p = 0;
-		Card[] cd = m_deck.getCards();
-
-		if (m_go.getFaceUp())
-		{
-			for (i = 0; i < m_deck.getNumCards(); i++) 
-			{
-				Card c = cd[i];
-				if (c.getHand() == h) 
-				{
-					cards[p++] = c;
-				}
-			}			
-		}
-
-		else
-		{
-			// sort according to deck order, but do faceup cards first
-			for (i = 0; i < m_deck.getNumCards(); i++) 
-			{
-				Card c = cd[i];
-				if (c.getHand() == h && c.getFaceUp()) 
-				{
-					cards[p++] = c;
-				}
-			}
-			
-			for (i = 0; i < m_deck.getNumCards(); i++) 
-			{
-				Card c = cd[i];
-				if (c.getHand() == h && !(c.getFaceUp())) 
-				{
-					cards[p++] = c;
-				}
-			}
-		}
-
-		h.reorderCards(cards);
-	}
-
 	
 	private void redrawTable ()
 	{
@@ -2132,7 +2084,7 @@ public class Game extends Thread {
 			promptUser (getString(R.string.msg_discard_empty));
 		}
 		
-		sortHand (p.getHand());
+		p.getHand().sort();
 		redrawTable();
 		m_currPlayer = realCurrPlayer;
 	}

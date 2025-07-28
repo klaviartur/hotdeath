@@ -1,6 +1,7 @@
 package com.smorgasbork.hotdeath;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Random;
 import java.util.List;
 import java.util.ArrayList;
@@ -254,14 +255,34 @@ public class Hand {
 		}
 	}
 
-
-	public void reorderCards(Card[] cards) 
+	public void sort()
 	{
-		for (int i = 0; i < m_numCards; i++) 
-		{
-			m_cards[i] = cards[i];
-		}
+		List<Card> revealed = this.getRevealedCards();
+		List<Card> unrevealed = this.getUnrevealedCards();
+
+		sort(revealed);
+		Card [] sortedArray = revealed.toArray(new Card[0]);
+		System.arraycopy(sortedArray, 0, m_cards, 0, sortedArray.length);
+		sort(unrevealed);
+		sortedArray = unrevealed.toArray(new Card[0]);
+		System.arraycopy(sortedArray, 0, m_cards, m_firstUnrevealed, sortedArray.length);
 	}
+
+	private void sort(List<Card> cards)
+	{
+		cards.sort(new Comparator<Card>() {
+			@Override
+			public int compare(Card c1, Card c2) {
+				// Step 1: Compare based on faceUp property
+				if (c1.getFaceUp() != c2.getFaceUp()) {
+					return Boolean.compare(c2.getFaceUp(), c1.getFaceUp()); // true comes first
+				}
+				// Step 2: Compare based on idx property
+				return Integer.compare(c1.getDeckIndex(), c2.getDeckIndex()); // then sort by idx ascending
+			}
+		});
+	}
+
 
 
 	public boolean hasValidCards(Game g)

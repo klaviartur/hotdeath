@@ -272,7 +272,7 @@ public class Player {
 		}
 
 		m_hand.addCard (c);
-		m_game.sortHand(m_hand);
+		m_hand.sort();
 		m_lastDrawn = c;
 	}
 	

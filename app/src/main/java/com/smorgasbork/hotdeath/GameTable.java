@@ -503,23 +503,31 @@ public class GameTable extends View
 			m_touchDiscardPile = false;
 			m_touchDrawPile = false;
 			m_touchSeat = 0;
-			if ((m_unrevealedBoundingRect[Game.SEAT_SOUTH - 1] != null)
-					&& m_unrevealedBoundingRect[Game.SEAT_SOUTH - 1].contains(x, y))
+			if (m_unrevealedBoundingRect[Game.SEAT_SOUTH - 1] != null
+					&& m_unrevealedBoundingRect[Game.SEAT_SOUTH - 1].contains(x, y)
+					|| m_revealedBoundingRect[Game.SEAT_SOUTH - 1] != null
+					&& m_revealedBoundingRect[Game.SEAT_SOUTH - 1].contains(x, y))
 			{
 				m_touchSeat = Game.SEAT_SOUTH;
 			}
-			else if ((m_unrevealedBoundingRect[Game.SEAT_WEST - 1] != null)
-				&& m_unrevealedBoundingRect[Game.SEAT_WEST - 1].contains(x, y))
+			else if (m_unrevealedBoundingRect[Game.SEAT_WEST - 1] != null
+					&& m_unrevealedBoundingRect[Game.SEAT_WEST - 1].contains(x, y)
+					|| m_revealedBoundingRect[Game.SEAT_WEST - 1] != null
+					&& m_revealedBoundingRect[Game.SEAT_WEST - 1].contains(x, y))
 			{
 				m_touchSeat = Game.SEAT_WEST;			
 			}
-			else if ((m_unrevealedBoundingRect[Game.SEAT_NORTH - 1] != null)
-					&& m_unrevealedBoundingRect[Game.SEAT_NORTH - 1].contains(x, y))
+			else if (m_unrevealedBoundingRect[Game.SEAT_NORTH - 1] != null
+					&& m_unrevealedBoundingRect[Game.SEAT_NORTH - 1].contains(x, y)
+					|| m_revealedBoundingRect[Game.SEAT_NORTH - 1] != null
+					&& m_revealedBoundingRect[Game.SEAT_NORTH - 1].contains(x, y))
 			{
 				m_touchSeat = Game.SEAT_NORTH;				
 			}
-			else if ((m_unrevealedBoundingRect[Game.SEAT_EAST - 1] != null)
-					&& m_unrevealedBoundingRect[Game.SEAT_EAST - 1].contains(x, y))
+			else if (m_unrevealedBoundingRect[Game.SEAT_NORTH - 1] != null
+					&& m_unrevealedBoundingRect[Game.SEAT_NORTH - 1].contains(x, y)
+					|| m_revealedBoundingRect[Game.SEAT_NORTH - 1] != null
+					&& m_revealedBoundingRect[Game.SEAT_NORTH - 1].contains(x, y))
 			{
 				m_touchSeat = Game.SEAT_EAST;			
 			}
@@ -587,7 +595,7 @@ public class GameTable extends View
 
 					// set bounds properly
 					Player p = m_game.getPlayer(idx);
-					int ncards = p.getHand().getNumCards();
+					int ncards = p.getHand().getUnrevealedCards().size();
 					
 					if (m_unrevealedOffset[idx] >= ncards - m_maxCardsDisplay)
 					{
@@ -600,6 +608,26 @@ public class GameTable extends View
 					}
 					
 					m_unrevealedDrag[idx] = 0;
+				}
+				if (m_revealedDrag[idx] != 0)
+				{
+					m_revealedOffset[idx] += m_revealedDrag[idx];
+
+					// set bounds properly
+					Player p = m_game.getPlayer(idx);
+					int ncards = p.getHand().getRevealedCards().size();
+
+					if (m_revealedOffset[idx] >= ncards - m_maxCardsDisplay)
+					{
+						m_revealedOffset[idx] = ncards - m_maxCardsDisplay;
+					}
+
+					if (m_revealedOffset[idx] < 0)
+					{
+						m_revealedOffset[idx] = 0;
+					}
+
+					m_revealedDrag[idx] = 0;
 				}
 				m_touchSeat = 0;
 				return true;
@@ -640,13 +668,13 @@ public class GameTable extends View
 				}
 				
 				// invert the offset, as a slide to the left means increase the offset
-				m_unrevealedDrag[m_touchSeat - 1] = 0 - cardoffset;
+				m_unrevealedDrag[m_touchSeat - 1] = -cardoffset;
+				m_revealedDrag[m_touchSeat - 1] = -cardoffset;
 				this.invalidate();
 				
 				return true;
 			}
 		}
-		
 		return super.onTouchEvent(event);
 	}
 	
@@ -662,53 +690,65 @@ public class GameTable extends View
 	
 	private Card findTouchedCardHand (int seat, Point pt)
 	{
-		Rect r = m_unrevealedBoundingRect[seat - 1];
-		if (r == null)
-		{
-			return null;
-		}
-		
-		if (!r.contains(pt.x, pt.y))
-		{
-			return null;
-		}
-		
 		int spacing = (m_game.getPlayer(seat - 1) instanceof HumanPlayer)
 				? m_cardSpacingHuman
 				: m_cardSpacing;
-				
-		int idx = 0;
-		switch (seat)
-		{
-		case Game.SEAT_NORTH:
-		case Game.SEAT_SOUTH:
-			idx = (int)((pt.x - r.left) / spacing);
-			
-			break;
-			
-		case Game.SEAT_WEST:
-		case Game.SEAT_EAST:
-			idx = (int)((pt.y - r.top) / spacing);
 
-			break;
-		}
-		
 		Player p = m_game.getPlayer(seat - 1);
 		Hand h = p.getHand();
-		
-		int numcardsshowing = h.getNumCards() - m_unrevealedOffset[seat - 1];
-		numcardsshowing = Math.min(numcardsshowing, m_maxCardsDisplay);
-		
-		if (idx >= numcardsshowing)
-		{
-			idx = numcardsshowing - 1;
-		}
-		idx += m_unrevealedOffset[seat - 1];
-		
 
-		Card c = h.getCard(idx);
-		
-		return c;
+		Rect ru = m_unrevealedBoundingRect[seat - 1];
+		Rect rr = m_revealedBoundingRect[seat - 1];
+
+		int idx = 0;
+
+		if (ru != null && ru.contains(pt.x, pt.y))
+		{
+			switch (seat) {
+				case Game.SEAT_NORTH:
+				case Game.SEAT_SOUTH:
+					idx = (int) ((pt.x - ru.left) / spacing);
+					break;
+
+				case Game.SEAT_WEST:
+				case Game.SEAT_EAST:
+					idx = (int) ((pt.y - ru.top) / spacing);
+					break;
+			}
+
+			int numcardsshowing = h.getUnrevealedCards().size() - m_unrevealedOffset[seat - 1];
+			numcardsshowing = Math.min(numcardsshowing, m_maxCardsDisplay);
+
+			if (idx >= numcardsshowing) {
+				idx = numcardsshowing - 1;
+			}
+			idx += m_unrevealedOffset[seat - 1];
+            return h.getUnrevealedCards().get(idx);
+
+		} else if (rr != null && rr.contains(pt.x, pt.y))
+		{
+			switch (seat) {
+				case Game.SEAT_NORTH:
+				case Game.SEAT_SOUTH:
+					idx = (int) ((pt.x - rr.left) / spacing);
+					break;
+
+				case Game.SEAT_WEST:
+				case Game.SEAT_EAST:
+					idx = (int) ((pt.y - rr.top) / spacing);
+					break;
+			}
+
+			int numcardsshowing = h.getRevealedCards().size() - m_revealedOffset[seat - 1];
+			numcardsshowing = Math.min(numcardsshowing, m_maxCardsDisplay);
+
+			if (idx >= numcardsshowing) {
+				idx = numcardsshowing - 1;
+			}
+			idx += m_revealedOffset[seat - 1];
+			return h.getRevealedCards().get(idx);
+		}
+		return null;
 	}
 	
 	private Card findTouchedCardDiscardPile (Point pt)
@@ -998,7 +1038,7 @@ public class GameTable extends View
 			revealedWidth = (numRevealedShowing - 1) * spacing + m_cardWidth;
 			x = m_ptSeat[Game.SEAT_SOUTH - 1].x - revealedWidth / 2;
 			y = m_ptSeat[Game.SEAT_SOUTH - 1].y - m_cardHeight / 2;
-			m_revealedBoundingRect[Game.SEAT_SOUTH - 1] = new Rect(x, y, x + unrevealedWidth, y + m_cardHeight / 2);
+			m_revealedBoundingRect[Game.SEAT_SOUTH - 1] = new Rect(x, y, x + revealedWidth, y + m_cardHeight);
 			break;
 		case Game.SEAT_WEST:
 			dx = 0;
@@ -1006,7 +1046,7 @@ public class GameTable extends View
 			revealedHeight = (numRevealedShowing - 1) * spacing + m_cardHeight;
 			x = m_ptSeat[Game.SEAT_WEST - 1].x + m_cardWidth / 2;
 			y = m_ptSeat[Game.SEAT_WEST - 1].y - revealedHeight / 2;
-			m_revealedBoundingRect[Game.SEAT_WEST - 1] = new Rect(x, y, x + m_cardWidth / 2, y + revealedHeight);
+			m_revealedBoundingRect[Game.SEAT_WEST - 1] = new Rect(x, y, x + m_cardWidth, y + revealedHeight);
 			break;
 		case Game.SEAT_NORTH:
 			dx = spacing;
@@ -1014,7 +1054,7 @@ public class GameTable extends View
 			revealedWidth = (numRevealedShowing - 1) * spacing + m_cardWidth;
 			x = m_ptSeat[Game.SEAT_NORTH - 1].x - revealedWidth / 2;
 			y = m_ptSeat[Game.SEAT_NORTH - 1].y + m_cardHeight / 2;
-			m_revealedBoundingRect[Game.SEAT_NORTH - 1] = new Rect(x, y, x + revealedWidth, y + m_cardHeight / 2);
+			m_revealedBoundingRect[Game.SEAT_NORTH - 1] = new Rect(x, y, x + revealedWidth, y + m_cardHeight);
 			break;
 		case Game.SEAT_EAST:
 			dx = 0;
