@@ -1966,7 +1966,7 @@ public class Game extends Thread {
 		}
 		else if (m_penalty.getType() == Penalty.PENTYPE_FACEUP) 
 		{
-			h.setFaceUp(true);
+			h.reveal();
 
 			if (m_players[SEAT_SOUTH - 1] instanceof HumanPlayer) 
 			{

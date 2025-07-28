@@ -552,6 +552,7 @@ public class Hand {
 			Card c = d.getCard(a.getInt(i));
 			this.addCard(c);
 		}
+		m_firstUnrevealed = o.getInt("firstUnrevealed");
 	}
 	
 	public JSONObject toJSON () throws JSONException
@@ -564,7 +565,8 @@ public class Hand {
 		}
 		
 		JSONObject o = new JSONObject ();
-		o.put ("cards", a);
+		o.put("cards", a);
+		o.put("firstUnrevealed", m_firstUnrevealed);
 		
 		return o;
 	}

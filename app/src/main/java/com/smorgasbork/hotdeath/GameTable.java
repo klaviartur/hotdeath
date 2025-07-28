@@ -1110,7 +1110,7 @@ public class GameTable extends View
 
 			float fx = (float)(pt.x + m_bmpCardBadge.getWidth() / 2);
 			Rect textBounds = new Rect();
-			String numstr = "" + numUnrevealedCards;
+			String numstr = "" + numRevealedCards;
 
 			m_paintCardBadgeText.getTextBounds(numstr, 0, numstr.length(), textBounds);
 			float fy = (float)(pt.y + m_bmpCardBadge.getHeight() / 2 + (int)(textBounds.height() / 2));

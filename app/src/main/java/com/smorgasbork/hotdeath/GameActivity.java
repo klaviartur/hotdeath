@@ -144,6 +144,7 @@ public class GameActivity extends Activity
 		l.addView(m_btnFastForward, lp);
 
 		setContentView (l);
+		l.setFitsSystemWindows(true);
 
 
 		m_btnMenuDraw = findViewById(R.id.btn_menu_draw);
