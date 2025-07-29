@@ -320,7 +320,7 @@ public class GameTable extends View
 		m_ptEmoticon[Game.SEAT_NORTH - 1] = new Point (m_ptSeat[Game.SEAT_NORTH - 1].x - m_emoticonWidth / 2, m_ptSeat[Game.SEAT_NORTH - 1].y + m_cardHeight * 11 / 10);
 		m_ptEmoticon[Game.SEAT_EAST - 1] = new Point (m_ptSeat[Game.SEAT_EAST - 1].x - m_emoticonWidth - m_cardWidth / 10, m_ptSeat[Game.SEAT_EAST - 1].y - m_emoticonHeight / 2);
 		m_ptEmoticon[Game.SEAT_SOUTH - 1] = new Point (m_ptSeat[Game.SEAT_SOUTH - 1].x - m_emoticonWidth / 2, m_ptSeat[Game.SEAT_SOUTH - 1].y - m_emoticonHeight - m_cardHeight / 10);
-		m_ptEmoticon[Game.SEAT_WEST - 1] = new Point (m_ptSeat[Game.SEAT_WEST - 1].x + m_cardWidth * 11 / 10, m_ptSeat[Game.SEAT_WEST - 1].y - m_emoticonHeight / 2);		
+		m_ptEmoticon[Game.SEAT_WEST - 1] = new Point (m_ptSeat[Game.SEAT_WEST - 1].x + m_cardWidth * 11 / 10, m_ptSeat[Game.SEAT_WEST - 1].y - m_emoticonHeight / 2);
 
 		int x = m_ptSeat[Game.SEAT_NORTH - 1].x + m_maxWidthHand / 2 - m_bmpCardBadge.getWidth() / 2;
 		int y = m_ptSeat[Game.SEAT_NORTH - 1].y + m_cardHeight - m_bmpCardBadge.getHeight()  / 2;
@@ -1847,9 +1847,30 @@ public class GameTable extends View
         {
 			pt = m_ptEmoticon[pv.getSeat() - 1];
 
+			int dx = 0;
+			int dy = 0;
+
+			if (!pv.getHand().getRevealedCards().isEmpty())
+			{
+				switch (pv.getSeat()) {
+					case Game.SEAT_SOUTH:
+						dy -= m_cardHeight / 2;
+						break;
+					case Game.SEAT_WEST:
+						dx += m_cardWidth / 2;
+						break;
+					case Game.SEAT_NORTH:
+						dy += m_cardHeight / 2;
+						break;
+					case Game.SEAT_EAST:
+						dx -= m_cardWidth / 2;
+						break;
+				}
+			}
+
 			m_drawMatrix.reset();
 			m_drawMatrix.setScale(1, 1);
-    		m_drawMatrix.setTranslate(pt.x, pt.y);
+    		m_drawMatrix.setTranslate(pt.x + dx, pt.y + dy);
     		
             cv.drawBitmap(m_bmpEmoticonVictim, m_drawMatrix, null);
         }
@@ -1859,9 +1880,30 @@ public class GameTable extends View
         {
 			pt = m_ptEmoticon[pa.getSeat() - 1];
 
+			int dx = 0;
+			int dy = 0;
+
+			if (!pa.getHand().getRevealedCards().isEmpty())
+			{
+				switch (pa.getSeat()) {
+					case Game.SEAT_SOUTH:
+						dy -= m_cardHeight / 2;
+						break;
+					case Game.SEAT_WEST:
+						dx += m_cardWidth / 2;
+						break;
+					case Game.SEAT_NORTH:
+						dy += m_cardHeight / 2;
+						break;
+					case Game.SEAT_EAST:
+						dx -= m_cardWidth / 2;
+						break;
+				}
+			}
+
 			m_drawMatrix.reset();
 			m_drawMatrix.setScale(1, 1);
-    		m_drawMatrix.setTranslate(pt.x, pt.y);
+			m_drawMatrix.setTranslate(pt.x + dx, pt.y + dy);
     		
             cv.drawBitmap(m_bmpEmoticonAggressor, m_drawMatrix, null);
         }
