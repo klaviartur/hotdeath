@@ -338,7 +338,7 @@ public class GameTable extends View
 		x = m_ptSeat[Game.SEAT_SOUTH - 1].x + m_maxWidthHandHuman / 2 - m_bmpCardBadge.getWidth() / 2;
 		y = m_ptSeat[Game.SEAT_SOUTH - 1].y + m_cardHeight - m_bmpCardBadge.getHeight() / 2;
 		m_ptUnrevealedBadge[Game.SEAT_SOUTH - 1] = new Point (x, y);
-		y -= m_cardHeight * 3 / 2;
+		y -= m_cardHeight * 5 / 3;
 		m_ptRevealedBadge[Game.SEAT_SOUTH - 1] = new Point (x, y);
 
 		x = m_ptSeat[Game.SEAT_WEST - 1].x - m_bmpCardBadge.getWidth() / 2;
@@ -1048,7 +1048,7 @@ public class GameTable extends View
 			dy = 0;
 			revealedWidth = (numRevealedShowing - 1) * spacing + m_cardWidth;
 			x = m_ptSeat[Game.SEAT_SOUTH - 1].x - revealedWidth / 2;
-			y = m_ptSeat[Game.SEAT_SOUTH - 1].y - m_cardHeight / 2;
+			y = m_ptSeat[Game.SEAT_SOUTH - 1].y - m_cardHeight * 2 / 3;
 			m_revealedBoundingRect[Game.SEAT_SOUTH - 1] = new Rect(x, y, x + revealedWidth, y + m_cardHeight);
 			break;
 		case Game.SEAT_WEST:
