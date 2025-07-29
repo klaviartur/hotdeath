@@ -1929,11 +1929,7 @@ public class Game extends Thread {
 			if (pVictim2 != null) 
 			{
 				h = pVictim2.getHand();
-				for (i = 0; i < h.getNumCards(); i++) 
-				{
-					Card c = h.getCard(i);
-					c.setFaceUp(true);
-				}
+				h.reveal();
 				if (m_players[SEAT_SOUTH - 1] instanceof HumanPlayer) 
 				{
 					msg = String.format (getString(R.string.msg_player_faceup), seatToString(pVictim2.getSeat()));
