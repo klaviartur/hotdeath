@@ -85,7 +85,8 @@ public class GameTable extends View
 	private boolean m_touchAndHold = false;
 	private boolean m_touchDrawPile = false;
 	private boolean m_touchDiscardPile = false;
-	private int m_touchSeat = 0;
+	private int m_touchUnrevealedSeat = 0;
+	private int m_touchRevealedSeat = 0;
 	
 	private Integer[] m_cardIDs;
 	private HashMap<Integer, Card> m_cardLookup;
@@ -451,7 +452,7 @@ public class GameTable extends View
 		
 	private boolean heldSteadyHand()
 	{
-		if (m_touchSeat == 0)
+		if (m_touchUnrevealedSeat == 0 && m_touchRevealedSeat == 0)
 		{
 			return false;
 		}
@@ -502,37 +503,41 @@ public class GameTable extends View
 
 			m_touchDiscardPile = false;
 			m_touchDrawPile = false;
-			m_touchSeat = 0;
+			m_touchUnrevealedSeat = 0;
+			m_touchRevealedSeat = 0;
 			if (m_unrevealedBoundingRect[Game.SEAT_SOUTH - 1] != null
-					&& m_unrevealedBoundingRect[Game.SEAT_SOUTH - 1].contains(x, y)
-					|| m_revealedBoundingRect[Game.SEAT_SOUTH - 1] != null
+					&& m_unrevealedBoundingRect[Game.SEAT_SOUTH - 1].contains(x, y))
+			{
+				m_touchUnrevealedSeat = Game.SEAT_SOUTH;
+			} else if (m_revealedBoundingRect[Game.SEAT_SOUTH - 1] != null
 					&& m_revealedBoundingRect[Game.SEAT_SOUTH - 1].contains(x, y))
 			{
-				m_touchSeat = Game.SEAT_SOUTH;
-			}
-			else if (m_unrevealedBoundingRect[Game.SEAT_WEST - 1] != null
-					&& m_unrevealedBoundingRect[Game.SEAT_WEST - 1].contains(x, y)
-					|| m_revealedBoundingRect[Game.SEAT_WEST - 1] != null
+				m_touchRevealedSeat = Game.SEAT_SOUTH;
+			} else if (m_unrevealedBoundingRect[Game.SEAT_WEST - 1] != null
+					&& m_unrevealedBoundingRect[Game.SEAT_WEST - 1].contains(x, y))
+			{
+				m_touchUnrevealedSeat = Game.SEAT_WEST;			
+			} else if (m_revealedBoundingRect[Game.SEAT_WEST - 1] != null
 					&& m_revealedBoundingRect[Game.SEAT_WEST - 1].contains(x, y))
 			{
-				m_touchSeat = Game.SEAT_WEST;			
-			}
-			else if (m_unrevealedBoundingRect[Game.SEAT_NORTH - 1] != null
-					&& m_unrevealedBoundingRect[Game.SEAT_NORTH - 1].contains(x, y)
-					|| m_revealedBoundingRect[Game.SEAT_NORTH - 1] != null
-					&& m_revealedBoundingRect[Game.SEAT_NORTH - 1].contains(x, y))
+				m_touchRevealedSeat = Game.SEAT_WEST;
+			} else if (m_unrevealedBoundingRect[Game.SEAT_NORTH - 1] != null
+					&& m_unrevealedBoundingRect[Game.SEAT_NORTH - 1].contains(x, y))
 			{
-				m_touchSeat = Game.SEAT_NORTH;				
-			}
-			else if (m_unrevealedBoundingRect[Game.SEAT_EAST - 1] != null
-					&& m_unrevealedBoundingRect[Game.SEAT_EAST - 1].contains(x, y)
-					|| m_revealedBoundingRect[Game.SEAT_EAST - 1] != null
-					&& m_revealedBoundingRect[Game.SEAT_EAST - 1].contains(x, y))
+				m_touchUnrevealedSeat = Game.SEAT_NORTH;				
+			} else if (m_revealedBoundingRect[Game.SEAT_NORTH - 1] != null
+					&& m_revealedBoundingRect[Game.SEAT_NORTH - 1].contains(x, y)) {
+				m_touchRevealedSeat = Game.SEAT_NORTH;
+			} else if (m_unrevealedBoundingRect[Game.SEAT_EAST - 1] != null
+					&& m_unrevealedBoundingRect[Game.SEAT_EAST - 1].contains(x, y))
 			{
-				m_touchSeat = Game.SEAT_EAST;			
+				m_touchUnrevealedSeat = Game.SEAT_EAST;			
+			} else if (m_revealedBoundingRect[Game.SEAT_EAST - 1] != null
+					&& m_revealedBoundingRect[Game.SEAT_EAST - 1].contains(x, y)) {
+				m_touchRevealedSeat = Game.SEAT_EAST;
 			}
-			
-			if (m_touchSeat != 0)
+
+			if (m_touchUnrevealedSeat != 0 || m_touchRevealedSeat != 0)
 			{
 				m_waitingForTouchAndHold = true;
 				m_handler.postDelayed (m_touchAndHoldTask, 1000);
@@ -569,7 +574,7 @@ public class GameTable extends View
 			// we'll play that card.
 			if (this.heldSteadyHand())
 			{
-				handCardTapped (m_touchSeat, m_ptTouchDown);
+				handCardTapped (max(m_touchUnrevealedSeat, m_touchRevealedSeat), m_ptTouchDown);
 				return true;
 			}
 
@@ -586,9 +591,9 @@ public class GameTable extends View
 			}
 			
 			// if we're letting up on a drag, commit the drag value
-			if (m_touchSeat != 0)
+			if (m_touchUnrevealedSeat != 0 || m_touchRevealedSeat != 0)
 			{
-				int idx = m_touchSeat - 1;					
+				int idx = max(m_touchUnrevealedSeat, m_touchRevealedSeat) - 1;
 				if (m_unrevealedDrag[idx] != 0)
 				{
 					m_unrevealedOffset[idx] += m_unrevealedDrag[idx];
@@ -629,7 +634,8 @@ public class GameTable extends View
 
 					m_revealedDrag[idx] = 0;
 				}
-				m_touchSeat = 0;
+				m_touchUnrevealedSeat = 0;
+				m_touchRevealedSeat = 0;
 				return true;
 			}
 			
@@ -637,15 +643,16 @@ public class GameTable extends View
 		}
 		else if (event.getAction() == MotionEvent.ACTION_MOVE)
 		{
-			if (m_touchSeat != 0)
+			int seat = max(m_touchUnrevealedSeat, m_touchRevealedSeat);
+			if (seat != 0)
 			{
-				int spacing = (m_game.getPlayer(m_touchSeat - 1) instanceof HumanPlayer)
+				int spacing = (m_game.getPlayer( seat- 1) instanceof HumanPlayer)
 					? m_cardSpacingHuman
 					: m_cardSpacing;
 				
 				int cardoffset;
 				
-				if (m_touchSeat == Game.SEAT_NORTH || m_touchSeat == Game.SEAT_SOUTH)
+				if (seat == Game.SEAT_NORTH || seat == Game.SEAT_SOUTH)
 				{
 					int distx = (int)(event.getX()) - m_ptTouchDown.x;
 					cardoffset = distx / (spacing / 2);
@@ -668,8 +675,12 @@ public class GameTable extends View
 				}
 				
 				// invert the offset, as a slide to the left means increase the offset
-				m_unrevealedDrag[m_touchSeat - 1] = -cardoffset;
-				m_revealedDrag[m_touchSeat - 1] = -cardoffset;
+				if (m_touchUnrevealedSeat == seat)
+				{
+					m_unrevealedDrag[m_touchUnrevealedSeat - 1] = -cardoffset;
+				} else if (m_touchRevealedSeat == seat) {
+					m_revealedDrag[m_touchRevealedSeat - 1] = -cardoffset;
+				}
 				this.invalidate();
 				
 				return true;
@@ -768,9 +779,9 @@ public class GameTable extends View
 		{
 			return findTouchedCardDiscardPile (pt);
 		}
-		if (m_touchSeat != 0)
+		if (m_touchUnrevealedSeat != 0)
 		{
-			return findTouchedCardHand (m_touchSeat, pt);
+			return findTouchedCardHand (m_touchUnrevealedSeat, pt);
 		}
 		
 		return null;
