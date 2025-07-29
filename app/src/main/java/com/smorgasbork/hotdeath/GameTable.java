@@ -524,10 +524,10 @@ public class GameTable extends View
 			{
 				m_touchSeat = Game.SEAT_NORTH;				
 			}
-			else if (m_unrevealedBoundingRect[Game.SEAT_NORTH - 1] != null
-					&& m_unrevealedBoundingRect[Game.SEAT_NORTH - 1].contains(x, y)
-					|| m_revealedBoundingRect[Game.SEAT_NORTH - 1] != null
-					&& m_revealedBoundingRect[Game.SEAT_NORTH - 1].contains(x, y))
+			else if (m_unrevealedBoundingRect[Game.SEAT_EAST - 1] != null
+					&& m_unrevealedBoundingRect[Game.SEAT_EAST - 1].contains(x, y)
+					|| m_revealedBoundingRect[Game.SEAT_EAST - 1] != null
+					&& m_revealedBoundingRect[Game.SEAT_EAST - 1].contains(x, y))
 			{
 				m_touchSeat = Game.SEAT_EAST;			
 			}
