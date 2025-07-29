@@ -324,27 +324,27 @@ public class GameTable extends View
 		m_ptEmoticon[Game.SEAT_WEST - 1] = new Point (m_ptSeat[Game.SEAT_WEST - 1].x + m_cardWidth * 11 / 10, m_ptSeat[Game.SEAT_WEST - 1].y - m_emoticonHeight / 2);
 
 		int x = m_ptSeat[Game.SEAT_NORTH - 1].x + m_maxWidthHand / 2 - m_bmpCardBadge.getWidth() / 2;
-		int y = m_ptSeat[Game.SEAT_NORTH - 1].y + m_cardHeight - m_bmpCardBadge.getHeight()  / 2;
+		int y = m_ptSeat[Game.SEAT_NORTH - 1].y - m_bmpCardBadge.getHeight()  / 2;
 		m_ptUnrevealedBadge[Game.SEAT_NORTH - 1] = new Point (x,y);
-		y += m_cardHeight / 2;
+		y += m_cardHeight * 3 / 2;
 		m_ptRevealedBadge[Game.SEAT_NORTH - 1] = new Point (x, y);
 
 		x = m_ptSeat[Game.SEAT_EAST - 1].x + m_cardWidth - m_bmpCardBadge.getWidth() / 2;
 		y = m_ptSeat[Game.SEAT_EAST - 1].y + m_maxHeightHand / 2 - m_bmpCardBadge.getHeight() / 2;
 		m_ptUnrevealedBadge[Game.SEAT_EAST - 1] = new Point (x, y);
-		x -= m_cardWidth / 2;
+		x -= m_cardWidth * 3 / 2;
 		m_ptRevealedBadge[Game.SEAT_EAST - 1] = new Point (x, y);
 
 		x = m_ptSeat[Game.SEAT_SOUTH - 1].x + m_maxWidthHandHuman / 2 - m_bmpCardBadge.getWidth() / 2;
 		y = m_ptSeat[Game.SEAT_SOUTH - 1].y + m_cardHeight - m_bmpCardBadge.getHeight() / 2;
 		m_ptUnrevealedBadge[Game.SEAT_SOUTH - 1] = new Point (x, y);
-		y -= m_cardHeight / 2;
+		y -= m_cardHeight * 3 / 2;
 		m_ptRevealedBadge[Game.SEAT_SOUTH - 1] = new Point (x, y);
 
-		x = m_ptSeat[Game.SEAT_WEST - 1].x + m_cardWidth - m_bmpCardBadge.getWidth() / 2;
+		x = m_ptSeat[Game.SEAT_WEST - 1].x - m_bmpCardBadge.getWidth() / 2;
 		y = m_ptSeat[Game.SEAT_WEST - 1].y + m_maxHeightHand / 2 - m_bmpCardBadge.getHeight() / 2;
 		m_ptUnrevealedBadge[Game.SEAT_WEST - 1] = new Point (x, y);
-		x += m_cardWidth / 2;
+		x += m_cardWidth * 3 / 2;
 		m_ptRevealedBadge[Game.SEAT_WEST - 1] = new Point (x, y);
 		
 		m_ptScoreText[Game.SEAT_NORTH - 1] = new Point (m_ptSeat[Game.SEAT_NORTH - 1].x,
