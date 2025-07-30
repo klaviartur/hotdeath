@@ -1310,7 +1310,7 @@ public class Game extends Thread {
 			m_waitingToStartRound = false;
 		}
 		
-		if (!(m_currPlayer instanceof HumanPlayer))
+		if (!(m_currPlayer instanceof HumanPlayer) || m_penalty.getType() != Penalty.PENTYPE_NONE)
 		{
 			return;
 		}
