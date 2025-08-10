@@ -776,6 +776,9 @@ public class Game extends Thread {
 			{
 				waitForNextRound ();
 				startRound ();
+			} else if (!(m_players[SEAT_SOUTH - 1]).getActive())
+			{
+				showFastForwardButton(true);
 			}
 		}
 		else
