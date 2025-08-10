@@ -1865,7 +1865,7 @@ public class GameTable extends View
 			{
 				switch (pv.getSeat()) {
 					case Game.SEAT_SOUTH:
-						dy -= m_cardHeight / 2;
+						dy -= m_cardHeight * 2 / 3;
 						break;
 					case Game.SEAT_WEST:
 						dx += m_cardWidth / 2;
@@ -1898,7 +1898,7 @@ public class GameTable extends View
 			{
 				switch (pa.getSeat()) {
 					case Game.SEAT_SOUTH:
-						dy -= m_cardHeight / 2;
+						dy -= m_cardHeight * 2 / 3;
 						break;
 					case Game.SEAT_WEST:
 						dx += m_cardWidth / 2;
