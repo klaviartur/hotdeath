@@ -87,6 +87,7 @@ public class Hand {
 	{
 		setFaceUp(true);
 		m_firstUnrevealed = m_numCards;
+		sort();
 	}
 
 
