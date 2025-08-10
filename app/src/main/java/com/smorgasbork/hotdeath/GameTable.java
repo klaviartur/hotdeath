@@ -1100,7 +1100,12 @@ public class GameTable extends View
 			case Game.SEAT_SOUTH:
 				dx = spacing;
 				dy = 0;
-				unrevealedWidth = (numUnrevealedShowing - 1) * spacing + m_cardWidth;
+				if (numUnrevealedShowing == 0)
+				{
+					unrevealedWidth = 0;
+				} else {
+					unrevealedWidth = (numUnrevealedShowing - 1) * spacing + m_cardWidth;
+				}
 				x = m_ptSeat[Game.SEAT_SOUTH - 1].x - unrevealedWidth / 2;
 				y = m_ptSeat[Game.SEAT_SOUTH - 1].y;
 				m_unrevealedBoundingRect[Game.SEAT_SOUTH - 1] = new Rect(x, y, x + unrevealedWidth, y + m_cardHeight);
