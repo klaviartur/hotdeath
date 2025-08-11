@@ -1806,6 +1806,11 @@ public class Game extends Thread {
 			m_penalty.setVictim(g);
 			m_penalty.setGeneratingPlayer(m_currPlayer);
 			m_penalty.setSecondaryVictim(m_currPlayer);
+
+			if (getActivePlayerCount() > 2 && m_penalty.getOrigCard().getID() == Card.ID_WILD_DB)
+			{
+				m_currPlayer = nextPlayer();
+			}
 			
 			String msg = String.format(getString(R.string.msg_sharing_penalty), seatToString(m_penalty.getVictim().getSeat()));
 			promptUser (msg);
@@ -1820,6 +1825,11 @@ public class Game extends Thread {
 
 			m_direction = (m_direction == DIR_CLOCKWISE) ? DIR_CCLOCKWISE : DIR_CLOCKWISE;
 			redrawTable();
+
+			if (getActivePlayerCount() > 2 && m_penalty.getOrigCard().getID() == Card.ID_WILD_DB)
+			{
+				m_currPlayer = nextPlayer();
+			}
 
 			String msg = String.format(getString(R.string.msg_sending_penalty), seatToString(m_penalty.getVictim().getSeat()));
 
