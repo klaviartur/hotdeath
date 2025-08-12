@@ -59,7 +59,15 @@ public class Game extends Thread {
 	{
 		return m_stopping;
 	}
-	
+
+	public void setWaitingToStartRound(boolean wtsr)
+	{
+		Log.d("HDU", "setWaitingToStartRound ("
+				+ (wtsr ? "true"  : "false")
+				+ ")");
+
+		m_waitingToStartRound = wtsr;
+	}
 	public void setFastForward (boolean ff)
 	{
 		Log.d("HDU", "setFastForward (" 
@@ -679,7 +687,8 @@ public class Game extends Thread {
 	public void startRound()
 	{
 		waitUntilUnpaused ();
-		
+
+		showNextRoundButton(false);
 		resetRound();
 		m_startPlayer = m_dealer.getLeftOpp();
 
@@ -774,6 +783,7 @@ public class Game extends Thread {
 			m_resumingSavedGame = false;
 			if (m_roundComplete)
 			{
+				showNextRoundButton(true);
 				waitForNextRound ();
 				startRound ();
 			} else if (!(m_players[SEAT_SOUTH - 1]).getActive())
@@ -1211,8 +1221,9 @@ public class Game extends Thread {
 		
 		m_snapshot = this.toJSON();
 
-		if (m_gameOver) 
-		{
+		if (!m_gameOver) {
+			showNextRoundButton(true);
+		} else {
 			m_winner = m_players[minPlayer].getSeat();
 			redrawTable();
 		}
@@ -1342,7 +1353,12 @@ public class Game extends Thread {
 	{
 		m_ga.runOnUiThread(() -> m_gt.RedrawTable());
 	}
-	
+
+	private void showNextRoundButton (final boolean show)
+	{
+		m_ga.runOnUiThread(() -> m_gt.showNextRoundButton(show));
+	}
+
 	private void showFastForwardButton (final boolean show)
 	{
 		m_ga.runOnUiThread(() -> m_gt.showFastForwardButton(show));

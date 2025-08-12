@@ -383,7 +383,20 @@ public class GameTable extends View
 		
 		m_waitingToStartGame = true;
 	}
-	
+
+	public void showNextRoundButton (boolean show)
+	{
+		GameActivity a = (GameActivity)(getContext());
+		if (show)
+		{
+			a.getBtnNextRound().setVisibility(View.VISIBLE);
+		}
+		else
+		{
+			a.getBtnNextRound().setVisibility(View.INVISIBLE);
+		}
+	}
+
 	public void showFastForwardButton (boolean show)
 	{
 		GameActivity a = (GameActivity)(getContext());
