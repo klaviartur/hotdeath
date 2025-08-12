@@ -1174,6 +1174,7 @@ public class Game extends Thread {
 	{
 		m_fastForward = false;
 		showFastForwardButton(false);
+		showMenuButton(false);
 
 		m_dealer = p;
 
