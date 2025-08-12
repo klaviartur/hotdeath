@@ -824,60 +824,63 @@ public class GameTable extends View
 		Bitmap bmp = null;
 		
 		int curr_color = m_game.getCurrColor();
-		
-		if (m_game.getDirection() == Game.DIR_CCLOCKWISE)
-		{
-			switch (curr_color)
-			{
-			case Card.COLOR_WILD:
-				bmp = m_bmpDirColorCCW;
-				break;
-			case Card.COLOR_RED:
-				bmp = m_bmpDirColorCCWRed;
-				break;
-			case Card.COLOR_GREEN:
-				bmp = m_bmpDirColorCCWGreen;
-				break;
-			case Card.COLOR_BLUE:
-				bmp = m_bmpDirColorCCWBlue;
-				break;
-			case Card.COLOR_YELLOW:
-				bmp = m_bmpDirColorCCWYellow;
-				break;
-			}
-		}
-		else
-		{
-			switch (curr_color)
-			{
-			case Card.COLOR_WILD:
-				bmp = m_bmpDirColorCW;
-				break;
-			case Card.COLOR_RED:
-				bmp = m_bmpDirColorCWRed;
-				break;
-			case Card.COLOR_GREEN:
-				bmp = m_bmpDirColorCWGreen;
-				break;
-			case Card.COLOR_BLUE:
-				bmp = m_bmpDirColorCWBlue;
-				break;
-			case Card.COLOR_YELLOW:
-				bmp = m_bmpDirColorCWYellow;
-				break;
-			}
-		}
 
-		// before the deal, we don't have a direction
-		if (bmp == null)
+		if (!m_game.getRoundComplete())
 		{
-			return;
-		}
+			if (m_game.getDirection() == Game.DIR_CCLOCKWISE)
+			{
+				switch (curr_color)
+				{
+				case Card.COLOR_WILD:
+					bmp = m_bmpDirColorCCW;
+					break;
+				case Card.COLOR_RED:
+					bmp = m_bmpDirColorCCWRed;
+					break;
+				case Card.COLOR_GREEN:
+					bmp = m_bmpDirColorCCWGreen;
+					break;
+				case Card.COLOR_BLUE:
+					bmp = m_bmpDirColorCCWBlue;
+					break;
+				case Card.COLOR_YELLOW:
+					bmp = m_bmpDirColorCCWYellow;
+					break;
+				}
+			}
+			else
+			{
+				switch (curr_color)
+				{
+				case Card.COLOR_WILD:
+					bmp = m_bmpDirColorCW;
+					break;
+				case Card.COLOR_RED:
+					bmp = m_bmpDirColorCWRed;
+					break;
+				case Card.COLOR_GREEN:
+					bmp = m_bmpDirColorCWGreen;
+					break;
+				case Card.COLOR_BLUE:
+					bmp = m_bmpDirColorCWBlue;
+					break;
+				case Card.COLOR_YELLOW:
+					bmp = m_bmpDirColorCWYellow;
+					break;
+				}
+			}
+
+			// before the deal, we don't have a direction
+			if (bmp == null)
+			{
+				return;
+			}
 		
-		m_drawMatrix.reset();
-		m_drawMatrix.setScale(1, 1);
-		m_drawMatrix.setTranslate(m_ptDirColor.x, m_ptDirColor.y);
-		canvas.drawBitmap(bmp, m_drawMatrix, null);
+			m_drawMatrix.reset();
+			m_drawMatrix.setScale(1, 1);
+			m_drawMatrix.setTranslate(m_ptDirColor.x, m_ptDirColor.y);
+			canvas.drawBitmap(bmp, m_drawMatrix, null);
+		}
 
 		displayScore (canvas);
 				
@@ -900,7 +903,7 @@ public class GameTable extends View
 		}
 		
 		Player p = m_game.getCurrPlayer();
-		if (p != null)
+		if (p != null && !m_game.getRoundComplete())
 		{
 			Point pt = m_ptPlayerIndicator[p.getSeat() - 1];
 	
