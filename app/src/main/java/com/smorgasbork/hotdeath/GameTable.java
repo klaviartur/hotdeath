@@ -37,6 +37,8 @@ public class GameTable extends View
 	
 	private Point m_ptDiscardPile;
 	private Point m_ptDrawPile;
+
+	private Point m_ptDiscardBadge;
 		
 	private final Point[] m_ptSeat;
 	private final Point[] m_ptEmoticon;
@@ -264,6 +266,8 @@ public class GameTable extends View
 			m_ptDiscardPile = new Point (w / 2 + m_cardWidth / 4, h / 2 - m_cardHeight);
 			m_ptDirColor = new Point (w /2 - m_bmpDirColorCCW.getWidth() / 2, h / 2 + m_cardHeight / 4);
 		}
+
+		m_ptDiscardBadge = new Point (m_ptDiscardPile.x + m_cardWidth - m_bmpCardBadge.getWidth() / 2, m_ptDiscardPile.y + m_cardHeight - m_bmpCardBadge.getHeight() / 2);
 
 		m_ptPlayerIndicator[Game.SEAT_NORTH - 1] = new Point (m_ptDirColor.x + m_bmpDirColorCCW.getWidth() / 2 - m_bmpPlayerIndicator[0][0].getWidth() / 2, m_ptDirColor.y - m_bmpPlayerIndicator[0][0].getHeight());
 		m_ptPlayerIndicator[Game.SEAT_EAST - 1] = new Point (m_ptDirColor.x + m_bmpDirColorCCW.getWidth(), m_ptDirColor.y + m_bmpDirColorCCW.getHeight() / 2 -  m_bmpPlayerIndicator[0][0].getHeight() / 2);
@@ -1866,11 +1870,25 @@ public class GameTable extends View
 	    {
 	    	return;
 	    }
-	    
-        if (p.getType() == Penalty.PENTYPE_CARD) 
+
+        if (p.getType() == Penalty.PENTYPE_CARD)
         {
-            //int nc = p.GetNumCards();
+            m_drawMatrix.reset();
+			m_drawMatrix.setScale(1, 1);
+			m_drawMatrix.setTranslate(m_ptDiscardBadge.x, m_ptDiscardBadge.y);
+
+			cv.drawBitmap(m_bmpCardBadge, m_drawMatrix, null);
+
+			float fx = (float)(m_ptDiscardBadge.x + m_bmpCardBadge.getWidth() / 2);
+			Rect textBounds = new Rect();
+			String numCards = "" + p.getNumCards();
+
+			m_paintCardBadgeText.getTextBounds(numCards, 0, numCards.length(), textBounds);
+			float fy = (float)(m_ptDiscardBadge.y + m_bmpCardBadge.getHeight() / 2 + (int)(textBounds.height() / 2));
+
+			cv.drawText(numCards, fx, fy, m_paintCardBadgeText);
         }
+		//else if (p.getOrigCard()
 
         Point pt;
         
@@ -1882,6 +1900,7 @@ public class GameTable extends View
 			int dx = 0;
 			int dy = 0;
 
+			// adjust emoticon position for revealed cards offset
 			if (!pv.getHand().getRevealedCards().isEmpty())
 			{
 				switch (pv.getSeat()) {
@@ -1915,6 +1934,7 @@ public class GameTable extends View
 			int dx = 0;
 			int dy = 0;
 
+			// adjust emoticon position for revealed cards offset
 			if (!pa.getHand().getRevealedCards().isEmpty())
 			{
 				switch (pa.getSeat()) {
@@ -1939,6 +1959,8 @@ public class GameTable extends View
     		
             cv.drawBitmap(m_bmpEmoticonAggressor, m_drawMatrix, null);
         }
+
+
 
 	}
 	
