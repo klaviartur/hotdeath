@@ -34,6 +34,7 @@ public class GameActivity extends Activity
 	private View m_vMenuPanel = null;
 
 	private Button m_btnFastForward = null;
+	private Button m_btnNextRound = null;
 	private Button m_btnMenuDraw = null;
 	private Button m_btnMenuPass = null;
 	private Button m_btnMenuHelp = null;
@@ -55,6 +56,11 @@ public class GameActivity extends Activity
 	public Game getGame ()
 	{
 		return m_game;
+	}
+
+	public Button getBtnNextRound ()
+	{
+		return m_btnNextRound;
 	}
 
 	public Button getBtnFastForward ()
@@ -100,6 +106,18 @@ public class GameActivity extends Activity
 	    
 	    RelativeLayout l = new RelativeLayout (this);
 
+		m_btnNextRound = (Button)getLayoutInflater().inflate(R.layout.action_button, null);
+		m_btnNextRound.setText(getString(R.string.lbl_next_round));
+		m_btnNextRound.setId(View.generateViewId());
+		m_btnNextRound.setVisibility(View.INVISIBLE);
+		m_btnNextRound.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				m_btnNextRound.setVisibility(View.INVISIBLE);
+				m_game.setWaitingToStartRound(false);
+			}
+		});
+
 		m_btnFastForward = (Button)getLayoutInflater().inflate(R.layout.action_button, null);
 		m_btnFastForward.setText(getString(R.string.lbl_fast_forward));
 		m_btnFastForward.setId(View.generateViewId());
@@ -143,7 +161,16 @@ public class GameActivity extends Activity
 
 		l.addView(m_btnFastForward, lp);
 
+		lp = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+		lp.addRule(RelativeLayout.CENTER_IN_PARENT, m_gt.getId());
+		lp.topMargin = (int)(8 * scale + 0.5f);
+		lp.width = btn_width;
+		lp.height = btn_height;
+
+		l.addView(m_btnNextRound, lp);
+
 		setContentView (l);
+		l.setFitsSystemWindows(true);
 
 
 		m_btnMenuDraw = findViewById(R.id.btn_menu_draw);

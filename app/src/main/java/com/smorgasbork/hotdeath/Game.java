@@ -59,7 +59,15 @@ public class Game extends Thread {
 	{
 		return m_stopping;
 	}
-	
+
+	public void setWaitingToStartRound(boolean wtsr)
+	{
+		Log.d("HDU", "setWaitingToStartRound ("
+				+ (wtsr ? "true"  : "false")
+				+ ")");
+
+		m_waitingToStartRound = wtsr;
+	}
 	public void setFastForward (boolean ff)
 	{
 		Log.d("HDU", "setFastForward (" 
@@ -593,7 +601,7 @@ public class Game extends Thread {
 		for (i = 0; i < 4; i++) 
 		{
 			Hand h = (m_players[i]).getHand();
-			sortHand(h);
+			h.sort();
 		}
 	}	
 
@@ -679,7 +687,8 @@ public class Game extends Thread {
 	public void startRound()
 	{
 		waitUntilUnpaused ();
-		
+
+		showNextRoundButton(false);
 		resetRound();
 		m_startPlayer = m_dealer.getLeftOpp();
 
@@ -774,8 +783,12 @@ public class Game extends Thread {
 			m_resumingSavedGame = false;
 			if (m_roundComplete)
 			{
+				showNextRoundButton(true);
 				waitForNextRound ();
 				startRound ();
+			} else if (!(m_players[SEAT_SOUTH - 1]).getActive())
+			{
+				showFastForwardButton(true);
 			}
 		}
 		else
@@ -1013,7 +1026,7 @@ public class Game extends Thread {
 				{
 					m_currPlayer.drawCard();
 		
-					sortHand (m_currPlayer.getHand());
+					m_currPlayer.getHand().sort();
 					redrawTable();
 		
 					String msg = String.format(getString (R.string.msg_player_draws_card), seatToString(m_currPlayer.getSeat()));
@@ -1171,6 +1184,7 @@ public class Game extends Thread {
 	{
 		m_fastForward = false;
 		showFastForwardButton(false);
+		showMenuButton(false);
 
 		m_dealer = p;
 
@@ -1181,7 +1195,7 @@ public class Game extends Thread {
 		{
 			m_players[i].setActive(true);
 			((m_players[i]).getHand()).setFaceUp(true);
-			sortHand ((m_players[i]).getHand());
+			(m_players[i]).getHand().sort();
 		}
 
 		redrawTable();
@@ -1207,8 +1221,9 @@ public class Game extends Thread {
 		
 		m_snapshot = this.toJSON();
 
-		if (m_gameOver) 
-		{
+		if (!m_gameOver) {
+			showNextRoundButton(true);
+		} else {
 			m_winner = m_players[minPlayer].getSeat();
 			redrawTable();
 		}
@@ -1333,60 +1348,17 @@ public class Game extends Thread {
 		}
 
 	}
-
-
-
-	public void sortHand (Hand h)
-	{
-		Card[] cards = new Card[MAX_NUM_CARDS];
-		int i;
-		
-		int p = 0;
-		Card[] cd = m_deck.getCards();
-
-		if (m_go.getFaceUp())
-		{
-			for (i = 0; i < m_deck.getNumCards(); i++) 
-			{
-				Card c = cd[i];
-				if (c.getHand() == h) 
-				{
-					cards[p++] = c;
-				}
-			}			
-		}
-
-		else
-		{
-			// sort according to deck order, but do faceup cards first
-			for (i = 0; i < m_deck.getNumCards(); i++) 
-			{
-				Card c = cd[i];
-				if (c.getHand() == h && c.getFaceUp()) 
-				{
-					cards[p++] = c;
-				}
-			}
-			
-			for (i = 0; i < m_deck.getNumCards(); i++) 
-			{
-				Card c = cd[i];
-				if (c.getHand() == h && !(c.getFaceUp())) 
-				{
-					cards[p++] = c;
-				}
-			}
-		}
-
-		h.reorderCards(cards);
-	}
-
 	
 	private void redrawTable ()
 	{
 		m_ga.runOnUiThread(() -> m_gt.RedrawTable());
 	}
-	
+
+	private void showNextRoundButton (final boolean show)
+	{
+		m_ga.runOnUiThread(() -> m_gt.showNextRoundButton(show));
+	}
+
 	private void showFastForwardButton (final boolean show)
 	{
 		m_ga.runOnUiThread(() -> m_gt.showFastForwardButton(show));
@@ -1851,6 +1823,11 @@ public class Game extends Thread {
 			m_penalty.setVictim(g);
 			m_penalty.setGeneratingPlayer(m_currPlayer);
 			m_penalty.setSecondaryVictim(m_currPlayer);
+
+			if (getActivePlayerCount() > 2 && m_penalty.getOrigCard().getID() == Card.ID_WILD_DB)
+			{
+				m_currPlayer = nextPlayer();
+			}
 			
 			String msg = String.format(getString(R.string.msg_sharing_penalty), seatToString(m_penalty.getVictim().getSeat()));
 			promptUser (msg);
@@ -1865,6 +1842,11 @@ public class Game extends Thread {
 
 			m_direction = (m_direction == DIR_CLOCKWISE) ? DIR_CCLOCKWISE : DIR_CLOCKWISE;
 			redrawTable();
+
+			if (getActivePlayerCount() > 2 && m_penalty.getOrigCard().getID() == Card.ID_WILD_DB)
+			{
+				m_currPlayer = nextPlayer();
+			}
 
 			String msg = String.format(getString(R.string.msg_sending_penalty), seatToString(m_penalty.getVictim().getSeat()));
 
@@ -1966,7 +1948,7 @@ public class Game extends Thread {
 		}
 		else if (m_penalty.getType() == Penalty.PENTYPE_FACEUP) 
 		{
-			h.setFaceUp(true);
+			h.reveal();
 
 			if (m_players[SEAT_SOUTH - 1] instanceof HumanPlayer) 
 			{
@@ -1977,11 +1959,7 @@ public class Game extends Thread {
 			if (pVictim2 != null) 
 			{
 				h = pVictim2.getHand();
-				for (i = 0; i < h.getNumCards(); i++) 
-				{
-					Card c = h.getCard(i);
-					c.setFaceUp(true);
-				}
+				h.reveal();
 				if (m_players[SEAT_SOUTH - 1] instanceof HumanPlayer) 
 				{
 					msg = String.format (getString(R.string.msg_player_faceup), seatToString(pVictim2.getSeat()));
@@ -2132,7 +2110,7 @@ public class Game extends Thread {
 			promptUser (getString(R.string.msg_discard_empty));
 		}
 		
-		sortHand (p.getHand());
+		p.getHand().sort();
 		redrawTable();
 		m_currPlayer = realCurrPlayer;
 	}
