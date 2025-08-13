@@ -1888,7 +1888,15 @@ public class GameTable extends View
 
 			cv.drawText(numCards, fx, fy, m_paintCardBadgeText);
         }
-		//else if (p.getOrigCard()
+		else if (p.getOrigCard().getID() != m_game.getLastPlayedCard().getID())
+		{
+			Bitmap b = m_imageLookup.get(p.getOrigCard().getID());
+			float scale = (float) m_bmpCardBadge.getWidth() / (float)b.getWidth();
+			m_drawMatrix.reset();
+			m_drawMatrix.postScale(scale, scale);
+			m_drawMatrix.postTranslate(m_ptDiscardBadge.x, m_ptDiscardBadge.y);
+			cv.drawBitmap(b, m_drawMatrix, null);
+		}
 
         Point pt;
         
