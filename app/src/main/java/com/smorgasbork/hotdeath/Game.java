@@ -664,6 +664,7 @@ public class Game extends Thread {
 			}
 			else 
 			{
+				return null;
 			}
 
 		}

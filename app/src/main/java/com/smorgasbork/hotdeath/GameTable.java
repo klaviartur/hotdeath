@@ -784,7 +784,10 @@ public class GameTable extends View
 		if (m_discardPileBoundingRect.contains(pt.x, pt.y))
 		{
 			int numcards = m_game.getDiscardPile().getNumCards();
-			return m_game.getDiscardPile().getCard(numcards - 1);
+			if (numcards > 0)
+			{
+				return m_game.getDiscardPile().getCard(numcards - 1);
+			}
 		}
 		
 		return null;
