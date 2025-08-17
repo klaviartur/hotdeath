@@ -114,7 +114,7 @@ public class Game extends Thread {
 	
 	public boolean getCurrPlayerDrawn()
 	{
-		return (m_currPlayer.getLastDrawn() != null);
+		return (m_currPlayer.getHasTriedDrawing());
 	}
 
 	public Player getPlayer(int i)
@@ -557,7 +557,7 @@ public class Game extends Thread {
 			{
 				Card c = m_deck.getCard(i);
 
-                c.setFaceUp(p.getSeat() == SEAT_SOUTH);
+				c.setFaceUp(p.getSeat() == SEAT_SOUTH);
 	
 				p.addCardToHand (c);
 	
@@ -985,9 +985,12 @@ public class Game extends Thread {
 				redrawTable();
 			}
 			
-			else if (m_currPlayer.getWantsToDraw() && (m_currPlayer.getLastDrawn() == null))
+			else if (m_currPlayer.getWantsToDraw() && !getCurrPlayerDrawn())
 			{
-				m_currPlayer.drawCard();
+				if (!m_currPlayer.drawCard())
+				{
+					return true;
+				}
 				redrawTable ();
 
 				if (m_currPlayer instanceof HumanPlayer)
@@ -998,7 +1001,7 @@ public class Game extends Thread {
 				}				
 			}
 			
-			else if (m_currPlayer.getWantsToPass() && (m_currPlayer.getLastDrawn() != null)) 
+			else if (m_currPlayer.getWantsToPass() && getCurrPlayerDrawn())
 			{
 				if (m_penalty.getType() != Penalty.PENTYPE_NONE) 
 				{
@@ -1019,7 +1022,7 @@ public class Game extends Thread {
 			
 			else
 			{
-				if (m_currPlayer.getLastDrawn() != null)
+				if (getCurrPlayerDrawn())
 				{
 					m_currPlayer = nextPlayer();
 				}
@@ -2093,7 +2096,7 @@ public class Game extends Thread {
 			if (c != null) 
 			{
 				p.addCardToHand(c);
-				if ((p.getSeat() == SEAT_SOUTH) || m_go.getFaceUp()) 
+				if (p instanceof HumanPlayer || m_go.getFaceUp())
 				{
 					c.setFaceUp(true);
 				}

@@ -52,7 +52,7 @@ public class HumanPlayer extends Player
 		{
 			m_playingCard = c;
 			m_wantsToPlayCard = true;
-			m_lastDrawn = null;
+			//resetLastDrawn();
 			m_turnDecision = true;				
 		}
 		else 

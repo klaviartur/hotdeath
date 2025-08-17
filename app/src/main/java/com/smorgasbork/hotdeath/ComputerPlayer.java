@@ -36,7 +36,7 @@ public class ComputerPlayer extends Player
 			// if we have no valid cards, we either pass or draw, depending on
 			// whether we've already drawn...
 			
-			if (this.m_lastDrawn != null)
+			if (this.m_hasTriedDrawing)
 			{
 				// if we just drew a card, then we have to pass
 				this.m_wantsToPass = true;
@@ -54,10 +54,10 @@ public class ComputerPlayer extends Player
 	}
 	
 	@Override
-	public void drawCard ()
+	public boolean drawCard ()
 	{
 		m_game.waitABit ();
-		super.drawCard();
+		return super.drawCard();
 	}
 
 	public int chooseColor()

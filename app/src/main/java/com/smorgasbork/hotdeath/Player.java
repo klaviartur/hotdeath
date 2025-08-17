@@ -27,6 +27,7 @@ public class Player {
 	protected int     m_lastVirusPenalty;
 	protected int     m_totalScore;
 
+	protected boolean m_hasTriedDrawing;
 	protected Card    m_lastDrawn;
 	
 	protected boolean    m_active;
@@ -146,7 +147,11 @@ public class Player {
 	{
 		m_totalScore = s; 
 	}
-	
+
+	public boolean getHasTriedDrawing()
+	{
+		return m_hasTriedDrawing;
+	}
 	public Card getLastDrawn() 
 	{
 		return m_lastDrawn; 
@@ -154,7 +159,8 @@ public class Player {
 	
 	public void resetLastDrawn() 
 	{
-		m_lastDrawn = null; 
+		m_hasTriedDrawing = false;
+		m_lastDrawn = null;
 	}
 
 	public boolean getActive()
@@ -183,6 +189,7 @@ public class Player {
 		m_skill = 1;		// medium
 		m_aggression = 0;	// neutral
 		m_virusPenalty = 0;
+		m_hasTriedDrawing = false;
 		m_lastDrawn = null;
 	}
 	
@@ -254,8 +261,10 @@ public class Player {
 		return rgen.nextInt (11) + 5;
 	}
 
-	protected void drawCard()
+	protected boolean drawCard()
 	{
+		m_hasTriedDrawing = true;
+
 		Card c = m_game.drawCard();
 
 		// we shouldn't get null except in the rarest of circumstances
@@ -263,7 +272,7 @@ public class Player {
 		// table).  But it _can_ happen.
 		if (c == null) 
 		{
-			return;
+			return false;
 		}
 		
 		if (m_seat == Game.SEAT_SOUTH)
@@ -274,6 +283,8 @@ public class Player {
 		m_hand.addCard (c);
 		m_hand.sort();
 		m_lastDrawn = c;
+
+		return true;
 	}
 	
 	public JSONObject toJSON () throws JSONException
@@ -282,6 +293,7 @@ public class Player {
 		o.put ("active", m_active);
 		o.put ("totalScore", m_totalScore);
 		o.put ("lastScore", m_lastScore);
+		o.put ("hasTriedDrawing", m_hasTriedDrawing);
 		if (m_lastDrawn != null)
 		{
 			o.put ("lastDrawn", m_lastDrawn.getDeckIndex());			
@@ -306,7 +318,7 @@ public class Player {
 		m_virusPenalty = o.getInt("virusPenalty");
 		m_lastVirusPenalty = o.getInt("lastVirusPenalty");
 		m_active = o.getBoolean("active");
-		
+		m_hasTriedDrawing = o.getBoolean("hasTriedDrawing");
 		int nLastDrawn = o.getInt("lastDrawn");
 		if (nLastDrawn != -1)
 		{
