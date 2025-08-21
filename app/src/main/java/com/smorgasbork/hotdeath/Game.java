@@ -947,14 +947,14 @@ public class Game extends Thread {
 				{
 					assessPenalty();
 				}
-				
-				m_currPlayer = nextPlayer();
-				
+
 
 				// if we just threw something that set up the next player, and he has
 				// no defender, hit him now
 				if (m_penalty.getType() != Penalty.PENTYPE_NONE) 
 				{
+					m_nextPlayerPreset = m_penalty.getVictim();
+					m_currPlayer = nextPlayer();
 					if (m_go.getStandardRules()) 
 					{
 						assessPenalty();
@@ -981,6 +981,10 @@ public class Game extends Thread {
 							assessPenalty();
 						}
 					}
+				}
+				else
+				{
+					m_currPlayer = nextPlayer();
 				}
 
 				redrawTable();
