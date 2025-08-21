@@ -1120,7 +1120,7 @@ public class Game extends Thread {
 				if (!defenderAlreadyThrown
 					&& (pvalue == Card.VAL_WILD_DRAWFOUR) 
 					&& (tid != Card.ID_WILD_HOS) && (tid != Card.ID_WILD_MYSTERY)) {
-					if (cvalue == Card.VAL_WILD_DRAWFOUR) 
+					if (cvalue == Card.VAL_WILD_DRAWFOUR && cid != Card.ID_WILD_MYSTERY)
 					{
 						return true;
 					}
