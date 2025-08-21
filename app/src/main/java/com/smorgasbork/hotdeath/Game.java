@@ -862,7 +862,16 @@ public class Game extends Thread {
 	{
 		m_currPlayer.resetLastDrawn();
 
-        return getNextPlayer();
+		if (m_nextPlayerPreset != null)
+		{
+			Player p = m_nextPlayerPreset;
+			m_nextPlayerPreset = null;
+			return p;
+		}
+		else
+		{
+			return getNextPlayer();
+		}
 	}
 	
 	public boolean advanceRound()
@@ -939,15 +948,7 @@ public class Game extends Thread {
 					assessPenalty();
 				}
 				
-				// go to next player
-				if (m_nextPlayerPreset != null) 
-				{
-					m_currPlayer = m_nextPlayerPreset;
-				}
-				else 
-				{
-					m_currPlayer = nextPlayer();
-				}
+				m_currPlayer = nextPlayer();
 				
 
 				// if we just threw something that set up the next player, and he has
