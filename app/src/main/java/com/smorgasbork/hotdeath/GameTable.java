@@ -454,7 +454,7 @@ public class GameTable extends View
 			{
 				return;
 			}
-			if (!c.getFaceUp())
+			if (!c.getFaceUp() && !m_go.getFaceUp())
 			{
 				return;
 			}
@@ -564,6 +564,9 @@ public class GameTable extends View
 
 			if (m_drawPileBoundingRect != null && m_drawPileBoundingRect.contains (x, y))
 			{
+				m_waitingForTouchAndHold = true;
+				m_handler.postDelayed (m_touchAndHoldTask, 1000);
+
 				m_touchDrawPile = true;
 			}
 			
@@ -787,6 +790,20 @@ public class GameTable extends View
 		
 		return null;
 	}
+
+	private Card findTouchedCardDrawPile (Point pt)
+	{
+		if (m_drawPileBoundingRect.contains(pt.x, pt.y))
+		{
+			int numcards = m_game.getDrawPile().getNumCards();
+			if (numcards > 0)
+			{
+				return m_game.getDrawPile().getCard(numcards - 1);
+			}
+		}
+
+		return null;
+	}
 	
 	private Card findTouchedCard (Point pt)
 	{
@@ -794,9 +811,13 @@ public class GameTable extends View
 		{
 			return findTouchedCardDiscardPile (pt);
 		}
-		if (m_touchUnrevealedSeat != 0)
+		if (m_touchDrawPile)
 		{
-			return findTouchedCardHand (m_touchUnrevealedSeat, pt);
+			return findTouchedCardDrawPile (pt);
+		}
+		if (max(m_touchUnrevealedSeat, m_touchRevealedSeat) != 0)
+		{
+			return findTouchedCardHand (max(m_touchUnrevealedSeat, m_touchRevealedSeat), pt);
 		}
 		
 		return null;
