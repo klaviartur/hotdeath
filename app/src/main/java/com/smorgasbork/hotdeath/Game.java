@@ -2005,11 +2005,6 @@ public class Game extends Thread {
 				}
 			}
 
-			if ((m_currPlayer == pVictim) || (m_currPlayer == pVictim2)) 
-			{
-				m_currPlayer = nextPlayer();
-			}
-
 			// FIXME!!! My personal rule -- if we end up with only
 			// one player left, that player wins
 			if (getActivePlayerCount() == 1) 
