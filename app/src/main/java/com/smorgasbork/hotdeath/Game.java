@@ -597,11 +597,13 @@ public class Game extends Thread {
 				m_drawPile.addCard(c);
 			}
 		}
-		
-		for (i = 0; i < 4; i++) 
-		{
-			Hand h = (m_players[i]).getHand();
-			h.sort();
+
+		if (m_go.getFaceUp()) {
+			for (Player player : m_players) {
+				player.getHand().sort();
+			}
+		} else {
+			m_players[SEAT_SOUTH -1].getHand().sort();
 		}
 	}	
 
@@ -1200,11 +1202,10 @@ public class Game extends Thread {
 		calculateScore(p);
 		m_roundComplete = true;
 
-		for (int i = 0; i < 4; i++) 
-		{
-			m_players[i].setActive(true);
-			((m_players[i]).getHand()).setFaceUp(true);
-			(m_players[i]).getHand().sort();
+		for (Player player : m_players) {
+			player.setActive(true);
+			player.getHand().setFaceUp(true);
+			player.getHand().sort();
 		}
 
 		redrawTable();
@@ -2101,9 +2102,10 @@ public class Game extends Thread {
 			if (c != null) 
 			{
 				p.addCardToHand(c);
-				if (p instanceof HumanPlayer || m_go.getFaceUp())
+				if (p.getSeat() == SEAT_SOUTH || m_go.getFaceUp())
 				{
 					c.setFaceUp(true);
+					p.getHand().sort();
 				}
 			}
 			else
@@ -2118,8 +2120,7 @@ public class Game extends Thread {
 		{
 			promptUser (getString(R.string.msg_discard_empty));
 		}
-		
-		p.getHand().sort();
+
 		redrawTable();
 		m_currPlayer = realCurrPlayer;
 	}

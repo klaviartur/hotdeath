@@ -274,12 +274,7 @@ public class Hand {
 		cards.sort(new Comparator<Card>() {
 			@Override
 			public int compare(Card c1, Card c2) {
-				// Step 1: Compare based on faceUp property
-				if (c1.getFaceUp() != c2.getFaceUp()) {
-					return Boolean.compare(c2.getFaceUp(), c1.getFaceUp()); // true comes first
-				}
-				// Step 2: Compare based on idx property
-				return Integer.compare(c1.getDeckIndex(), c2.getDeckIndex()); // then sort by idx ascending
+				return Integer.compare(c1.getDeckIndex(), c2.getDeckIndex());
 			}
 		});
 	}

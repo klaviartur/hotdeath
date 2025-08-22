@@ -278,10 +278,10 @@ public class Player {
 		if (m_seat == Game.SEAT_SOUTH)
 		{
 			c.setFaceUp(true);
+			m_hand.sort();
 		}
 
 		m_hand.addCard (c);
-		m_hand.sort();
 		m_lastDrawn = c;
 
 		return true;
