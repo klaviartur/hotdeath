@@ -274,15 +274,15 @@ public class Player {
 		{
 			return false;
 		}
-		
+
+		m_hand.addCard (c);
+		m_lastDrawn = c;
+
 		if (m_seat == Game.SEAT_SOUTH)
 		{
 			c.setFaceUp(true);
 			m_hand.sort();
 		}
-
-		m_hand.addCard (c);
-		m_lastDrawn = c;
 
 		return true;
 	}
