@@ -1035,7 +1035,7 @@ public class Game extends Thread {
 				{
 					m_currPlayer.drawCard();
 		
-					m_currPlayer.getHand().sort();
+					//m_currPlayer.getHand().sort(); //redundant
 					redrawTable();
 		
 					String msg = String.format(getString (R.string.msg_player_draws_card), seatToString(m_currPlayer.getSeat()));
@@ -1515,7 +1515,7 @@ public class Game extends Thread {
 			
 		}
 
-		if (m_penalty.getVictim() == m_currPlayer) 
+		if (m_penalty.getVictim() == m_currPlayer)
 		{
 			if (prevID == Card.ID_RED_0_HD) 
 			{

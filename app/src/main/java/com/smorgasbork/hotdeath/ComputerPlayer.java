@@ -49,8 +49,6 @@ public class ComputerPlayer extends Player
 		}
 
 		this.playCard();
-		
-		return;
 	}
 	
 	@Override
