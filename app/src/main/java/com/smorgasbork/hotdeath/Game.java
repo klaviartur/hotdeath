@@ -1976,7 +1976,7 @@ public class Game extends Thread {
 					promptUser (msg);
 				}
 			}
-
+			m_currPlayer = m_penalty.getGeneratingPlayer();
 		}
 		else if (m_penalty.getType() == Penalty.PENTYPE_EJECT) 
 		{
