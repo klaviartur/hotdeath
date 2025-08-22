@@ -2097,9 +2097,12 @@ public class Game extends Thread {
 			if (c != null) 
 			{
 				p.addCardToHand(c);
-				if (p.getSeat() == SEAT_SOUTH || m_go.getFaceUp())
+				if (p.getSeat() == SEAT_SOUTH)
 				{
 					c.setFaceUp(true);
+				}
+				if (p.getSeat() == SEAT_SOUTH || m_go.getFaceUp())
+				{
 					p.getHand().sort();
 				}
 			}
