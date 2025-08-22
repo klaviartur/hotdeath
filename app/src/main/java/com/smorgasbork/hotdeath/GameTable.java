@@ -1,6 +1,5 @@
 package com.smorgasbork.hotdeath;
 
-
 import static java.lang.Math.*;
 
 import android.os.Handler;
@@ -63,7 +62,7 @@ public class GameTable extends View
 	private int m_bottomMarginExternal = 0;
 	
 	private int m_cardSpacing = 0;
-	private int m_cardSpacingHuman = 0;
+	private int m_cardSpacingSouth = 0;
 	
 	private int m_maxWidthHand;
 	private int m_maxHeightHand;
@@ -279,14 +278,14 @@ public class GameTable extends View
 		m_paintScoreText.getTextBounds(numstr, 0, numstr.length(), textBounds);
 		
 		m_cardSpacing = (int)(m_cardWidth / 2.0);
-		m_cardSpacingHuman = 2 * (int)(m_cardWidth / 3.0);
+		m_cardSpacingSouth = 2 * (int)(m_cardWidth / 3.0);
 		
 		// figure out what the maximum number of cards you can display will be
 		
 		// calculate max cards in layout 1 (N/S cards live between E/W cards)
 		
 		int humanPlayerArea = w - 2 * m_cardWidth - 2 * m_leftMargin - 2 * m_rightMargin;
-		int maxNumHumanCards = (int)((humanPlayerArea - m_cardWidth) / m_cardSpacingHuman) + 1;
+		int maxNumHumanCards = (int)((humanPlayerArea - m_cardWidth) / m_cardSpacingSouth) + 1;
 
 		int computerPlayerArea = h - m_topMargin - m_bottomMargin - (int)(textBounds.height() * 1.2);
 		int maxNumComputerCards = (int)((computerPlayerArea - m_cardHeight) / m_cardSpacing) + 1;
@@ -296,7 +295,7 @@ public class GameTable extends View
 		// calculate max cards in layout 2 (E/W cards live between N/S cards)
 		
 		humanPlayerArea = w - m_leftMargin - m_rightMargin;
-		maxNumHumanCards = (int)((humanPlayerArea - m_cardWidth) / m_cardSpacingHuman) + 1;
+		maxNumHumanCards = (int)((humanPlayerArea - m_cardWidth) / m_cardSpacingSouth) + 1;
 
 		computerPlayerArea = h - 2 * m_cardHeight - 2 * m_topMargin - 2 * m_bottomMargin;
 		maxNumComputerCards = (int)((computerPlayerArea - m_cardHeight) / m_cardSpacing) + 1;
@@ -313,7 +312,7 @@ public class GameTable extends View
 		m_maxWidthHand = (m_maxCardsDisplay - 1) * m_cardSpacing + m_cardWidth;
 		m_maxHeightHand = (m_maxCardsDisplay - 1) * m_cardSpacing + m_cardHeight;
 
-		m_maxWidthHandHuman = (m_maxCardsDisplay - 1) * m_cardSpacingHuman + m_cardWidth;
+		m_maxWidthHandHuman = (m_maxCardsDisplay - 1) * m_cardSpacingSouth + m_cardWidth;
 		
 		m_ptSeat[Game.SEAT_NORTH - 1] = new Point (w / 2, m_topMargin);
 		m_ptSeat[Game.SEAT_EAST - 1] = new Point (w - (m_cardWidth + m_rightMargin), h / 2);
@@ -663,9 +662,7 @@ public class GameTable extends View
 			int seat = max(m_touchUnrevealedSeat, m_touchRevealedSeat);
 			if (seat != 0)
 			{
-				int spacing = (m_game.getPlayer( seat- 1) instanceof HumanPlayer)
-					? m_cardSpacingHuman
-					: m_cardSpacing;
+				int spacing = (seat == Game.SEAT_SOUTH) ? m_cardSpacingSouth : m_cardSpacing;
 				
 				int cardoffset;
 				
@@ -718,9 +715,7 @@ public class GameTable extends View
 	
 	private Card findTouchedCardHand (int seat, Point pt)
 	{
-		int spacing = (m_game.getPlayer(seat - 1) instanceof HumanPlayer)
-				? m_cardSpacingHuman
-				: m_cardSpacing;
+		int spacing = (seat == Game.SEAT_SOUTH) ? m_cardSpacingSouth : m_cardSpacing;
 
 		Player p = m_game.getPlayer(seat - 1);
 		Hand h = p.getHand();
@@ -1061,9 +1056,7 @@ public class GameTable extends View
 		int revealedHeight = 0;
 
 
-		int spacing = (m_game.getPlayer(seat - 1) instanceof HumanPlayer)
-				? m_cardSpacingHuman
-				: m_cardSpacing;
+		int spacing = (seat == Game.SEAT_SOUTH) ? m_cardSpacingSouth : m_cardSpacing;
 		
 		switch (seat) {
 		case Game.SEAT_SOUTH:
