@@ -943,52 +943,45 @@ public class Game extends Thread {
 
 				// if previous player set us up, and we did not throw something
 				// that would negate the penalty, then we get penalized now
-				if ((m_penalty.getType() != Penalty.PENTYPE_NONE)
-					&& ((m_penalty.getVictim() == m_currPlayer)
-							|| m_penalty.getSecondaryVictim() == m_currPlayer))
-				{
-					assessPenalty();
-				}
+//				if ((m_penalty.getType() != Penalty.PENTYPE_NONE)
+//					&& ((m_penalty.getVictim() == m_currPlayer)
+//							|| m_penalty.getSecondaryVictim() == m_currPlayer))
+//				{
+//					assessPenalty();
+//				}
 
 
 				// if we just threw something that set up the next player, and he has
 				// no defender, hit him now
 				if (m_penalty.getType() != Penalty.PENTYPE_NONE) 
 				{
-					m_nextPlayerPreset = m_penalty.getVictim();
-					m_currPlayer = nextPlayer();
 					if (m_go.getStandardRules()) 
 					{
 						assessPenalty();
 					}
 					else 
 					{
-						int ndef = checkForDefender(m_currPlayer.getHand());
-						if (ndef > 0) 
-						{
-							if (m_currPlayer instanceof HumanPlayer)
-							{
-								if (ndef == 1)
-								{
-									promptUser(getString (R.string.msg_you_have_defender));
-								}
-								else
-								{
-									promptUser (String.format(getString (R.string.msg_you_have_defenders), ndef));
-								}
-							}
-						}
-						else 
-						{
-							assessPenalty();
-						}
-					}
+						Player victim = m_penalty.getVictim();
+						int ndef = checkForDefender(victim.getHand());
+                        if (ndef == 0) {
+                            assessPenalty();
+                        } else {
+							m_nextPlayerPreset = victim;
+                            if (victim instanceof HumanPlayer)
+                            {
+                                if (ndef == 1)
+                                {
+                                    promptUser(getString (R.string.msg_you_have_defender));
+                                }
+                                else
+                                {
+                                    promptUser (String.format(getString (R.string.msg_you_have_defenders), ndef));
+                                }
+                            }
+                        }
+                    }
 				}
-				else
-				{
-					m_currPlayer = nextPlayer();
-				}
-
+				m_currPlayer = nextPlayer();
 				redrawTable();
 			}
 			
@@ -1025,6 +1018,7 @@ public class Game extends Thread {
 			if (m_penalty.getType() != Penalty.PENTYPE_NONE) 
 			{
 				assessPenalty();
+				m_currPlayer = nextPlayer();
 			}
 			
 			else
@@ -1516,11 +1510,11 @@ public class Game extends Thread {
 			
 		}
 
-		if (m_penalty.getVictim() == m_currPlayer)
-		{
-			if (prevID == Card.ID_RED_0_HD) 
-			{
-			}
+		//if (m_penalty.getVictim() == m_currPlayer)
+		//{
+		//	if (prevID == Card.ID_RED_0_HD)
+		//	{
+		//	}
 
 			if (prevID == Card.ID_RED_2_GLASNOST) 
 			{
@@ -1553,7 +1547,7 @@ public class Game extends Thread {
 			if (prevID == Card.ID_YELLOW_1_MAD) 
 			{
 			}
-		}
+		//}
 
 		return defenderCount;
 	}
@@ -1933,10 +1927,10 @@ public class Game extends Thread {
 			forceDraw(pVictim, numcards);
 			m_currPlayer = pVictim;
 
-			if (!(m_go.getStandardRules()))
-			{
-				m_currPlayer = nextPlayer();
-			}
+			//if (!(m_go.getStandardRules()))
+			//{
+			//	m_currPlayer = nextPlayer();
+			//}
 			
 			if (pVictim2 != null) 
 			{
@@ -1954,6 +1948,7 @@ public class Game extends Thread {
 					}
 				}
 				forceDraw(pVictim2, numcards);
+				m_currPlayer = pVictim2;
 			}
 		}
 		else if (m_penalty.getType() == Penalty.PENTYPE_FACEUP) 
@@ -1977,6 +1972,10 @@ public class Game extends Thread {
 				}
 			}
 			m_currPlayer = m_penalty.getGeneratingPlayer();
+			//if (m_currCard == m_penalty.getOrigCard())
+			//{
+			//	m_currPlayer = nextPlayer();
+			//}
 		}
 		else if (m_penalty.getType() == Penalty.PENTYPE_EJECT) 
 		{
