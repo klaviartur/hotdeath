@@ -678,7 +678,8 @@ public class Game extends Thread {
 		// do we need to reset the draw pile?  It's best to do this
 		// immediately after we draw the last card in the draw pile
 		// so that we don't have an empty draw pile on screen
-		if (m_drawPile.getNumCards() == 0) 
+		// but only when discard pile has a decent number of cards to shuffle
+		if (m_drawPile.getNumCards() == 0 && m_discardPile.getNumCards() >= 5)
 		{
 			rolloverDiscardPile();
 		}
