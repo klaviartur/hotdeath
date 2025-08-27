@@ -133,7 +133,7 @@ public class ComputerPlayer extends Player
 		// for now, we always throw it if it's valid
 		if (m_lastDrawn != null)
 		{
-			if (m_game.checkCard(m_hand, m_lastDrawn, false))
+			if (m_game.checkCard(m_hand, m_lastDrawn))
 			{
 				m_playingCard = m_lastDrawn;
 			}
@@ -143,194 +143,191 @@ public class ComputerPlayer extends Player
 			}
 		}
 
-		if (bestcard == null)
-		{
-			// sophisticated players can hold onto expensive wild cards until later
-			// in the game.
-			int opponent_card_count = this.getMinCardsRemaining();
-			int wild_count = 0;
-			for (int i = 0; i < m_hand.getNumCards(); i++) 
-			{
-				Card tc = m_hand.getCard(i);
-				if (tc.getColor() == Card.COLOR_WILD)
-				{
-					wild_count++;
-				}
-			}
-			
-			//Log.d("HDU", "Looking for card to play...");
-			for (int i = 0; i < m_hand.getNumCards(); i++) 
-			{
-				Card tc = m_hand.getCard(i);
-				
-				//Log.d("HDU", " - considering card: " + m_game.cardToString(tc));
+        // sophisticated players can hold onto expensive wild cards until later
+        // in the game.
+        int opponent_card_count = this.getMinCardsRemaining();
+        int wild_count = 0;
+        for (int i = 0; i < m_hand.getNumCards(); i++)
+        {
+            Card tc = m_hand.getCard(i);
+            if (tc.getColor() == Card.COLOR_WILD)
+            {
+                wild_count++;
+            }
+        }
 
-				if (!m_game.checkCard(m_hand, tc, false))
-				{
-					continue;
-				}
-				
-				
-				boolean bIsDefender = m_game.getLastCardCheckedIsDefender();
-				// if we've got a defender, play it
-				if (bIsDefender)
-				{
-					bestcard = tc;
-					break;
-				}
-				
-				// otherwise, try to find the one with the highest point value
-				// so we can toss it out of our hand
-				
-				// TODO: improve this AI
-				//   - throw the mystery draw on numbered cards
-				//   - don't throw MAD when point count in hand is too high (unless player count < 4)
-				//   - consider the damage of offensive cards; look to hit players with low card counts
-				//   - advanced: throw the MAD card to catch an opponent and force him over 1000 points,
-				//     even if you have hundreds of points, if you're assured of winning
-				
-				int testval = 0;
-				
-				if (this.m_skill >= 1)
-				{
-					// Strong and Expert
-					if (tc.getColor() == Card.COLOR_WILD)
-					{
-						if (wild_count < opponent_card_count - 1)
-						{
-							testval = 0;
-						}
-					}
-					else
-					{
-						testval = tc.getCurrentValue();
-					}
-					
-					if ((tc.getID() == Card.ID_YELLOW_1_MAD) && (m_game.getActivePlayerCount() > 3))
-					{
-						// don't throw the MAD card if the value of your own hand
-						// will be too high
-						int newHandValue = m_hand.calculateValue(false, tc);
-						
-						if (newHandValue < 10)
-						{
-							testval = 100;
-						}
-						else if (newHandValue < 20)
-						{
-							testval = 70;
-						}
-						else if (newHandValue < 50)
-						{
-							testval = 0;
-						}
-						else
-						{
-							testval = -20;
-						}
-					}
-					
-					if (tc.getID() == Card.ID_YELLOW_69)
-					{
-						// it's hard to directly calculate the value of the 69 without looking
-						// at the whole hand -- if you've got hundreds of points in your hand,
-						// the 69 is a good card to keep, because it locks your score in at
-						// 69, no matter how much other junk you've got in your hand.
-						int oldHandValue = m_hand.calculateValue();
-						int newHandValue = m_hand.calculateValue(false, tc);
-						
-						testval = oldHandValue - newHandValue;
-					}
-					
-					if (tc.getID() == Card.ID_WILD_MYSTERY)
-					{
-						// You've GOT to throw the mystery draw on a 69!  That's the whole fun of the
-						// game.  You want to avoid throwing it on non-numbered cards, and the higher the
-						// numbered card, the more you want to throw it...
-						Card lpc = m_game.getLastPlayedCard();
-						int lpv = lpc.getValue();
-						
-						if (lpc.getID() == Card.ID_YELLOW_69)
-						{
-							testval = 200;
-						}
-						else if (lpv > 0)
-						{
-							if(lpv < 5)
-							{
-								testval = 15;
-							}
-							else if (lpv < 8)
-							{
-								testval = 30;
-							}
-							else if (lpv < 10)
-							{
-								testval = 50;
-							}
-						}
-						
-					}
-				}
-				else
-				{
-					// even weak players can do this
-					testval = tc.getCurrentValue();
-				}
+        //Log.d("HDU", "Looking for card to play...");
+        for (int i = 0; i < m_hand.getNumCards(); i++)
+        {
+            Card tc = m_hand.getCard(i);
 
-				//Log.d("HDU", "   - testval: " + testval);
+            //Log.d("HDU", " - considering card: " + m_game.cardToString(tc));
 
-				if (this.m_skill >= 2)
-				{
-					// Expert
-
-					// the higher the aggression, the longer the player is willing to try to 
-					// maintain color balance in his hand; for example, an aggression level 6
-					// is willing to wait until the opponent has 2 cards left; it's a bit like
-					// a game of chicken...
-					boolean considerColorBalance = (opponent_card_count + m_aggression / 3) > 3;
-
-                    if (considerColorBalance)
-					{
-						double colorBalanceImprovement = computeChangeInColorBalance(tc);
-						
-						// getting closer to 0 is a good thing
-						if (colorBalanceImprovement < -0.5)
-						{
-							// this could really be a good thing to play
-							testval += 40;
-						}
-						else if (colorBalanceImprovement < -0.25)
-						{
-							// this could be a good thing to play
-							testval += 20;
-						}
-						else if (colorBalanceImprovement > 0.5)
-						{
-							// really don't want to play this
-							testval -= 40;
-						}
-						else if (colorBalanceImprovement > 0.25)
-						{
-							// don't want to play this
-							testval -= 20;
-						}
-
-						//Log.d("HDU", "   - colorbalanceimprovement: " + colorBalanceImprovement + ", testval: " + testval);
+            if (!m_game.checkCard(m_hand, tc))
+            {
+                continue;
+            }
 
 
-					}
-				}
-				
-				if (testval >= maxpointval) 
-				{
-					maxpointval = testval;
-					bestcard = tc;
-				}
-			}
-		}
-		
-		if (bestcard != null)
+            boolean bIsDefender = m_game.getLastCardCheckedIsDefender();
+            // if we've got a defender, play it
+            if (bIsDefender)
+            {
+                bestcard = tc;
+                break;
+            }
+
+            // otherwise, try to find the one with the highest point value
+            // so we can toss it out of our hand
+
+            // TODO: improve this AI
+            //   - throw the mystery draw on numbered cards
+            //   - don't throw MAD when point count in hand is too high (unless player count < 4)
+            //   - consider the damage of offensive cards; look to hit players with low card counts
+            //   - advanced: throw the MAD card to catch an opponent and force him over 1000 points,
+            //     even if you have hundreds of points, if you're assured of winning
+
+            int testval = 0;
+
+            if (this.m_skill >= 1)
+            {
+                // Strong and Expert
+                if (tc.getColor() == Card.COLOR_WILD)
+                {
+                    if (wild_count < opponent_card_count - 1)
+                    {
+                        testval = 0;
+                    }
+                }
+                else
+                {
+                    testval = tc.getCurrentValue();
+                }
+
+                if ((tc.getID() == Card.ID_YELLOW_1_MAD) && (m_game.getActivePlayerCount() > 3))
+                {
+                    // don't throw the MAD card if the value of your own hand
+                    // will be too high
+                    int newHandValue = m_hand.calculateValue(false, tc);
+
+                    if (newHandValue < 10)
+                    {
+                        testval = 100;
+                    }
+                    else if (newHandValue < 20)
+                    {
+                        testval = 70;
+                    }
+                    else if (newHandValue < 50)
+                    {
+                        testval = 0;
+                    }
+                    else
+                    {
+                        testval = -20;
+                    }
+                }
+
+                if (tc.getID() == Card.ID_YELLOW_69)
+                {
+                    // it's hard to directly calculate the value of the 69 without looking
+                    // at the whole hand -- if you've got hundreds of points in your hand,
+                    // the 69 is a good card to keep, because it locks your score in at
+                    // 69, no matter how much other junk you've got in your hand.
+                    int oldHandValue = m_hand.calculateValue();
+                    int newHandValue = m_hand.calculateValue(false, tc);
+
+                    testval = oldHandValue - newHandValue;
+                }
+
+                if (tc.getID() == Card.ID_WILD_MYSTERY)
+                {
+                    // You've GOT to throw the mystery draw on a 69!  That's the whole fun of the
+                    // game.  You want to avoid throwing it on non-numbered cards, and the higher the
+                    // numbered card, the more you want to throw it...
+                    Card lpc = m_game.getLastPlayedCard();
+                    int lpv = lpc.getValue();
+
+                    if (lpc.getID() == Card.ID_YELLOW_69)
+                    {
+                        testval = 200;
+                    }
+                    else if (lpv > 0)
+                    {
+                        if(lpv < 5)
+                        {
+                            testval = 15;
+                        }
+                        else if (lpv < 8)
+                        {
+                            testval = 30;
+                        }
+                        else if (lpv < 10)
+                        {
+                            testval = 50;
+                        }
+                    }
+
+                }
+            }
+            else
+            {
+                // even weak players can do this
+                testval = tc.getCurrentValue();
+            }
+
+            //Log.d("HDU", "   - testval: " + testval);
+
+            if (this.m_skill >= 2)
+            {
+                // Expert
+
+                // the higher the aggression, the longer the player is willing to try to
+                // maintain color balance in his hand; for example, an aggression level 6
+                // is willing to wait until the opponent has 2 cards left; it's a bit like
+                // a game of chicken...
+                boolean considerColorBalance = (opponent_card_count + m_aggression / 3) > 3;
+
+if (considerColorBalance)
+                {
+                    double colorBalanceImprovement = computeChangeInColorBalance(tc);
+
+                    // getting closer to 0 is a good thing
+                    if (colorBalanceImprovement < -0.5)
+                    {
+                        // this could really be a good thing to play
+                        testval += 40;
+                    }
+                    else if (colorBalanceImprovement < -0.25)
+                    {
+                        // this could be a good thing to play
+                        testval += 20;
+                    }
+                    else if (colorBalanceImprovement > 0.5)
+                    {
+                        // really don't want to play this
+                        testval -= 40;
+                    }
+                    else if (colorBalanceImprovement > 0.25)
+                    {
+                        // don't want to play this
+                        testval -= 20;
+                    }
+
+                    //Log.d("HDU", "   - colorbalanceimprovement: " + colorBalanceImprovement + ", testval: " + testval);
+
+
+                }
+            }
+
+            if (testval >= maxpointval)
+            {
+                maxpointval = testval;
+                bestcard = tc;
+            }
+        }
+
+        if (bestcard != null)
 		{
 			m_playingCard = bestcard;
 			m_wantsToPlayCard = true;
@@ -347,10 +344,8 @@ public class ComputerPlayer extends Player
 	{
 		double balanceBefore = computeColorBalance(null);
 		double balanceAfter = computeColorBalance(c);
-		
-		double delta = (balanceAfter - balanceBefore) / balanceBefore;
-		
-		return delta;
+
+        return (balanceAfter - balanceBefore) / balanceBefore;
 	}
 	
 	public double computeColorBalance (Card c)
@@ -402,7 +397,7 @@ public class ComputerPlayer extends Player
 			}
 		}
 		
-		double avg = (colorTotals[0] + colorTotals[1] + colorTotals[2] + colorTotals[3]) / 4;
+		double avg = (double) (colorTotals[0] + colorTotals[1] + colorTotals[2] + colorTotals[3]) / 4;
 		
 		double balance = 0;
 		

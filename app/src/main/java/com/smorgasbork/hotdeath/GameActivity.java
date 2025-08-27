@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.widget.AdapterView;
@@ -91,6 +92,7 @@ public class GameActivity extends Activity
 	    	}
 	    	catch (JSONException e)
 	    	{
+				Log.d("HDU", "Creating Game from JSON failed");
 	    	}
 	    }
 	    
@@ -122,14 +124,10 @@ public class GameActivity extends Activity
 		m_btnFastForward.setText(getString(R.string.lbl_fast_forward));
 		m_btnFastForward.setId(View.generateViewId());
 		m_btnFastForward.setVisibility(View.INVISIBLE);
-		m_btnFastForward.setOnClickListener (new View.OnClickListener() {
-			
-			@Override
-			public void onClick(View v) {
-				m_btnFastForward.setVisibility (View.INVISIBLE);
-				m_game.setFastForward (true);
-			}
-		});
+		m_btnFastForward.setOnClickListener (v -> {
+            m_btnFastForward.setVisibility (View.INVISIBLE);
+            m_game.setFastForward (true);
+        });
 
 		m_vMenuPanel = getLayoutInflater().inflate(R.layout.options_menu, null);
 		m_vMenuPanel.setId(View.generateViewId());
@@ -177,29 +175,15 @@ public class GameActivity extends Activity
 		m_btnMenuPass = findViewById(R.id.btn_menu_pass);
 		m_btnMenuHelp = findViewById(R.id.btn_menu_help);
 
-		m_btnMenuDraw.setOnClickListener (new View.OnClickListener() {
-
-			@Override
-			public void onClick(View v) {
-				m_game.drawPileTapped();
-				showMenuButtons();
-			}
-		});
-		m_btnMenuPass.setOnClickListener (new View.OnClickListener() {
-
-			@Override
-			public void onClick(View v) {
-				m_game.humanPlayerPass();
-				showMenuButtons();
-			}
-		});
-		m_btnMenuHelp.setOnClickListener (new View.OnClickListener() {
-
-			@Override
-			public void onClick(View v) {
-				showCardCatalog();
-			}
-		});
+		m_btnMenuDraw.setOnClickListener (v -> {
+            m_game.drawPileTapped();
+            showMenuButtons();
+        });
+		m_btnMenuPass.setOnClickListener (v -> {
+            m_game.humanPlayerPass();
+            showMenuButtons();
+        });
+		m_btnMenuHelp.setOnClickListener (v -> showCardCatalog());
 
 		m_gt.setBottomMargin((int)(58 * scale + 0.5f));
 
@@ -266,7 +250,7 @@ public class GameActivity extends Activity
     @Override
     protected void onDestroy() {
     	m_game.shutdown ();
-    	m_game = null;
+		m_game = null;
 		m_gt = null;
 		m_go = null;
 
@@ -287,10 +271,10 @@ public class GameActivity extends Activity
 		{
 			m_dlgCardHelp.setTitle(m_game.cardToString(c));
 
-			TextView text = (TextView) m_dlgCardHelp.findViewById(R.id.text);
+			TextView text = m_dlgCardHelp.findViewById(R.id.text);
 			text.setText(m_gt.getCardHelpText(cid));
 
-			ImageView image = (ImageView) m_dlgCardHelp.findViewById(R.id.image);
+			ImageView image = m_dlgCardHelp.findViewById(R.id.image);
 			image.setImageBitmap(m_gt.getCardBitmap(cid));
 		}
 
@@ -304,19 +288,17 @@ public class GameActivity extends Activity
     		m_dlgCardCatalog = new Dialog(this);
     		m_dlgCardCatalog.requestWindowFeature(Window.FEATURE_NO_TITLE);
     		m_dlgCardCatalog.setContentView(R.layout.dlg_card_catalog);
-			GridView gridview = (GridView) m_dlgCardCatalog.findViewById(R.id.gridview);
+			GridView gridview = m_dlgCardCatalog.findViewById(R.id.gridview);
 		    gridview.setAdapter(new CardImageAdapter(this));
 		    
-		    gridview.setOnItemClickListener(new OnItemClickListener() {
-		        public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
-		        	CardImageAdapter cia = (CardImageAdapter)((GridView)parent).getAdapter();
-		        	Integer[] cardids = cia.getCardIDs();
-		        	
-		        	GameActivity.this.m_gt.setHelpCardID (cardids[position]);
-		        	//GameActivity.this.showDialog(GameActivity.DIALOG_CARD_HELP);
-		        	showCardHelp();
-		        }
-		    });
+		    gridview.setOnItemClickListener((parent, v, position, id) -> {
+                CardImageAdapter cia = (CardImageAdapter)((GridView)parent).getAdapter();
+                Integer[] cardids = cia.getCardIDs();
+
+                GameActivity.this.m_gt.setHelpCardID (cardids[position]);
+                //GameActivity.this.showDialog(GameActivity.DIALOG_CARD_HELP);
+                showCardHelp();
+            });
     	}
     	
     	m_dlgCardCatalog.show();

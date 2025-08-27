@@ -27,32 +27,28 @@ public class CardImageAdapter extends BaseAdapter {
     	CardDeck d = g.getDeck();
     	Card[] cary = d.getCards();
     	
-    	HashMap<Integer, Boolean> usedIDs = new HashMap<Integer, Boolean>();
-    	for (int i = 0; i < cary.length; i++)
-    	{
-    		if (usedIDs.containsKey(cary[i].getID()))
-    		{
-    			continue;
-    		}
-    		
-    		usedIDs.put(cary[i].getID(), true);
-    	}
+    	HashMap<Integer, Boolean> usedIDs = new HashMap<>();
+        for (Card card : cary) {
+            if (usedIDs.containsKey(card.getID())) {
+                continue;
+            }
+
+            usedIDs.put(card.getID(), true);
+        }
 
     	// go through all cards in order and add them to the array
     	Integer[] cardids = ga.getCardIDs();
     	
-    	Integer idx = 0;
+    	int idx = 0;
     	m_thumbIDs = new Integer[usedIDs.size()];
     	m_cardIDs = new Integer[usedIDs.size()];
-    	for (int i = 0; i < cardids.length; i++)
-    	{
-    		if (usedIDs.containsKey(cardids[i]))
-    		{
-    			m_cardIDs[idx] = cardids[i];
-    	   		m_thumbIDs[idx] = ((GameActivity)c).getCardImageID(cardids[i]);
-    	   		idx++;
-       		}
-    	}
+        for (Integer cardid : cardids) {
+            if (usedIDs.containsKey(cardid)) {
+                m_cardIDs[idx] = cardid;
+                m_thumbIDs[idx] = ((GameActivity) c).getCardImageID(cardid);
+                idx++;
+            }
+        }
     	
         mContext = c;
     }

@@ -13,7 +13,7 @@ public class Player {
 	protected Player    m_rightOpp;
 	protected int		m_seat;
 	protected boolean   m_passing;
-	protected boolean[][]	m_othersVoids;
+	protected final boolean[][]	m_othersVoids;
 	
 	protected boolean m_wantsToDraw = false;
 	protected boolean m_wantsToPlayCard = false;
@@ -34,7 +34,7 @@ public class Player {
 
 	protected int     m_virusPenalty;
 	
-	protected Card m_changedLastClicked = null;
+	protected final Card m_changedLastClicked = null;
 	
 	
 	public boolean getWantsToDraw ()
@@ -123,9 +123,8 @@ public class Player {
 	}
 
 	public void finishTrick() 
-	{ 
-		return; 
-	}
+	{
+    }
 	
 
 	public int getLastScore() 
@@ -246,9 +245,8 @@ public class Player {
 	}
 	
 	public void chooseVictim() 
-	{ 
-		return; 
-	}
+	{
+    }
 	
 	public Card getChangedLastClicked ()
 	{

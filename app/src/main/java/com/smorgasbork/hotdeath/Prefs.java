@@ -151,9 +151,8 @@ public class Prefs extends PreferenceActivity implements OnSharedPreferenceChang
 	
     public static String getCheatCode (Context context)
     {
-		String s = PreferenceManager.getDefaultSharedPreferences(context)
-			.getString (OPT_CHEAT_CODE, OPT_CHEAT_CODE_DEF);
-		return s;
+        return PreferenceManager.getDefaultSharedPreferences(context)
+            .getString (OPT_CHEAT_CODE, OPT_CHEAT_CODE_DEF);
     }	
 	
 	public static int getP1SkillLevel (Context context)

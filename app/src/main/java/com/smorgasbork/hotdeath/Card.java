@@ -3,7 +3,6 @@ package com.smorgasbork.hotdeath;
 import org.json.*;
 
 import android.content.Context;
-import com.smorgasbork.hotdeath.R;
 
 public class Card {
 
@@ -20,7 +19,7 @@ public class Card {
 	public static final int VAL_S_DOUBLE       = 15;
 	public static final int VAL_R_SKIP         = 16;
 	public static final int VAL_WILD           = 17;
-	public static final int VAL_WILD_DRAWFOUR  = 18;
+	public static final int VAL_WILD_DRAW	   = 18;
 
 	public static final int ID_RED_0             = 100;
 	public static final int ID_RED_1             = 101;
@@ -75,7 +74,7 @@ public class Card {
 	public static final int ID_YELLOW_S          = 150;
 	public static final int ID_YELLOW_R          = 151;
 	public static final int ID_WILD              = 152;
-	public static final int ID_WILD_DRAWFOUR     = 153;
+	public static final int ID_WILD_DRAW_FOUR    = 153;
 	public static final int ID_WILD_HOS          = 154;
 	public static final int ID_WILD_HD           = 155;
 	public static final int ID_WILD_MYSTERY      = 156;
@@ -92,7 +91,7 @@ public class Card {
 	public static final int ID_GREEN_D_SPREADER  = 167;
 	public static final int ID_GREEN_S_DOUBLE    = 168;
 	public static final int ID_GREEN_R_SKIP      = 169;
-	public static final int ID_BLUE_0_FUCKYOU    = 170;
+	public static final int ID_BLUE_0_FUCK_YOU   = 170;
 	public static final int ID_BLUE_2_SHIELD     = 171;
 	public static final int ID_BLUE_D_SPREADER   = 172;
 	public static final int ID_BLUE_S_DOUBLE     = 173;
@@ -104,18 +103,14 @@ public class Card {
 	public static final int ID_YELLOW_S_DOUBLE   = 179;
 	public static final int ID_YELLOW_R_SKIP     = 180;
 
-	private Hand	m_hand = null;
-	private int		m_color = 0;
-	private int		m_value = 0;
+	private Hand	m_hand;
+	private final int	m_color;
+	private final int	m_value;
 	private int     m_currentValue = 0;
-	private int     m_pointValue = 0;
-	private double  m_pointMultiplier = 1.0;
-	private int		m_cumulativePenalty = 0;
-	private int		m_highestCardMatch = 0;
-	private int     m_deckIndex = 0;
-
-	private int		m_id = 0;
-	private boolean	m_faceup = false;
+	private final int   m_pointValue;
+	private final int m_deckIndex;
+	private final int m_id;
+	private boolean m_faceUp = false;
 
 	
     public Hand getHand () { return m_hand; }
@@ -126,15 +121,12 @@ public class Card {
     public int getValue () { return m_value; }
     public int getID () { return m_id; }
     public int getPointValue() { return m_pointValue; }
-    public double getPointMultiplier() { return m_pointMultiplier; }
-    public int getCumulativePenalty() { return m_cumulativePenalty; }
-    public int getHighestCardMatch() { return m_highestCardMatch; }
 
     public void setCurrentValue(int cv) { m_currentValue = cv; }
     public  int getCurrentValue() { return m_currentValue; }
 
-    public boolean getFaceUp () { return m_faceup; }
-    public void setFaceUp (boolean f) { m_faceup = f; }
+    public boolean getFaceUp () { return m_faceUp; }
+    public void setFaceUp (boolean f) { m_faceUp = f; }
 	
 	
 	public Card (int deckIndex, int Color, int Value, int ID, int PointValue)
@@ -144,34 +136,6 @@ public class Card {
 		m_value = Value;
 		m_id = ID;
 		m_pointValue = PointValue;
-	}
-	
-
-
-	public Card(int deckIndex, int Color, int Value, int ID, int PointValue, double PointMultiplier)
-	{
-		this (deckIndex, Color, Value, ID, PointValue);
-		m_pointValue = PointValue;
-		m_pointMultiplier = PointMultiplier;
-	}
-
-
-	public Card(int deckIndex, int Color, int Value, int ID, int PointValue, double PointMultiplier, int CumulativePenalty)
-	{
-		this (deckIndex, Color, Value, ID, PointValue, PointMultiplier);
-		m_cumulativePenalty = CumulativePenalty;
-	}
-
-
-	public Card(int deckIndex, int Color, int Value, int ID, int PointValue, double PointMultiplier, int CumulativePenalty, int HighestCardMatch)
-	{
-		this (deckIndex, Color, Value, ID, PointValue, PointMultiplier, CumulativePenalty);
-		m_highestCardMatch = HighestCardMatch;
-	}
-
-	public String toString (Context ctx)
-	{
-		return this.toString (ctx, true);
 	}
 
 	public String toString(Context ctx, boolean familyFriendly)
@@ -199,7 +163,7 @@ public class Card {
 		case ID_WILD:
 			strValue = ctx.getString (R.string.cardval_wild);
 			break;
-		case ID_WILD_DRAWFOUR:
+		case ID_WILD_DRAW_FOUR:
 			strValue = ctx.getString (R.string.cardval_wild_drawfour);
 			break;		
 		case ID_WILD_HD:
@@ -239,7 +203,7 @@ public class Card {
 		case ID_GREEN_4_IRISH:
 			strValue = ctx.getString (R.string.cardname_green_4_irish);
 			break;
-		case ID_BLUE_0_FUCKYOU:
+		case ID_BLUE_0_FUCK_YOU:
 			if (familyFriendly)
 			{
 				strValue = ctx.getString (R.string.cardname_blue_0_fuck_you_ff);
@@ -271,7 +235,7 @@ public class Card {
 			break;
 		}
 
-		if (strValue != "") 
+		if (!strValue.isEmpty())
 		{
 			return strValue;
 		}
@@ -314,11 +278,8 @@ public class Card {
 		m_value = o.getInt("value");
 		m_currentValue = o.getInt("currentValue");
 		m_pointValue = o.getInt("pointValue");
-		m_pointMultiplier = o.getInt("pointMultiplier");
-		m_cumulativePenalty = o.getInt("cumulativePenalty");
-		m_highestCardMatch = o.getInt("highestCardMatch");
 		m_id = o.getInt("id");
-		m_faceup = o.getBoolean("faceup");
+		m_faceUp = o.getBoolean("faceUp");
 	}
 
 
@@ -331,11 +292,8 @@ public class Card {
 		o.put("value", m_value);
 		o.put("currentValue", m_currentValue);
 		o.put("pointValue", m_pointValue);
-		o.put("pointMultiplier", m_pointMultiplier);
-		o.put("cumulativePenalty", m_cumulativePenalty);
-		o.put("highestCardMatch", m_highestCardMatch);
 		o.put("id", m_id);
-		o.put("faceup", m_faceup);
+		o.put("faceUp", m_faceUp);
 
 		return o;
 	}

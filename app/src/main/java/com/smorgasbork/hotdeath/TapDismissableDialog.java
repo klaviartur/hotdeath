@@ -8,7 +8,7 @@ public class TapDismissableDialog extends Dialog
 {
 	int _down_x;
 	int _down_y;
-	int _threshold = 7;
+	final int _threshold = 7;
 	
 	public TapDismissableDialog (Context context)
 	{

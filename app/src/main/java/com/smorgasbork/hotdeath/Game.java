@@ -164,6 +164,7 @@ public class Game extends Thread {
 		        try {
 		            m_pauseLock.wait();
 		        } catch (InterruptedException e) {
+					Log.d("HDU", "Unpausing failed");
 		        }
 		    }
 		}
@@ -584,7 +585,7 @@ public class Game extends Thread {
 						|| c.getID() == Card.ID_WILD_DB
 						|| c.getID() == Card.ID_BLUE_2_SHIELD
 						|| c.getID() == Card.ID_GREEN_4_IRISH
-						|| c.getID() == Card.ID_WILD_DRAWFOUR
+						|| c.getID() == Card.ID_WILD_DRAW_FOUR
 						) 
 					{
 						c.setFaceUp(true);
@@ -653,7 +654,7 @@ public class Game extends Thread {
 
 	public Card drawCard ()
 	{
-		Card c = null;
+		Card c;
 
 		// if we purged the draw and discard piles on the last draw (like
 		// a big draw 69), we might end up with no draw pile at all.
@@ -1080,7 +1081,7 @@ public class Game extends Thread {
 		return m_lastCardCheckedIsDefender;
 	}
 	
-	boolean checkCard(Hand h, Card c, boolean interactive)
+	boolean checkCard(Hand h, Card c)
 	{
 		if (!(h.isInHand(c))) return false;
 
@@ -1100,10 +1101,10 @@ public class Game extends Thread {
 			int origCardValue = m_penalty.getOrigCard().getValue();
 
 			// can play aids, fuckyou, and holydefender on various cards
-			if (((checkCardId == Card.ID_BLUE_0_FUCKYOU)
+			if (((checkCardId == Card.ID_BLUE_0_FUCK_YOU)
 				|| (checkCardId == Card.ID_RED_0_HD)
 				|| (checkCardId == Card.ID_GREEN_3_AIDS))
-				&& ((origCardValue == Card.VAL_WILD_DRAWFOUR && origCardId != Card.ID_WILD_HOS)
+				&& ((origCardValue == Card.VAL_WILD_DRAW && origCardId != Card.ID_WILD_HOS)
 				   || (origCardId == Card.ID_GREEN_0_QUITTER)
 				   || (origCardId == Card.ID_RED_2_GLASNOST)))
 			{
@@ -1115,10 +1116,10 @@ public class Game extends Thread {
 			// of sorrows and mystery)
 			if (!(m_go.getStandardRules())) {
 				if (currCardID != Card.ID_GREEN_3_AIDS
-					&& (origCardValue == Card.VAL_WILD_DRAWFOUR)
+					&& (origCardValue == Card.VAL_WILD_DRAW)
 					&& (origCardId != Card.ID_WILD_HOS) && (origCardId != Card.ID_WILD_MYSTERY))
 				{
-					if (checkCardValue == Card.VAL_WILD_DRAWFOUR && checkCardId != Card.ID_WILD_MYSTERY)
+					if (checkCardValue == Card.VAL_WILD_DRAW && checkCardId != Card.ID_WILD_MYSTERY)
 					{
 						return true;
 					}
@@ -1170,7 +1171,7 @@ public class Game extends Thread {
 		if (m_go.getStandardRules()) 
 		{
 			// cannot play wild draw four if you've got a matching card
-			if (bHasMatch && (c.getValue() == Card.VAL_WILD_DRAWFOUR)) 
+			if (bHasMatch && (c.getValue() == Card.VAL_WILD_DRAW)) 
 			{
 				return false;
 			}
@@ -1254,7 +1255,7 @@ public class Game extends Thread {
 			}
 			catch (InterruptedException e)
 			{
-				
+				Log.d("HDU", "Sleeping failed");
 			}
 		}
 	}
@@ -1314,13 +1315,11 @@ public class Game extends Thread {
 		for (i = 0; i < 4; i++) 
 		{
 			Hand h = (m_players[i]).getHand();
-			if (checkForAllBastardCards(h))
+			if (!checkForAllBastardCards(h))
 			{
 				// unless he's got all 4 bastard cards, in which case, he 
 				// gets 0 points
-			}
-			else
-			{
+
 				for (int j = 0; j < h.getNumCards(); j++) 
 				{
 					Card c = h.getCard(j);
@@ -1421,13 +1420,6 @@ public class Game extends Thread {
 	}
 
 
-	void promptForDrawCard()
-	{
-		promptUser (getString(R.string.msg_prompt_draw));
-	}
-
-
-
 	// this routine looks in the hand for a card 
 	// like the Blue Shield
 	public boolean checkForShield(Hand h)
@@ -1462,7 +1454,7 @@ public class Game extends Thread {
 
 		int defenderCount = 0;
 		// we can stack on all draw fours except HOS and mystery draw
-		if ((prevVal == Card.VAL_WILD_DRAWFOUR) && (prevID != Card.ID_WILD_HOS)) 
+		if ((prevVal == Card.VAL_WILD_DRAW) && (prevID != Card.ID_WILD_HOS)) 
 		{
 			for (int i = 0; i < h.getNumCards(); i++) 
 			{
@@ -1471,7 +1463,7 @@ public class Game extends Thread {
 				
 				// all draw fours can stack, except for mystery draw
 				if (prevID != Card.ID_GREEN_3_AIDS) {
-					if ((val == Card.VAL_WILD_DRAWFOUR) && (prevID != Card.ID_WILD_MYSTERY) && (id != Card.ID_WILD_MYSTERY)) 
+					if ((val == Card.VAL_WILD_DRAW) && (prevID != Card.ID_WILD_MYSTERY) && (id != Card.ID_WILD_MYSTERY)) 
 					{
 						defenderCount++;
 					}
@@ -1484,7 +1476,7 @@ public class Game extends Thread {
 				{
 					defenderCount++;
 				}
-				if (id == Card.ID_BLUE_0_FUCKYOU)
+				if (id == Card.ID_BLUE_0_FUCK_YOU)
 				{
 					defenderCount++;
 				}
@@ -1515,7 +1507,7 @@ public class Game extends Thread {
 					int id = (h.getCard(i)).getID();
 					if ((id == Card.ID_RED_0_HD) 
 						|| (id == Card.ID_GREEN_3_AIDS)
-						|| (id == Card.ID_BLUE_0_FUCKYOU)) 
+						|| (id == Card.ID_BLUE_0_FUCK_YOU))
 					{
 						defenderCount++;
 					}
@@ -1529,17 +1521,14 @@ public class Game extends Thread {
 					int id = (h.getCard(i)).getID();
 					if ((id == Card.ID_RED_0_HD) 
 						|| (id == Card.ID_GREEN_3_AIDS)
-						|| (id == Card.ID_BLUE_0_FUCKYOU)) 
+						|| (id == Card.ID_BLUE_0_FUCK_YOU))
 					{
 						defenderCount++;
 					}
 				}
 			}
 
-			if (prevID == Card.ID_YELLOW_1_MAD) 
-			{
-			}
-		//}
+			// M.A.D. cannot be defended against
 
 		return defenderCount;
 	}
@@ -1556,7 +1545,7 @@ public class Game extends Thread {
 
 			if (id == Card.ID_RED_0_HD) bastardCount++;
 			if (id == Card.ID_GREEN_0_QUITTER) bastardCount++;
-			if (id == Card.ID_BLUE_0_FUCKYOU) bastardCount++;
+			if (id == Card.ID_BLUE_0_FUCK_YOU) bastardCount++;
 			if (id == Card.ID_YELLOW_0_SHITTER) bastardCount++;
 		}
 
@@ -1685,7 +1674,7 @@ public class Game extends Thread {
 		}
 
 		// check the wild draw fours
-		if (currID == Card.ID_WILD_DRAWFOUR) 
+		if (currID == Card.ID_WILD_DRAW_FOUR)
 		{
 			m_penalty.addCards (m_currCard, 4, m_currPlayer, getNextPlayer());
 			String msg;
@@ -1829,7 +1818,7 @@ public class Game extends Thread {
 			promptUser (msg);
 		}
 
-		if ((currID == Card.ID_BLUE_0_FUCKYOU)
+		if ((currID == Card.ID_BLUE_0_FUCK_YOU)
 			&& ((m_penalty.getVictim() == m_currPlayer) || (m_penalty.getSecondaryVictim() == m_currPlayer))) 
 		{
 			m_penalty.setVictim(m_penalty.getGeneratingPlayer());
@@ -1927,10 +1916,6 @@ public class Game extends Thread {
 				}
 			}
 			m_currPlayer = m_penalty.getGeneratingPlayer();
-			//if (m_currCard == m_penalty.getOrigCard())
-			//{
-			//	m_currPlayer = nextPlayer();
-			//}
 		}
 		else if (m_penalty.getType() == Penalty.PENTYPE_EJECT) 
 		{
@@ -2158,8 +2143,8 @@ public class Game extends Thread {
 	 * Convenience function; lets us retrieve resource strings with minimal syntax;
 	 * also lets the player objects retrieve strings without knowledge of the
 	 * Activity/View/Context.
-	 * @param resId
-	 * @return
+	 * @param resId resource ID
+	 * @return Returns resource string
 	 */
 	public String getString(int resId)
 	{

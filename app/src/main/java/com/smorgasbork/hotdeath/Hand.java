@@ -1,7 +1,6 @@
 package com.smorgasbork.hotdeath;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Random;
 import java.util.List;
 import java.util.ArrayList;
@@ -271,12 +270,7 @@ public class Hand {
 
 	private void sort(List<Card> cards)
 	{
-		cards.sort(new Comparator<Card>() {
-			@Override
-			public int compare(Card c1, Card c2) {
-				return Integer.compare(c1.getDeckIndex(), c2.getDeckIndex());
-			}
-		});
+		cards.sort((c1, c2) -> Integer.compare(c1.getDeckIndex(), c2.getDeckIndex()));
 	}
 
 
@@ -285,7 +279,7 @@ public class Hand {
 	{
 		for (int i = 0; i < m_numCards; i++) 
 		{
-			if (g.checkCard(this, m_cards[i], false)) 
+			if (g.checkCard(this, m_cards[i]))
 			{
 				return true;
 			}
@@ -347,7 +341,7 @@ public class Hand {
 				continue;
 			}
 			
-			if (c.getID() == Card.ID_BLUE_0_FUCKYOU) 
+			if (c.getID() == Card.ID_BLUE_0_FUCK_YOU)
 			{
 				cFuckYou = c;
 			}
@@ -403,7 +397,7 @@ public class Hand {
 			// if we're getting the 1000 point penalty, we don't need to
 			// look at these three cards again
 			if (bFullMonty 
-				&& ((id == Card.ID_BLUE_0_FUCKYOU)
+				&& ((id == Card.ID_BLUE_0_FUCK_YOU)
 				    || (id == Card.ID_YELLOW_0_SHITTER)
 					|| (id == Card.ID_GREEN_0_QUITTER))) 
 			{
@@ -440,7 +434,7 @@ public class Hand {
 				continue;
 			}
 
-			if (id == Card.ID_BLUE_0_FUCKYOU) 
+			if (id == Card.ID_BLUE_0_FUCK_YOU)
 			{
 				continue;
 			}
@@ -527,7 +521,7 @@ public class Hand {
 		// exists, then set "total /= 2" (rounded up, if necessary)
 		if (cHolyDefender != null) 
 		{
-			int newtotal = (int)((total + 1) / 2);
+			int newtotal = (total + 1) / 2;
 			cHolyDefender.setCurrentValue(newtotal - total);
 			total = newtotal;
 		}

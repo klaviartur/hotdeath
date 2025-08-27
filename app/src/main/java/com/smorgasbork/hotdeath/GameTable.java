@@ -3,12 +3,11 @@ package com.smorgasbork.hotdeath;
 import static java.lang.Math.*;
 
 import android.os.Handler;
+import android.os.VibrationEffect;
 import android.util.Log;
 import java.util.List;
 
 import android.app.AlertDialog;
-
-import android.content.DialogInterface;
 
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -53,23 +52,13 @@ public class GameTable extends View
 	private final Rect[] m_revealedBoundingRect;
 	private Rect m_drawPileBoundingRect;
 	private Rect m_discardPileBoundingRect;
-	
-	private int m_leftMargin = 0;
-	private int m_rightMargin = 0;
-	private int m_topMargin = 0;
-	private int m_bottomMargin = 0;
 
-	private int m_bottomMarginExternal = 0;
+    private int m_bottomMarginExternal = 0;
 	
 	private int m_cardSpacing = 0;
 	private int m_cardSpacingSouth = 0;
-	
-	private int m_maxWidthHand;
-	private int m_maxHeightHand;
 
-	private int m_maxWidthHandHuman;
-
-	// FIXME: make resolution independent (at least just query the bitmaps for their width and height)
+    // FIXME: make resolution independent (at least just query the bitmaps for their width and height)
 	/*  LDPI
 	private int m_cardWidth = 43;
 	private int m_cardHeight = 59;
@@ -103,10 +92,8 @@ public class GameTable extends View
 	private final Bitmap[][] m_bmpPlayerIndicator;
 	private final Bitmap[] m_bmpWinningMessage;
 	private Bitmap m_bmpCardBadge;
-		
-	private final Paint m_paintTable;
-	private final Paint m_paintTableText;
-	private final Paint m_paintScoreText;
+
+    private final Paint m_paintScoreText;
 	private final Paint m_paintCardBadgeText;
 	
 	private boolean m_readyToStartGame = false;
@@ -167,7 +154,7 @@ public class GameTable extends View
 		
 		setFocusable(true);
 		setFocusableInTouchMode(true);
-		setId(ID); 
+		setId(ID);
 
 		m_go = go;
 		m_game = g;
@@ -186,17 +173,17 @@ public class GameTable extends View
 		}
 
 		final float scale = getContext().getResources().getDisplayMetrics().density;
-		
-		m_paintTable = new Paint();
-		m_paintTable.setColor(getResources().getColor(
+
+        Paint paintTable = new Paint();
+		paintTable.setColor(getResources().getColor(
 				R.color.table_background));
-		
-		m_paintTableText = new Paint(Paint.ANTI_ALIAS_FLAG);
-		m_paintTableText.setColor(getResources().getColor(
+
+        Paint paintTableText = new Paint(Paint.ANTI_ALIAS_FLAG);
+		paintTableText.setColor(getResources().getColor(
 				R.color.table_text));
-		m_paintTableText.setTextAlign(Paint.Align.CENTER);
-		m_paintTableText.setTextSize(12 * scale);
-		m_paintTableText.setTypeface(Typeface.DEFAULT);
+		paintTableText.setTextAlign(Paint.Align.CENTER);
+		paintTableText.setTextSize(12 * scale);
+		paintTableText.setTypeface(Typeface.DEFAULT);
         
 		m_paintScoreText = new Paint(Paint.ANTI_ALIAS_FLAG);
 		m_paintScoreText.setColor(getResources().getColor(
@@ -244,16 +231,16 @@ public class GameTable extends View
 	@Override
 	protected void onSizeChanged(int w, int h, int oldw, int oldh) 
 	{
-		m_leftMargin = m_cardWidth / 4;
-		m_rightMargin = m_cardWidth / 4;
-		m_topMargin = m_cardHeight / 3;
-		m_bottomMargin = m_cardHeight / 3 + m_bottomMarginExternal;
+        int leftMargin = m_cardWidth / 4;
+        int rightMargin = m_cardWidth / 4;
+        int topMargin = m_cardHeight / 3;
+        int bottomMargin = m_cardHeight / 3 + m_bottomMarginExternal;
 		
 		if (h < 4.5 * m_cardHeight)
 		{
 			// probably landscape on a small device...
-			m_topMargin = m_cardHeight / 4;
-			m_bottomMargin = m_cardHeight / 4 + m_bottomMarginExternal;
+			topMargin = m_cardHeight / 4;
+			bottomMargin = m_cardHeight / 4 + m_bottomMarginExternal;
 			m_ptDrawPile = new Point (w / 2 - 5 * m_cardWidth / 4, h / 2 - m_cardHeight / 2);
 			m_ptDiscardPile = new Point (w / 2 + m_cardWidth / 4, h / 2 - m_cardHeight / 2);
 			m_ptDirColor = new Point (m_ptDiscardPile.x + 2 * m_cardWidth + m_bmpDirColorCCW.getWidth() / 4 - m_bmpPlayerIndicator[0][0].getWidth(), h / 2 - m_bmpDirColorCCW.getWidth() / 2);
@@ -284,21 +271,21 @@ public class GameTable extends View
 		
 		// calculate max cards in layout 1 (N/S cards live between E/W cards)
 		
-		int humanPlayerArea = w - 2 * m_cardWidth - 2 * m_leftMargin - 2 * m_rightMargin;
-		int maxNumHumanCards = (int)((humanPlayerArea - m_cardWidth) / m_cardSpacingSouth) + 1;
+		int humanPlayerArea = w - 2 * m_cardWidth - 2 * leftMargin - 2 * rightMargin;
+		int maxNumHumanCards = ((humanPlayerArea - m_cardWidth) / m_cardSpacingSouth) + 1;
 
-		int computerPlayerArea = h - m_topMargin - m_bottomMargin - (int)(textBounds.height() * 1.2);
-		int maxNumComputerCards = (int)((computerPlayerArea - m_cardHeight) / m_cardSpacing) + 1;
+		int computerPlayerArea = h - topMargin - bottomMargin - (int)(textBounds.height() * 1.2);
+		int maxNumComputerCards = ((computerPlayerArea - m_cardHeight) / m_cardSpacing) + 1;
 		
 		int maxCardsLayout1 = Math.min(maxNumComputerCards, maxNumHumanCards);
 
 		// calculate max cards in layout 2 (E/W cards live between N/S cards)
 		
-		humanPlayerArea = w - m_leftMargin - m_rightMargin;
-		maxNumHumanCards = (int)((humanPlayerArea - m_cardWidth) / m_cardSpacingSouth) + 1;
+		humanPlayerArea = w - leftMargin - rightMargin;
+		maxNumHumanCards = ((humanPlayerArea - m_cardWidth) / m_cardSpacingSouth) + 1;
 
-		computerPlayerArea = h - 2 * m_cardHeight - 2 * m_topMargin - 2 * m_bottomMargin;
-		maxNumComputerCards = (int)((computerPlayerArea - m_cardHeight) / m_cardSpacing) + 1;
+		computerPlayerArea = h - 2 * m_cardHeight - 2 * topMargin - 2 * bottomMargin;
+		maxNumComputerCards = ((computerPlayerArea - m_cardHeight) / m_cardSpacing) + 1;
 			
 		int maxCardsLayout2 = Math.min(maxNumComputerCards, maxNumHumanCards);
 		
@@ -308,16 +295,16 @@ public class GameTable extends View
 		Log.d("HDU", "[onSizeChanged] maxCardsLayout2: " + maxCardsLayout2);
 		Log.d("HDU", "[onSizeChanged] m_maxCardsDisplay: " + m_maxCardsDisplay);
 
-		
-		m_maxWidthHand = (m_maxCardsDisplay - 1) * m_cardSpacing + m_cardWidth;
-		m_maxHeightHand = (m_maxCardsDisplay - 1) * m_cardSpacing + m_cardHeight;
 
-		m_maxWidthHandHuman = (m_maxCardsDisplay - 1) * m_cardSpacingSouth + m_cardWidth;
+        int maxWidthHand = (m_maxCardsDisplay - 1) * m_cardSpacing + m_cardWidth;
+        int maxHeightHand = (m_maxCardsDisplay - 1) * m_cardSpacing + m_cardHeight;
+
+        int maxWidthHandHuman = (m_maxCardsDisplay - 1) * m_cardSpacingSouth + m_cardWidth;
 		
-		m_ptSeat[Game.SEAT_NORTH - 1] = new Point (w / 2, m_topMargin);
-		m_ptSeat[Game.SEAT_EAST - 1] = new Point (w - (m_cardWidth + m_rightMargin), h / 2);
-		m_ptSeat[Game.SEAT_SOUTH - 1] = new Point (w / 2, h - (m_cardHeight + m_bottomMargin));
-		m_ptSeat[Game.SEAT_WEST - 1] = new Point (m_leftMargin, h / 2);
+		m_ptSeat[Game.SEAT_NORTH - 1] = new Point (w / 2, topMargin);
+		m_ptSeat[Game.SEAT_EAST - 1] = new Point (w - (m_cardWidth + rightMargin), h / 2);
+		m_ptSeat[Game.SEAT_SOUTH - 1] = new Point (w / 2, h - (m_cardHeight + bottomMargin));
+		m_ptSeat[Game.SEAT_WEST - 1] = new Point (leftMargin, h / 2);
 		
 		m_ptWinningMessage = new Point (m_ptSeat[Game.SEAT_SOUTH - 1].x - m_bmpWinningMessage[0].getWidth() / 2, m_ptSeat[Game.SEAT_SOUTH - 1].y - m_bmpWinningMessage[0].getHeight() * 5 / 4);
 		
@@ -326,26 +313,26 @@ public class GameTable extends View
 		m_ptEmoticon[Game.SEAT_SOUTH - 1] = new Point (m_ptSeat[Game.SEAT_SOUTH - 1].x - m_emoticonWidth / 2, m_ptSeat[Game.SEAT_SOUTH - 1].y - m_emoticonHeight - m_cardHeight / 10);
 		m_ptEmoticon[Game.SEAT_WEST - 1] = new Point (m_ptSeat[Game.SEAT_WEST - 1].x + m_cardWidth * 11 / 10, m_ptSeat[Game.SEAT_WEST - 1].y - m_emoticonHeight / 2);
 
-		int x = m_ptSeat[Game.SEAT_NORTH - 1].x + m_maxWidthHand / 2 - m_bmpCardBadge.getWidth() / 2;
+		int x = m_ptSeat[Game.SEAT_NORTH - 1].x + maxWidthHand / 2 - m_bmpCardBadge.getWidth() / 2;
 		int y = m_ptSeat[Game.SEAT_NORTH - 1].y - m_bmpCardBadge.getHeight()  / 2;
 		m_ptUnrevealedBadge[Game.SEAT_NORTH - 1] = new Point (x,y);
 		y += m_cardHeight * 3 / 2;
 		m_ptRevealedBadge[Game.SEAT_NORTH - 1] = new Point (x, y);
 
 		x = m_ptSeat[Game.SEAT_EAST - 1].x + m_cardWidth - m_bmpCardBadge.getWidth() / 2;
-		y = m_ptSeat[Game.SEAT_EAST - 1].y + m_maxHeightHand / 2 - m_bmpCardBadge.getHeight() / 2;
+		y = m_ptSeat[Game.SEAT_EAST - 1].y + maxHeightHand / 2 - m_bmpCardBadge.getHeight() / 2;
 		m_ptUnrevealedBadge[Game.SEAT_EAST - 1] = new Point (x, y);
 		x -= m_cardWidth * 3 / 2;
 		m_ptRevealedBadge[Game.SEAT_EAST - 1] = new Point (x, y);
 
-		x = m_ptSeat[Game.SEAT_SOUTH - 1].x + m_maxWidthHandHuman / 2 - m_bmpCardBadge.getWidth() / 2;
+		x = m_ptSeat[Game.SEAT_SOUTH - 1].x + maxWidthHandHuman / 2 - m_bmpCardBadge.getWidth() / 2;
 		y = m_ptSeat[Game.SEAT_SOUTH - 1].y + m_cardHeight - m_bmpCardBadge.getHeight() / 2;
 		m_ptUnrevealedBadge[Game.SEAT_SOUTH - 1] = new Point (x, y);
 		y -= m_cardHeight * 5 / 3;
 		m_ptRevealedBadge[Game.SEAT_SOUTH - 1] = new Point (x, y);
 
 		x = m_ptSeat[Game.SEAT_WEST - 1].x - m_bmpCardBadge.getWidth() / 2;
-		y = m_ptSeat[Game.SEAT_WEST - 1].y + m_maxHeightHand / 2 - m_bmpCardBadge.getHeight() / 2;
+		y = m_ptSeat[Game.SEAT_WEST - 1].y + maxHeightHand / 2 - m_bmpCardBadge.getHeight() / 2;
 		m_ptUnrevealedBadge[Game.SEAT_WEST - 1] = new Point (x, y);
 		x += m_cardWidth * 3 / 2;
 		m_ptRevealedBadge[Game.SEAT_WEST - 1] = new Point (x, y);
@@ -353,11 +340,11 @@ public class GameTable extends View
 		m_ptScoreText[Game.SEAT_NORTH - 1] = new Point (m_ptSeat[Game.SEAT_NORTH - 1].x,
 				m_ptSeat[Game.SEAT_NORTH - 1].y - (int)(textBounds.height() * 1.1));
 		m_ptScoreText[Game.SEAT_EAST - 1] = new Point (m_ptSeat[Game.SEAT_EAST - 1].x + m_cardWidth,
-			m_ptSeat[Game.SEAT_EAST - 1].y - m_maxHeightHand / 2 - (int)(textBounds.height() * 1.1));
+			m_ptSeat[Game.SEAT_EAST - 1].y - maxHeightHand / 2 - (int)(textBounds.height() * 1.1));
 		m_ptScoreText[Game.SEAT_SOUTH - 1] = new Point (m_ptSeat[Game.SEAT_SOUTH - 1].x,
 				m_ptSeat[Game.SEAT_SOUTH - 1].y + m_cardHeight + (int)(textBounds.height() * 1.5));
 		m_ptScoreText[Game.SEAT_WEST - 1] = new Point (m_ptSeat[Game.SEAT_WEST - 1].x,
-				m_ptSeat[Game.SEAT_WEST - 1].y - m_maxHeightHand / 2 - (int)(textBounds.height() * 1.1));
+				m_ptSeat[Game.SEAT_WEST - 1].y - maxHeightHand / 2 - (int)(textBounds.height() * 1.1));
 
 		m_ptMessages = new Point (m_ptSeat[Game.SEAT_SOUTH - 1].x, m_ptSeat[Game.SEAT_SOUTH - 1].y - 3 * m_cardHeight / 4);
 		
@@ -460,7 +447,14 @@ public class GameTable extends View
 			}
 
 			android.os.Vibrator v = (android.os.Vibrator) GameTable.this.getContext().getSystemService(Context.VIBRATOR_SERVICE);
-			v.vibrate (100);
+			if (v != null && v.hasVibrator())
+			{
+				VibrationEffect effect = VibrationEffect.createOneShot(
+						100,
+						255
+				);
+				v.vibrate (effect);
+			}
 			ShowCardHelp(c);
 		}
 	};
@@ -733,12 +727,12 @@ public class GameTable extends View
 			switch (seat) {
 				case Game.SEAT_NORTH:
 				case Game.SEAT_SOUTH:
-					idx = (int) ((pt.x - ru.left) / spacing);
+					idx = (pt.x - ru.left) / spacing;
 					break;
 
 				case Game.SEAT_WEST:
 				case Game.SEAT_EAST:
-					idx = (int) ((pt.y - ru.top) / spacing);
+					idx = (pt.y - ru.top) / spacing;
 					break;
 			}
 
@@ -756,12 +750,12 @@ public class GameTable extends View
 			switch (seat) {
 				case Game.SEAT_NORTH:
 				case Game.SEAT_SOUTH:
-					idx = (int) ((pt.x - rr.left) / spacing);
+					idx = (pt.x - rr.left) / spacing;
 					break;
 
 				case Game.SEAT_WEST:
 				case Game.SEAT_EAST:
-					idx = (int) ((pt.y - rr.top) / spacing);
+					idx = (pt.y - rr.top) / spacing;
 					break;
 			}
 
@@ -1071,10 +1065,10 @@ public class GameTable extends View
 		int numUnrevealedShowing = min(numUnrevealedCards - m_unrevealedOffset[seat - 1], m_maxCardsDisplay);
 		int numRevealedShowing = min(numRevealedCards - m_revealedOffset[seat - 1], m_maxCardsDisplay);
 
-		int unrevealedWidth = 0;
-		int unrevealedHeight = 0;
-		int revealedWidth = 0;
-		int revealedHeight = 0;
+		int unrevealedWidth;
+		int unrevealedHeight;
+		int revealedWidth;
+		int revealedHeight;
 
 
 		int spacing = (seat == Game.SEAT_SOUTH) ? m_cardSpacingSouth : m_cardSpacing;
@@ -1175,7 +1169,7 @@ public class GameTable extends View
 
 		// draw the cards that are on the table
 
-        stop = Math.min(unrevealedOffset + m_maxCardsDisplay, numUnrevealedCards);
+		stop = Math.min(unrevealedOffset + m_maxCardsDisplay, numUnrevealedCards);
 
 		for (j = unrevealedOffset; j < stop; j++)
 		{
@@ -1206,7 +1200,7 @@ public class GameTable extends View
 			String numstr = "" + numRevealedCards;
 
 			m_paintCardBadgeText.getTextBounds(numstr, 0, numstr.length(), textBounds);
-			float fy = (float)(pt.y + m_bmpCardBadge.getHeight() / 2 + (int)(textBounds.height() / 2));
+			float fy = (float)(pt.y + m_bmpCardBadge.getHeight() / 2 + (textBounds.height() / 2));
 
 			cv.drawText(numstr, fx, fy, m_paintCardBadgeText);
 		}
@@ -1226,7 +1220,7 @@ public class GameTable extends View
 			String numstr = "" + numUnrevealedCards;
 
 			m_paintCardBadgeText.getTextBounds(numstr, 0, numstr.length(), textBounds);
-			float fy = (float)(pt.y + m_bmpCardBadge.getHeight() / 2 + (int)(textBounds.height() / 2));
+			float fy = (float)(pt.y + m_bmpCardBadge.getHeight() / 2 + (textBounds.height() / 2));
 
 			cv.drawText(numstr, fx, fy, m_paintCardBadgeText);
 		}
@@ -1242,10 +1236,10 @@ public class GameTable extends View
 		 * and it's hard to imagine that these objects are really taking up a lot of
 		 * RAM in the grand scheme of things.
 		 */
-		m_cardLookup = new HashMap<Integer, Card>();
-		m_imageIDLookup = new HashMap<Integer, Integer>();
-		m_imageLookup = new HashMap<Integer, Bitmap>();
-		m_cardHelpLookup = new HashMap<Integer, Integer>();
+		m_cardLookup = new HashMap<>();
+		m_imageIDLookup = new HashMap<>();
+		m_imageLookup = new HashMap<>();
+		m_cardHelpLookup = new HashMap<>();
 		m_cardIDs = new Integer[81];
 		
 	    Resources res = this.getContext().getResources ();
@@ -1258,7 +1252,7 @@ public class GameTable extends View
 		m_imageIDLookup.put (Card.ID_RED_0, R.drawable.card_red_0);
 		m_imageLookup.put (Card.ID_RED_0, BitmapFactory.decodeResource(res, R.drawable.card_red_0, opt));
 		m_cardHelpLookup.put (Card.ID_RED_0, R.string.cardhelp_0);
-		m_cardLookup.put (Card.ID_RED_0, new Card(-1, Card.COLOR_RED, 0, Card.ID_RED_0_HD, 0, 0));
+		m_cardLookup.put (Card.ID_RED_0, new Card(-1, Card.COLOR_RED, 0, Card.ID_RED_0_HD, 0));
 
 		m_imageIDLookup.put (Card.ID_RED_1, R.drawable.card_red_1);
 		m_imageLookup.put (Card.ID_RED_1, BitmapFactory.decodeResource(res, R.drawable.card_red_1, opt));
@@ -1268,8 +1262,8 @@ public class GameTable extends View
 		m_imageIDLookup.put (Card.ID_RED_2, R.drawable.card_red_2);
 		m_imageLookup.put (Card.ID_RED_2, BitmapFactory.decodeResource(res, R.drawable.card_red_2, opt));
 		m_cardHelpLookup.put (Card.ID_RED_2, R.string.cardhelp_2);
-        m_cardLookup.put (Card.ID_RED_2, new Card(-1, Card.COLOR_RED, 2, Card.ID_RED_2, 2));
-		
+		m_cardLookup.put (Card.ID_RED_2, new Card(-1, Card.COLOR_RED, 2, Card.ID_RED_2, 2));
+
 		m_imageIDLookup.put (Card.ID_RED_3, R.drawable.card_red_3);
 		m_imageLookup.put (Card.ID_RED_3, BitmapFactory.decodeResource(res, R.drawable.card_red_3, opt));
 		m_cardHelpLookup.put (Card.ID_RED_3, R.string.cardhelp_3);
@@ -1521,30 +1515,30 @@ public class GameTable extends View
 		m_cardHelpLookup.put (Card.ID_WILD, R.string.cardhelp_wild);
         m_cardLookup.put (Card.ID_WILD, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD, Card.ID_WILD, 50));
 		
-		m_imageIDLookup.put (Card.ID_WILD_DRAWFOUR, R.drawable.card_wild_drawfour);
-		m_imageLookup.put (Card.ID_WILD_DRAWFOUR, BitmapFactory.decodeResource(res, R.drawable.card_wild_drawfour, opt));
-		m_cardHelpLookup.put (Card.ID_WILD_DRAWFOUR, R.string.cardhelp_wild_drawfour);
-        m_cardLookup.put (Card.ID_WILD_DRAWFOUR, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50));
+		m_imageIDLookup.put (Card.ID_WILD_DRAW_FOUR, R.drawable.card_wild_drawfour);
+		m_imageLookup.put (Card.ID_WILD_DRAW_FOUR, BitmapFactory.decodeResource(res, R.drawable.card_wild_drawfour, opt));
+		m_cardHelpLookup.put (Card.ID_WILD_DRAW_FOUR, R.string.cardhelp_wild_drawfour);
+        m_cardLookup.put (Card.ID_WILD_DRAW_FOUR, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50));
 		
 		m_imageIDLookup.put (Card.ID_WILD_HOS, R.drawable.card_wild_hos);
 		m_imageLookup.put (Card.ID_WILD_HOS, BitmapFactory.decodeResource(res, R.drawable.card_wild_hos, opt));
 		m_cardHelpLookup.put (Card.ID_WILD_HOS, R.string.cardhelp_wild_hos);
-        m_cardLookup.put (Card.ID_WILD_HOS, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_HOS, 0));
+        m_cardLookup.put (Card.ID_WILD_HOS, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_HOS, 0));
 		
 		m_imageIDLookup.put (Card.ID_WILD_HD, R.drawable.card_wild_hd);
 		m_imageLookup.put (Card.ID_WILD_HD, BitmapFactory.decodeResource(res, R.drawable.card_wild_hd, opt));
 		m_cardHelpLookup.put (Card.ID_WILD_HD, R.string.cardhelp_wild_hd);
-        m_cardLookup.put (Card.ID_WILD_HD, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_HD, 100));
+        m_cardLookup.put (Card.ID_WILD_HD, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_HD, 100));
 		
 		m_imageIDLookup.put (Card.ID_WILD_MYSTERY, R.drawable.card_wild_mystery);
 		m_imageLookup.put (Card.ID_WILD_MYSTERY, BitmapFactory.decodeResource(res, R.drawable.card_wild_mystery, opt));
 		m_cardHelpLookup.put (Card.ID_WILD_MYSTERY, R.string.cardhelp_wild_mystery);
-        m_cardLookup.put (Card.ID_WILD_MYSTERY, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_MYSTERY, 0));
+        m_cardLookup.put (Card.ID_WILD_MYSTERY, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_MYSTERY, 0));
 		
 		m_imageIDLookup.put (Card.ID_WILD_DB, R.drawable.card_wild_db);
 		m_imageLookup.put (Card.ID_WILD_DB, BitmapFactory.decodeResource(res, R.drawable.card_wild_db, opt));
 		m_cardHelpLookup.put (Card.ID_WILD_DB, R.string.cardhelp_wild_db);
-        m_cardLookup.put (Card.ID_WILD_DB, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DB, 100));
+        m_cardLookup.put (Card.ID_WILD_DB, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DB, 100));
 		
 		m_imageIDLookup.put (Card.ID_RED_0_HD, R.drawable.card_red_0_hd);
 		m_imageLookup.put (Card.ID_RED_0_HD, BitmapFactory.decodeResource(res, R.drawable.card_red_0_hd, opt));
@@ -1556,7 +1550,7 @@ public class GameTable extends View
 		{
 			m_cardHelpLookup.put (Card.ID_RED_0_HD, R.string.cardhelp_red_0_hd);
 		}
-        m_cardLookup.put (Card.ID_RED_0_HD, new Card(-1, Card.COLOR_RED, 0, Card.ID_RED_0_HD, 0, 0.5));
+        m_cardLookup.put (Card.ID_RED_0_HD, new Card(-1, Card.COLOR_RED, 0, Card.ID_RED_0_HD, 0));
 
 		m_imageIDLookup.put (Card.ID_RED_2_GLASNOST, R.drawable.card_red_2_glasnost);
 		m_imageLookup.put (Card.ID_RED_2_GLASNOST, BitmapFactory.decodeResource(res, R.drawable.card_red_2_glasnost, opt));
@@ -1607,7 +1601,7 @@ public class GameTable extends View
 			m_imageLookup.put (Card.ID_GREEN_3_AIDS, BitmapFactory.decodeResource(res, R.drawable.card_green_3_aids, opt));
 			m_cardHelpLookup.put (Card.ID_GREEN_3_AIDS, R.string.cardhelp_green_3_aids);
 		}
-        m_cardLookup.put (Card.ID_GREEN_3_AIDS, new Card(-1, Card.COLOR_GREEN, 3, Card.ID_GREEN_3_AIDS, 3, 1.0, 10));
+        m_cardLookup.put (Card.ID_GREEN_3_AIDS, new Card(-1, Card.COLOR_GREEN, 3, Card.ID_GREEN_3_AIDS, 3));
 		
 		m_imageIDLookup.put (Card.ID_GREEN_4_IRISH, R.drawable.card_green_4_irish);
 		m_imageLookup.put (Card.ID_GREEN_4_IRISH, BitmapFactory.decodeResource(res, R.drawable.card_green_4_irish, opt));
@@ -1631,22 +1625,22 @@ public class GameTable extends View
 		
         if (m_go.getFamilyFriendly())
 		{
-			m_imageIDLookup.put (Card.ID_BLUE_0_FUCKYOU, R.drawable.card_blue_0_fuckyou_ff);
-			m_imageLookup.put (Card.ID_BLUE_0_FUCKYOU, BitmapFactory.decodeResource(res, R.drawable.card_blue_0_fuckyou_ff, opt));
-			m_cardHelpLookup.put (Card.ID_BLUE_0_FUCKYOU, R.string.cardhelp_blue_0_fuck_you_ff);
+			m_imageIDLookup.put (Card.ID_BLUE_0_FUCK_YOU, R.drawable.card_blue_0_fuckyou_ff);
+			m_imageLookup.put (Card.ID_BLUE_0_FUCK_YOU, BitmapFactory.decodeResource(res, R.drawable.card_blue_0_fuckyou_ff, opt));
+			m_cardHelpLookup.put (Card.ID_BLUE_0_FUCK_YOU, R.string.cardhelp_blue_0_fuck_you_ff);
 		}
 		else
 		{
-			m_imageIDLookup.put (Card.ID_BLUE_0_FUCKYOU, R.drawable.card_blue_0_fuckyou);
-			m_imageLookup.put (Card.ID_BLUE_0_FUCKYOU, BitmapFactory.decodeResource(res, R.drawable.card_blue_0_fuckyou, opt));
-			m_cardHelpLookup.put (Card.ID_BLUE_0_FUCKYOU, R.string.cardhelp_blue_0_fuck_you);
+			m_imageIDLookup.put (Card.ID_BLUE_0_FUCK_YOU, R.drawable.card_blue_0_fuckyou);
+			m_imageLookup.put (Card.ID_BLUE_0_FUCK_YOU, BitmapFactory.decodeResource(res, R.drawable.card_blue_0_fuckyou, opt));
+			m_cardHelpLookup.put (Card.ID_BLUE_0_FUCK_YOU, R.string.cardhelp_blue_0_fuck_you);
 		}
-        m_cardLookup.put (Card.ID_BLUE_0_FUCKYOU, new Card(-1, Card.COLOR_BLUE, 0, Card.ID_BLUE_0_FUCKYOU, 0, 2.0));
+        m_cardLookup.put (Card.ID_BLUE_0_FUCK_YOU, new Card(-1, Card.COLOR_BLUE, 0, Card.ID_BLUE_0_FUCK_YOU, 0));
 		
 		m_imageIDLookup.put (Card.ID_BLUE_2_SHIELD, R.drawable.card_blue_2_shield);
 		m_imageLookup.put (Card.ID_BLUE_2_SHIELD, BitmapFactory.decodeResource(res, R.drawable.card_blue_2_shield, opt));
 		m_cardHelpLookup.put (Card.ID_BLUE_2_SHIELD, R.string.cardhelp_blue_2_shield);
-        m_cardLookup.put (Card.ID_BLUE_2_SHIELD, new Card(-1, Card.COLOR_BLUE, 2, Card.ID_BLUE_2_SHIELD, 0, 1.0, 0, 1));
+        m_cardLookup.put (Card.ID_BLUE_2_SHIELD, new Card(-1, Card.COLOR_BLUE, 2, Card.ID_BLUE_2_SHIELD, 0));
 		
 		m_imageIDLookup.put (Card.ID_BLUE_D_SPREADER, R.drawable.card_blue_d_spreader);
 		m_imageLookup.put (Card.ID_BLUE_D_SPREADER, BitmapFactory.decodeResource(res, R.drawable.card_blue_d_spreader, opt));
@@ -1799,7 +1793,7 @@ public class GameTable extends View
 	    m_cardIDs[i++] = Card.ID_GREEN_R_SKIP;
 	    	    
 	    m_cardIDs[i++] = Card.ID_BLUE_0;
-	    m_cardIDs[i++] = Card.ID_BLUE_0_FUCKYOU;
+	    m_cardIDs[i++] = Card.ID_BLUE_0_FUCK_YOU;
 	    m_cardIDs[i++] = Card.ID_BLUE_1;
 	    m_cardIDs[i++] = Card.ID_BLUE_2;
 	    m_cardIDs[i++] = Card.ID_BLUE_2_SHIELD;
@@ -1838,11 +1832,11 @@ public class GameTable extends View
 	    m_cardIDs[i++] = Card.ID_YELLOW_R_SKIP;
 	    	    
 	    m_cardIDs[i++] = Card.ID_WILD;
-	    m_cardIDs[i++] = Card.ID_WILD_DRAWFOUR;
+	    m_cardIDs[i++] = Card.ID_WILD_DRAW_FOUR;
 	    m_cardIDs[i++] = Card.ID_WILD_HOS;
 	    m_cardIDs[i++] = Card.ID_WILD_HD;
 	    m_cardIDs[i++] = Card.ID_WILD_MYSTERY;
-	    m_cardIDs[i++] = Card.ID_WILD_DB;
+	    m_cardIDs[i] = Card.ID_WILD_DB;
 	}
 	
 	
@@ -1890,7 +1884,7 @@ public class GameTable extends View
 
         if (p.getType() == Penalty.PENTYPE_CARD)
         {
-            m_drawMatrix.reset();
+			m_drawMatrix.reset();
 			m_drawMatrix.setScale(1, 1);
 			m_drawMatrix.setTranslate(m_ptDiscardBadge.x, m_ptDiscardBadge.y);
 
@@ -1901,7 +1895,7 @@ public class GameTable extends View
 			String numCards = "" + p.getNumCards();
 
 			m_paintCardBadgeText.getTextBounds(numCards, 0, numCards.length(), textBounds);
-			float fy = (float)(m_ptDiscardBadge.y + m_bmpCardBadge.getHeight() / 2 + (int)(textBounds.height() / 2));
+			float fy = (float)(m_ptDiscardBadge.y + m_bmpCardBadge.getHeight() / 2 + (textBounds.height() / 2));
 
 			cv.drawText(numCards, fx, fy, m_paintCardBadgeText);
         }
@@ -2051,7 +2045,7 @@ public class GameTable extends View
 
 				if (lastScore < 0) 
 				{
-					msg = String.format (m_game.getString(R.string.msg_round_score_negative), totalScore - lastScore - virusPenalty, 0 - lastScore, virusPenalty, totalScore);
+					msg = String.format (m_game.getString(R.string.msg_round_score_negative), totalScore - lastScore - virusPenalty, -lastScore, virusPenalty, totalScore);
 				}
 				else 
 				{
@@ -2064,7 +2058,7 @@ public class GameTable extends View
 		}
 	}
 	
-	public int PromptForVictim ()
+	public void PromptForVictim ()
 	{
 		int count = 0;
 		if (m_game.getPlayer(Game.SEAT_WEST - 1).getActive())
@@ -2095,94 +2089,77 @@ public class GameTable extends View
 		if (m_game.getPlayer(Game.SEAT_EAST - 1).getActive())
 		{
 			items[count] = m_game.getString(R.string.seat_east);
-			count++;
 		}
 		
 		new AlertDialog.Builder(this.getContext())
 		.setCancelable(false)
 		.setTitle(R.string.prompt_victim)
 		.setItems(items,
-			new DialogInterface.OnClickListener()
-			{
-				public void onClick (DialogInterface dialoginterface, int i)
-				{
-					Player p = m_game.getCurrPlayer();
-					if (p instanceof HumanPlayer)
-					{
-						if (m_game.getPlayer(Game.SEAT_WEST - 1).getActive())
-						{
-							if (i == 0)
-							{
-								((HumanPlayer)p).setVictim(Game.SEAT_WEST);
-								return;
-							}
-							i--;
-						}
-						if (m_game.getPlayer(Game.SEAT_NORTH - 1).getActive())
-						{
-							if (i == 0)
-							{
-								((HumanPlayer)p).setVictim(Game.SEAT_NORTH);
-								return;
-							}
-							i--;
-						}
-						if (m_game.getPlayer(Game.SEAT_EAST - 1).getActive())
-						{
-							if (i == 0)
-							{
-								((HumanPlayer)p).setVictim(Game.SEAT_EAST);
-								return;
-							}
-							i--;
-						}
-					}
-				}
-			})
+                (dialoginterface, i) -> {
+                    Player p = m_game.getCurrPlayer();
+                    if (p instanceof HumanPlayer)
+                    {
+                        if (m_game.getPlayer(Game.SEAT_WEST - 1).getActive())
+                        {
+                            if (i == 0)
+                            {
+                                ((HumanPlayer)p).setVictim(Game.SEAT_WEST);
+                                return;
+                            }
+                            i--;
+                        }
+                        if (m_game.getPlayer(Game.SEAT_NORTH - 1).getActive())
+                        {
+                            if (i == 0)
+                            {
+                                ((HumanPlayer)p).setVictim(Game.SEAT_NORTH);
+                                return;
+                            }
+                            i--;
+                        }
+                        if (m_game.getPlayer(Game.SEAT_EAST - 1).getActive())
+                        {
+                            if (i == 0)
+                            {
+                                ((HumanPlayer)p).setVictim(Game.SEAT_EAST);
+                                return;
+                            }
+                            i--;
+                        }
+                    }
+                })
 			.show();
-
-		return 0;
 	}
 	
-	public int PromptForNumCardsToDeal ()
+	public void PromptForNumCardsToDeal ()
 	{
 		new AlertDialog.Builder(this.getContext())
 			.setCancelable(false)
 			.setTitle(R.string.prompt_deal)
 			.setItems(R.array.deal_values,
-				new DialogInterface.OnClickListener()
-				{
-					public void onClick (DialogInterface dialoginterface, int i)
-					{
-						Player p = m_game.getDealer();
-						if (p instanceof HumanPlayer)
-						{
-							((HumanPlayer)p).setNumCardsToDeal(i + 5);
-						}
-					}
-				})
+                    (dialoginterface, i) -> {
+                        Player p = m_game.getDealer();
+                        if (p instanceof HumanPlayer)
+                        {
+                            ((HumanPlayer)p).setNumCardsToDeal(i + 5);
+                        }
+                    })
 				.show();
-		return 0;	
 	}
 	
-	public int PromptForColor ()
+	public void PromptForColor ()
 	{
 		new AlertDialog.Builder(this.getContext())
 			.setCancelable(false)
 			.setTitle(R.string.prompt_color)
 			.setItems(R.array.colors,
-				new DialogInterface.OnClickListener()
-				{
-					public void onClick (DialogInterface dialoginterface, int i)
-					{
-						Player p = m_game.getCurrPlayer();
-						if (p instanceof HumanPlayer)
-						{
-							((HumanPlayer)p).setColor(i + 1);
-						}
-					}
-				})
+                    (dialoginterface, i) -> {
+                        Player p = m_game.getCurrPlayer();
+                        if (p instanceof HumanPlayer)
+                        {
+                            ((HumanPlayer)p).setColor(i + 1);
+                        }
+                    })
 				.show();
-		return 0;
 	}
 }

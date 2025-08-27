@@ -3,8 +3,6 @@ package com.smorgasbork.hotdeath;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.smorgasbork.hotdeath.R;
-
 public class HumanPlayer extends Player 
 {
 	private boolean m_turnDecision = false;
@@ -48,11 +46,10 @@ public class HumanPlayer extends Player
 		}
 		
 
-		if (m_game.checkCard(m_hand, c, true)) 
+		if (m_game.checkCard(m_hand, c))
 		{
 			m_playingCard = c;
 			m_wantsToPlayCard = true;
-			//resetLastDrawn();
 			m_turnDecision = true;				
 		}
 		else 
@@ -85,9 +82,8 @@ public class HumanPlayer extends Player
 				return;
 			}
 		}
-		
-		return;
-	}	
+
+    }
 
 	
 	public int getNumCardsToDeal ()

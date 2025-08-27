@@ -1,6 +1,5 @@
 package com.smorgasbork.hotdeath;
 
-import com.smorgasbork.hotdeath.Card;
 import java.util.Random;
 
 import org.json.JSONArray;
@@ -63,7 +62,7 @@ public class CardDeck {
 		{
 			if (oneDeck) 
 			{
-				m_cards[i] = new Card(i, Card.COLOR_RED, 0, Card.ID_RED_0_HD, 0, 0.5); i++;
+				m_cards[i] = new Card(i, Card.COLOR_RED, 0, Card.ID_RED_0_HD, 0); i++;
 				m_cards[i] = new Card(i, Card.COLOR_RED, 1, Card.ID_RED_1, 1); i++;
 				m_cards[i] = new Card(i, Card.COLOR_RED, 1, Card.ID_RED_1, 1); i++;
 				m_cards[i] = new Card(i, Card.COLOR_RED, 2, Card.ID_RED_2, 2); i++;
@@ -95,7 +94,7 @@ public class CardDeck {
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, 2, Card.ID_GREEN_2, 2); i++;
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, 2, Card.ID_GREEN_2, 2); i++;
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, 3, Card.ID_GREEN_3, 3); i++;
-				m_cards[i] = new Card(i, Card.COLOR_GREEN, 3, Card.ID_GREEN_3_AIDS, 3, 1.0, 10); i++;
+				m_cards[i] = new Card(i, Card.COLOR_GREEN, 3, Card.ID_GREEN_3_AIDS, 3); i++;
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, 4, Card.ID_GREEN_4, 4); i++;
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, 4, Card.ID_GREEN_4_IRISH, 75); i++;
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, 5, Card.ID_GREEN_5, 5); i++;
@@ -115,11 +114,11 @@ public class CardDeck {
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, Card.VAL_R, Card.ID_GREEN_R, 20); i++;
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, Card.VAL_R_SKIP, Card.ID_GREEN_R_SKIP, 40); i++;
 
-				m_cards[i] = new Card(i, Card.COLOR_BLUE, 0, Card.ID_BLUE_0_FUCKYOU, 0, 2.0); i++;
+				m_cards[i] = new Card(i, Card.COLOR_BLUE, 0, Card.ID_BLUE_0_FUCK_YOU, 0); i++;
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 1, Card.ID_BLUE_1, 1); i++;
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 1, Card.ID_BLUE_1, 1); i++;
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 2, Card.ID_BLUE_2, 2); i++;
-				m_cards[i] = new Card(i, Card.COLOR_BLUE, 2, Card.ID_BLUE_2_SHIELD, 0, 1.0, 0, 1); i++;
+				m_cards[i] = new Card(i, Card.COLOR_BLUE, 2, Card.ID_BLUE_2_SHIELD, 0); i++;
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 3, Card.ID_BLUE_3, 3); i++;
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 3, Card.ID_BLUE_3, 3); i++;
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 4, Card.ID_BLUE_4, 4); i++;
@@ -167,20 +166,20 @@ public class CardDeck {
 				m_cards[i] = new Card(i, Card.COLOR_YELLOW, Card.VAL_R, Card.ID_YELLOW_R, 20); i++;
 				m_cards[i] = new Card(i, Card.COLOR_YELLOW, Card.VAL_R_SKIP, Card.ID_YELLOW_R_SKIP, 40); i++;
 
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
 
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_HD, 100); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DB, 100); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_HOS, 0); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_MYSTERY, 0); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_HD, 100); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DB, 100); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_HOS, 0); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_MYSTERY, 0); i++;
 			}
 
 			else {
 				m_cards[i] = new Card(i, Card.COLOR_RED, 0, Card.ID_RED_0, 0); i++;
-				m_cards[i] = new Card(i, Card.COLOR_RED, 0, Card.ID_RED_0_HD, 0, 0.5); i++;
+				m_cards[i] = new Card(i, Card.COLOR_RED, 0, Card.ID_RED_0_HD, 0); i++;
 				m_cards[i] = new Card(i, Card.COLOR_RED, 1, Card.ID_RED_1, 1); i++;
 				m_cards[i] = new Card(i, Card.COLOR_RED, 1, Card.ID_RED_1, 1); i++;
 				m_cards[i] = new Card(i, Card.COLOR_RED, 1, Card.ID_RED_1, 1); i++;
@@ -243,7 +242,7 @@ public class CardDeck {
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, 3, Card.ID_GREEN_3, 3); i++;
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, 3, Card.ID_GREEN_3, 3); i++;
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, 3, Card.ID_GREEN_3, 3); i++;
-				m_cards[i] = new Card(i, Card.COLOR_GREEN, 3, Card.ID_GREEN_3_AIDS, 3, 1.0, 10); i++;
+				m_cards[i] = new Card(i, Card.COLOR_GREEN, 3, Card.ID_GREEN_3_AIDS, 3); i++;
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, 4, Card.ID_GREEN_4, 4); i++;
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, 4, Card.ID_GREEN_4, 4); i++;
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, 4, Card.ID_GREEN_4, 4); i++;
@@ -282,7 +281,7 @@ public class CardDeck {
 				m_cards[i] = new Card(i, Card.COLOR_GREEN, Card.VAL_R_SKIP, Card.ID_GREEN_R_SKIP, 40); i++;
 
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 0, Card.ID_BLUE_0, 0); i++;
-				m_cards[i] = new Card(i, Card.COLOR_BLUE, 0, Card.ID_BLUE_0_FUCKYOU, 0, 2.0); i++;
+				m_cards[i] = new Card(i, Card.COLOR_BLUE, 0, Card.ID_BLUE_0_FUCK_YOU, 0); i++;
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 1, Card.ID_BLUE_1, 1); i++;
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 1, Card.ID_BLUE_1, 1); i++;
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 1, Card.ID_BLUE_1, 1); i++;
@@ -290,7 +289,7 @@ public class CardDeck {
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 2, Card.ID_BLUE_2, 2); i++;
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 2, Card.ID_BLUE_2, 2); i++;
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 2, Card.ID_BLUE_2, 2); i++;
-				m_cards[i] = new Card(i, Card.COLOR_BLUE, 2, Card.ID_BLUE_2_SHIELD, 0, 1.0, 0, 1); i++;
+				m_cards[i] = new Card(i, Card.COLOR_BLUE, 2, Card.ID_BLUE_2_SHIELD, 0); i++;
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 3, Card.ID_BLUE_3, 3); i++;
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 3, Card.ID_BLUE_3, 3); i++;
 				m_cards[i] = new Card(i, Card.COLOR_BLUE, 3, Card.ID_BLUE_3, 3); i++;
@@ -388,19 +387,19 @@ public class CardDeck {
 				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD, Card.ID_WILD, 50); i++;
 				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD, Card.ID_WILD, 50); i++;
 
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
 
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_HD, 100); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DB, 100); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_HOS, 0); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_MYSTERY, 0); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_HD, 100); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DB, 100); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_HOS, 0); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_MYSTERY, 0); i++;
 			}
 		}
 		else {
@@ -514,10 +513,10 @@ public class CardDeck {
 				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD, Card.ID_WILD, 50); i++;
 				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD, Card.ID_WILD, 50); i++;
 
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
 			}
 			else {
 				m_cards[i] = new Card(i, Card.COLOR_RED, 0, Card.ID_RED_0, 0); i++;
@@ -733,14 +732,14 @@ public class CardDeck {
 				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD, Card.ID_WILD, 50); i++;
 				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD, Card.ID_WILD, 50); i++;
 
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
-				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAWFOUR, Card.ID_WILD_DRAWFOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
+				m_cards[i] = new Card(i, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50); i++;
 			}
 		}
 		m_numCards = i;
@@ -816,10 +815,8 @@ public class CardDeck {
 		{
 			m_cards[i] = new Card (a.getJSONObject(i));
 		}
-	
-		for (int i = 0; i < m_numCards; i++) {
-			m_oCards[i] = m_cards[i];
-		}
+
+        if (m_numCards >= 0) System.arraycopy(m_cards, 0, m_oCards, 0, m_numCards);
 	}
 	
 	public JSONObject toJSON () throws JSONException
