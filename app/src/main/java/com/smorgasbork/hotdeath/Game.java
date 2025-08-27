@@ -1084,11 +1084,11 @@ public class Game extends Thread {
 	{
 		if (!(h.isInHand(c))) return false;
 
-		int value = m_currCard.getValue();
-		int id = m_currCard.getID();
+		int currCardValue = m_currCard.getValue();
+		int currCardID = m_currCard.getID();
 
-		int cvalue = c.getValue();
-		int cid = c.getID();
+		int checkCardValue = c.getValue();
+		int checkCardId = c.getID();
 
 		boolean bHasMatch = h.hasColorMatch (m_currColor);
 
@@ -1096,33 +1096,29 @@ public class Game extends Thread {
 
 		if (m_penalty.getType() != Penalty.PENTYPE_NONE)
 		{
-			int tid = m_penalty.getOrigCard().getID();
-			int pvalue = m_penalty.getOrigCard().getValue();
-
-			// if the penalty's original card is not the current
-			// card, we're dealing with defenders.  At this point, we
-			// can only throw defenders (we can't stack more)
-			boolean defenderAlreadyThrown = (m_penalty.getOrigCard() != m_currCard);
+			int origCardId = m_penalty.getOrigCard().getID();
+			int origCardValue = m_penalty.getOrigCard().getValue();
 
 			// can play aids, fuckyou, and holydefender on various cards
-			if (((cid == Card.ID_BLUE_0_FUCKYOU) 
-				|| (cid == Card.ID_RED_0_HD)
-				|| (cid == Card.ID_GREEN_3_AIDS))
-				&& ((pvalue == Card.VAL_WILD_DRAWFOUR) 
-				   || (tid == Card.ID_GREEN_0_QUITTER)
-				   || (tid == Card.ID_RED_2_GLASNOST)))
+			if (((checkCardId == Card.ID_BLUE_0_FUCKYOU)
+				|| (checkCardId == Card.ID_RED_0_HD)
+				|| (checkCardId == Card.ID_GREEN_3_AIDS))
+				&& ((origCardValue == Card.VAL_WILD_DRAWFOUR && origCardId != Card.ID_WILD_HOS)
+				   || (origCardId == Card.ID_GREEN_0_QUITTER)
+				   || (origCardId == Card.ID_RED_2_GLASNOST)))
 			{
 				return true;
 			}
 
-			// assuming we're not dealing with a defender on top of the
+			// assuming we're not dealing with aids on top of the
 			// draw four, we can stack drawfours (except on the harvester
 			// of sorrows and mystery)
 			if (!(m_go.getStandardRules())) {
-				if (!defenderAlreadyThrown
-					&& (pvalue == Card.VAL_WILD_DRAWFOUR) 
-					&& (tid != Card.ID_WILD_HOS) && (tid != Card.ID_WILD_MYSTERY)) {
-					if (cvalue == Card.VAL_WILD_DRAWFOUR && cid != Card.ID_WILD_MYSTERY)
+				if (currCardID != Card.ID_GREEN_3_AIDS
+					&& (origCardValue == Card.VAL_WILD_DRAWFOUR)
+					&& (origCardId != Card.ID_WILD_HOS) && (origCardId != Card.ID_WILD_MYSTERY))
+				{
+					if (checkCardValue == Card.VAL_WILD_DRAWFOUR && checkCardId != Card.ID_WILD_MYSTERY)
 					{
 						return true;
 					}
@@ -1131,13 +1127,13 @@ public class Game extends Thread {
 
 			// magic 5 is a defender against the hot death wild card only
 			// (although it can be played on any card)
-            return (tid == Card.ID_WILD_HD) && (cid == Card.ID_RED_5_MAGIC);
+            return (origCardId == Card.ID_WILD_HD) && (checkCardId == Card.ID_RED_5_MAGIC);
         }
 		
 		m_lastCardCheckedIsDefender = false;
 
 		// if player holds 69, he can throw 6s on 9s and vice-versa
-		if (((cvalue == 6) && (value == 9)) || ((cvalue == 9) && (value == 6))) 
+		if (((checkCardValue == 6) && (currCardValue == 9)) || ((checkCardValue == 9) && (currCardValue == 6)))
 		{
 			for (int i = 0; i < h.getNumCards(); i++) 
 			{
@@ -1149,27 +1145,27 @@ public class Game extends Thread {
 			}
 		}
 
-		if (cid == Card.ID_YELLOW_0_SHITTER) 
+		if (checkCardId == Card.ID_YELLOW_0_SHITTER)
 		{
-            return (id == Card.ID_RED_0_HD)
-                    || (id == Card.ID_RED_5_MAGIC)
+            return (currCardID == Card.ID_RED_0_HD)
+                    || (currCardID == Card.ID_RED_5_MAGIC)
                     || (h.getNumCards() == 1);
 		}
 
 		// 69 can be played on 6 or 9; likewise, 6 or 9 can be played on 69
-		if ((id == Card.ID_YELLOW_69) && ((cvalue == 6) || (cvalue == 9))) return true;
-		if ((cid == Card.ID_YELLOW_69) && ((value == 6) || (value == 9))) return true;
+		if ((currCardID == Card.ID_YELLOW_69) && ((checkCardValue == 6) || (checkCardValue == 9))) return true;
+		if ((checkCardId == Card.ID_YELLOW_69) && ((currCardValue == 6) || (currCardValue == 9))) return true;
 
 		// can play magic red 5 on any card
-		if (cid == Card.ID_RED_5_MAGIC) return true;
+		if (checkCardId == Card.ID_RED_5_MAGIC) return true;
 
 		// the variants of D, S, and R
-		if ((value == Card.VAL_D) && (cvalue == Card.VAL_D_SPREAD)) return true;
-		if ((value == Card.VAL_D_SPREAD) && (cvalue == Card.VAL_D)) return true;
-		if ((value == Card.VAL_R) && (cvalue == Card.VAL_R_SKIP)) return true;
-		if ((value == Card.VAL_R_SKIP) && (cvalue == Card.VAL_R)) return true;
-		if ((value == Card.VAL_S) && (cvalue == Card.VAL_S_DOUBLE)) return true;
-		if ((value == Card.VAL_S_DOUBLE) && (cvalue == Card.VAL_S)) return true;
+		if ((currCardValue == Card.VAL_D) && (checkCardValue == Card.VAL_D_SPREAD)) return true;
+		if ((currCardValue == Card.VAL_D_SPREAD) && (checkCardValue == Card.VAL_D)) return true;
+		if ((currCardValue == Card.VAL_R) && (checkCardValue == Card.VAL_R_SKIP)) return true;
+		if ((currCardValue == Card.VAL_R_SKIP) && (checkCardValue == Card.VAL_R)) return true;
+		if ((currCardValue == Card.VAL_S) && (checkCardValue == Card.VAL_S_DOUBLE)) return true;
+		if ((currCardValue == Card.VAL_S_DOUBLE) && (checkCardValue == Card.VAL_S)) return true;
 
 		if (m_go.getStandardRules()) 
 		{
@@ -1182,7 +1178,7 @@ public class Game extends Thread {
 
 		// cards of same color, wild cards, or cards of equal value
         return (c.getColor() == m_currColor) || (c.getColor() == Card.COLOR_WILD)
-                || (cvalue == value);
+                || (checkCardValue == currCardValue);
     }
 
 
@@ -1464,11 +1460,6 @@ public class Game extends Thread {
 		int prevID = c.getID();
 		int prevVal = c.getValue();
 
-		// if the penalty's original card is not the current
-		// card, we're dealing with defenders.  At this point, we
-		// can only throw defenders (we can't stack more)
-		boolean defenderAlreadyThrown = (c != m_currCard);
-
 		int defenderCount = 0;
 		// we can stack on all draw fours except HOS and mystery draw
 		if ((prevVal == Card.VAL_WILD_DRAWFOUR) && (prevID != Card.ID_WILD_HOS)) 
@@ -1479,7 +1470,7 @@ public class Game extends Thread {
 				int val = (h.getCard(i)).getValue();
 				
 				// all draw fours can stack, except for mystery draw
-				if (!defenderAlreadyThrown) {
+				if (prevID != Card.ID_GREEN_3_AIDS) {
 					if ((val == Card.VAL_WILD_DRAWFOUR) && (prevID != Card.ID_WILD_MYSTERY) && (id != Card.ID_WILD_MYSTERY)) 
 					{
 						defenderCount++;
