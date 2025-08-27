@@ -1880,7 +1880,7 @@ public class Game extends Thread {
 	public void assessPenalty()
 	{
 		int i;
-		
+
 		if (m_penalty.getType() == Penalty.PENTYPE_NONE)
 		{
 			return;
@@ -1906,49 +1906,12 @@ public class Game extends Thread {
 				numcards = (numcards + 1) / 2;
 			}
 
-			// check for the luck of the irish card (if numcards = 0, there's no point)
-			if (numcards > 0) 
-			{
-				for (i = 0; i < h.getNumCards(); i++) 
-				{
-					int id = (h.getCard(i)).getID();
-					if (id == Card.ID_GREEN_4_IRISH) 
-					{
-						numcards--;
-						h.getCard(i).setFaceUp(true);
-
-						String msg_player = getString(R.string.msg_luck_of_irish);
-						promptUser (msg_player);
-
-						break;
-					}
-				}
-			}
-
 			forceDraw(pVictim, numcards);
 			m_currPlayer = pVictim;
 
-			//if (!(m_go.getStandardRules()))
-			//{
-			//	m_currPlayer = nextPlayer();
-			//}
-			
 			if (pVictim2 != null) 
 			{
-				h = pVictim2.getHand();
-				numcards = (m_penalty.getNumCards() + 1) / 2;
-				// check for the luck of the irish card
-				for (i = 0; i < h.getNumCards(); i++) 
-				{
-					int id = (h.getCard(i)).getID();
-					if (id == Card.ID_GREEN_4_IRISH) 
-					{
-						numcards--;
-						(h.getCard(i)).setFaceUp(true);
-						break;
-					}
-				}
-				forceDraw(pVictim2, numcards);
+				forceDraw(pVictim2, m_penalty.getNumCards() / 2);
 				m_currPlayer = pVictim2;
 			}
 		}
@@ -2077,12 +2040,34 @@ public class Game extends Thread {
 	}
 
 	void forceDraw(Player p, int numcards)
-	{	
+	{
+		int i;
+
+		if (numcards <= 0)
+		{
+			return;
+		}
 		// manipulate the m_currPlayer so that the drawing engine will
 		// point at the player who is drawing; we'll put it back when done.
 		Player realCurrPlayer = m_currPlayer;
 		m_currPlayer = p;
 		redrawTable();
+
+		Hand h = p.getHand();
+		for (i = 0; i < h.getNumCards(); i++)
+		{
+			int id = (h.getCard(i)).getID();
+			if (id == Card.ID_GREEN_4_IRISH)
+			{
+				numcards--;
+				h.getCard(i).setFaceUp(true);
+
+				String msg_player = getString(R.string.msg_luck_of_irish);
+				promptUser (msg_player);
+
+				break;
+			}
+		}
 
 		String msg = String.format(getString(R.string.msg_player_drawing), seatToString(p.getSeat()), numcards);
 		Log.d("HDU", msg);
@@ -2090,7 +2075,7 @@ public class Game extends Thread {
 
 		boolean notEnoughCards = false;
 		m_forceDrawing = true;
-		for (int i = 0; i < numcards; i++) 
+		for (i = 0; i < numcards; i++)
 		{
 			Card c = drawCard();
 
