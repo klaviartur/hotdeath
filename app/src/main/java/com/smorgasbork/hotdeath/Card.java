@@ -112,6 +112,19 @@ public class Card {
 	private final int m_id;
 	private boolean m_faceUp = false;
 
+	// Animation related properties
+	private float x, y;  // Current position
+	private float startX, startY;  // Target position for animation
+	private float targetX, targetY;  // Target position for animation
+	private float rot = 0;  // current Rotation about the X-axis
+	private float startRot; // Starting rotation about the X-axis
+	private float targetRot; // Target rotation about the X-axis
+	private float flip = 0;  // Rotation about the X-axis
+	private long startTime;  // Start time of the animation
+	private long duration; // Animation duration in milliseconds
+	private boolean targetFaceUp;
+	private boolean isAnimating;  // Animation status
+
 	
     public Hand getHand () { return m_hand; }
     public void setHand (Hand h) { m_hand = h; }
@@ -297,5 +310,73 @@ public class Card {
 
 		return o;
 	}
-	
+
+	public void startAnimation(float toX, float toY, float toRot, boolean toFaceUp, long duration) {
+		this.startX = this.x;
+		this.startY = this.y;
+		this.targetX = toX;
+		this.targetY = toY;
+		this.startRot = this.rot;
+		this.targetRot = toRot;
+		this.targetFaceUp = toFaceUp;
+		this.startTime = System.currentTimeMillis();
+		this.duration = duration;
+		this.isAnimating = true;
+	}
+
+	public void updatePosition() {
+		if (!isAnimating) return;
+
+		long elapsedTime = System.currentTimeMillis() - startTime;
+		if (elapsedTime >= duration) {
+			elapsedTime = duration;
+			isAnimating = false;
+		}
+
+		float progress = (float) elapsedTime / duration;
+		this.x = startX + progress * (targetX - startX);
+		this.y = startY + progress * (targetY - startY);
+		this.rot = startRot + progress * (targetRot - startRot);
+		if (targetFaceUp != m_faceUp) {
+			if (progress <= 0.5) {
+				this.flip = progress * 2 * 90;
+			}
+			else
+			{
+				m_faceUp = targetFaceUp;
+			}
+		}
+		if (targetFaceUp == m_faceUp && this.flip != 0)
+		{
+			this.flip = -90 + (progress - 0.5f) * 2 * 90;
+		}
+	}
+
+	public boolean isAnimating() {
+		return isAnimating;
+	}
+
+	public float getX() {
+		return x;
+	}
+
+	public float getY() {
+		return y;
+	}
+
+	public float getRot() {
+		return rot;
+	}
+
+	public float getFlip() {
+		return flip;
+	}
+
+	public void setX(int x) {
+		this.x = x;
+	}
+
+	public void setY(int y) {
+		this.y = y;
+	}
 }

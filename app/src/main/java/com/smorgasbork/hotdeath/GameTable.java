@@ -107,6 +107,8 @@ public class GameTable extends View
 	
 	private Game m_game;
 	private GameOptions m_go;
+
+	private AnimationManager animationManager;
 	
 	public void setHelpCardID (int id)
 	{
@@ -147,6 +149,8 @@ public class GameTable extends View
 	public GameTable(Context context, Game g, GameOptions go) 
 	{
 		super(context);
+
+		this.animationManager = new AnimationManager(this);
 
 		this.setBackgroundResource(R.drawable.table_background);
 		
@@ -362,7 +366,15 @@ public class GameTable extends View
 		m_bottomMarginExternal = m;
 	}
 
-	
+	public void moveCardToDiscardPile(Card card)
+	{
+		startCardAnimation(card, m_discardPileBoundingRect.left, m_discardPileBoundingRect.top, 0, true, m_game.getDelay());
+	}
+
+	public void startCardAnimation(Card card, float toX, float toY, float toRot, boolean faceUp, long duration) {
+		animationManager.startCardAnimation(card, toX, toY, toRot, faceUp, duration);
+	}
+
 	public void startGameWhenReady ()
 	{
 		if (m_readyToStartGame)
@@ -948,59 +960,28 @@ public class GameTable extends View
 		{
 			return;
 		}
-		
-		// draw the discard pile
-		
-		CardPile pile = m_game.getDiscardPile ();
-		int numCardsInPlay = pile.getNumCards();
+
+		// draw the draw pile
+
+		CardPile pile = m_game.getDrawPile();
 		CardDeck deck = m_game.getDeck ();
 
 		int skip = 16;
 		if (deck != null)
 		{
-			if (deck.getNumCards () > 108) 
+			if (deck.getNumCards () > 108)
 			{
 				skip = 32;
 			}
 		}
-		
-		if (pile != null)
-		{			
-			for (i = 0; i < numCardsInPlay; i += skip) 
-			{
-				// make sure that the top card is drawn...
-				if (i >= numCardsInPlay - skip) 
-				{
-					i = numCardsInPlay - 1;
-				}
-				
-				Card c = pile.getCard(i);
-				if (c != null) 
-				{
-					// FIXME -- make resolution independent
-					x = m_ptDiscardPile.x + (int)((float)i / (float)skip) * 2;
-					y = m_ptDiscardPile.y + (int)((float)i / (float)skip) * 2;
-					c.setFaceUp(true);
-
-					this.drawCard (canvas, c, x, y, true);
-				}
-			}
-		}
-
-		
-		m_discardPileBoundingRect = new Rect(m_ptDiscardPile.x, m_ptDiscardPile.y, x + m_cardWidth, y + m_cardHeight);
-		
-		// draw the draw pile
-		
-		pile = m_game.getDrawPile();
-		
 
 		if (pile != null)
 		{
 			x = m_ptDrawPile.x;
 			y = m_ptDrawPile.y;
 			int numCardsInPile = pile.getNumCards();
-			for (i = 0; i < numCardsInPile; i += skip) 
+
+			for (i = 0; i < numCardsInPile; i += skip)
 			{
 				if (i >= numCardsInPile - skip)
 				{
@@ -1017,11 +998,54 @@ public class GameTable extends View
 				}
 			}
 		}
-		
+
 		m_drawPileBoundingRect = new Rect(m_ptDrawPile.x, m_ptDrawPile.y, x + m_cardWidth, y + m_cardHeight);
+
+		// draw the discard pile
 		
+		pile = m_game.getDiscardPile ();
+		
+		if (pile != null)
+		{
+			int numCardsInPile = pile.getNumCards();
+			x = m_ptDiscardPile.x;
+			y = m_ptDiscardPile.y;
+			for (i = 0; i < numCardsInPile - 1; i += skip)
+			{
+				// make sure that the top card is drawn...
+				if (i >= numCardsInPile - 1 - skip)
+				{
+					i = numCardsInPile - 2;
+				}
+				
+				Card c = pile.getCard(i);
+				if (c != null) 
+				{
+					// FIXME -- make resolution independent
+					x = m_ptDiscardPile.x + (int)((float)i / (float)skip) * 2;
+					y = m_ptDiscardPile.y + (int)((float)i / (float)skip) * 2;
+					c.setFaceUp(true);
+
+					this.drawCard (canvas, c, x, y, true);
+				}
+			}
+			if (numCardsInPile > 0)
+			{
+				if (numCardsInPile == 1)
+				{
+					this.drawCard(canvas, pile.getCard(0), x, y, true);
+				}
+				else
+				{
+					this.drawCard (canvas, pile.getCard(numCardsInPile - 1));
+				}
+			}
+		}
 
 		
+		m_discardPileBoundingRect = new Rect(m_ptDiscardPile.x, m_ptDiscardPile.y, x + m_cardWidth, y + m_cardHeight);
+		
+
 		if (m_game.getWinner() != 0)
 		{
 			m_drawMatrix.reset();
@@ -1121,6 +1145,8 @@ public class GameTable extends View
 				continue;
 			}
 
+			c.setX(x);
+			c.setY(y);
 			this.drawCard (cv, c, x, y, c.getFaceUp());
 
 			x += dx;
@@ -1167,7 +1193,7 @@ public class GameTable extends View
 				break;
 		}
 
-		// draw the cards that are on the table
+		// draw the cards that are in the Hand
 
 		stop = Math.min(unrevealedOffset + m_maxCardsDisplay, numUnrevealedCards);
 
@@ -1179,12 +1205,15 @@ public class GameTable extends View
 				continue;
 			}
 
+			c.setX(x);
+			c.setY(y);
 			this.drawCard (cv, c, x, y, c.getFaceUp());
 
 			x += dx;
 			y += dy;
 		}
 
+		// draw the badges if necessary
 		if (numRevealedCards > m_maxCardsDisplay)
 		{
 			Point pt = m_ptRevealedBadge[seat - 1];
@@ -1839,15 +1868,19 @@ public class GameTable extends View
 	    m_cardIDs[i] = Card.ID_WILD_DB;
 	}
 	
-	
-	private void drawCard (Canvas cv, Card c, int x, int y, boolean faceup)
+	private void drawCard (Canvas cv, Card c)
+	{
+		drawCard(cv, c, (int) c.getX(), (int) c.getY(), c.getFaceUp());
+	}
+
+	private void drawCard (Canvas cv, Card c, int x, int y, boolean faceUp)
 	{
 		m_drawMatrix.reset();
 		m_drawMatrix.setScale(1, 1);
 		m_drawMatrix.setTranslate(x, y);
 
 		Bitmap b;
-		if (faceup || m_go.getFaceUp()) 
+		if (faceUp || m_go.getFaceUp())
 		{
 			b = m_imageLookup.get(c.getID());
 		}

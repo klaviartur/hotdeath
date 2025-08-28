@@ -919,7 +919,7 @@ public class Game extends Thread {
 				m_currCard.setFaceUp(true);
 				m_discardPile.addCard(m_currCard);
 
-				redrawTable();
+				m_gt.moveCardToDiscardPile(m_currCard);
 
 				m_currColor = m_currCard.getColor();
 				if (m_currColor == Card.COLOR_WILD) 
