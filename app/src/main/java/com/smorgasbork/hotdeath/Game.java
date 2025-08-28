@@ -1460,17 +1460,16 @@ public class Game extends Thread {
 			{
 				int id = (h.getCard(i)).getID();
 				int val = (h.getCard(i)).getValue();
-				
-				// all draw fours can stack, except for mystery draw
-				if (prevID != Card.ID_GREEN_3_AIDS) {
+
+				// no stacking on AIDS -- it gets too messy because it would
+				// throw the penalty back against the direction of play
+				if (m_currCard.getID() != Card.ID_GREEN_3_AIDS) {
+					// all draw fours can stack, except for mystery draw
 					if ((val == Card.VAL_WILD_DRAW) && (prevID != Card.ID_WILD_MYSTERY) && (id != Card.ID_WILD_MYSTERY)) 
 					{
 						defenderCount++;
 					}
 				}
-
-				// no stacking on AIDS -- it gets too messy because it would
-				// throw the penalty back against the direction of play
 
 				if (id == Card.ID_RED_0_HD) 
 				{
