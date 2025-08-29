@@ -1031,9 +1031,9 @@ public class GameTable extends View
 			}
 			if (numCardsInPile > 0)
 			{
-				if (numCardsInPile == 1)
+				if (!pile.getCard(numCardsInPile - 1).isAnimating())
 				{
-					this.drawCard(canvas, pile.getCard(0), x, y, true);
+					this.drawCard(canvas, pile.getCard(numCardsInPile - 1), x, y, true);
 				}
 				else
 				{
@@ -1137,7 +1137,7 @@ public class GameTable extends View
         int stop = Math.min(revealedOffset + m_maxCardsDisplay, numRevealedCards);
 
 		int j;
-		for (j = revealedOffset; j < stop; j++)
+		for (j = 0; j < numRevealedCards; j++)
 		{
 			Card c = revealedHand.get(j);
 			if (c == null) 
@@ -1147,10 +1147,11 @@ public class GameTable extends View
 
 			c.setX(x);
 			c.setY(y);
-			this.drawCard (cv, c, x, y, c.getFaceUp());
-
-			x += dx;
-			y += dy;
+			if (revealedOffset <= j && j < stop) {
+				this.drawCard(cv, c, x, y, c.getFaceUp());
+				x += dx;
+				y += dy;
+			}
 		}
 
 		switch (seat) {
@@ -1197,7 +1198,7 @@ public class GameTable extends View
 
 		stop = Math.min(unrevealedOffset + m_maxCardsDisplay, numUnrevealedCards);
 
-		for (j = unrevealedOffset; j < stop; j++)
+		for (j = 0; j < numUnrevealedCards; j++)
 		{
 			Card c = unrevealedHand.get(j);
 			if (c == null)
@@ -1207,10 +1208,11 @@ public class GameTable extends View
 
 			c.setX(x);
 			c.setY(y);
-			this.drawCard (cv, c, x, y, c.getFaceUp());
-
-			x += dx;
-			y += dy;
+			if (unrevealedOffset <= j && j < stop) {
+				this.drawCard(cv, c, x, y, c.getFaceUp());
+				x += dx;
+				y += dy;
+			}
 		}
 
 		// draw the badges if necessary
