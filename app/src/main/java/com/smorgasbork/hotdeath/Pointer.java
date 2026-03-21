@@ -2,77 +2,86 @@ package com.smorgasbork.hotdeath;
 
 import android.util.Log;
 
-public class Pointer implements Animatable{
+/**
+ * Singleton that owns the rotation/scale state of the turn-pointer arrow.
+ * Implements {@link Animatable} so it participates in the shared animation loop.
+ */
+public class Pointer implements Animatable {
+
     private static Pointer instance;
 
-    // Animation related properties
-    private float rot = 0;
+    private float   rot   = 0f;
+    private float   scale = 1f;
 
-    private float scale = 1;
-    private boolean jump = false;
-    private float startRot; // Starting rotation about the X-axis
-    private float targetRot; // Target rotation about the X-axis
-    private long startTime;  // Start time of the animation
-    private long duration; // Animation duration in milliseconds
-    private boolean isAnimating;  // Animation status
+    private float   startRot;
+    private float   targetRot;
+    private boolean jump;           // true → instant cut (scale shrinks then grows)
+    private long    startTime;
+    private long    duration;
+    private boolean isAnimating;
 
-    private Pointer() {} // Private constructor
+    private Pointer() {}
 
     public static synchronized Pointer getInstance() {
-        if (instance == null) {
-            instance = new Pointer();
-        }
+        if (instance == null) instance = new Pointer();
         return instance;
     }
 
-    public void startAnimation(AnimationParams params) {
-        this.startTime = params.startTime;
-        this.duration = params.duration;
-        this.startRot = this.rot;
-        this.targetRot = params.toRot;
-        this.scale = 1;
-        this.jump = false;
-        if (params.toDirection == Game.DIR_NONE) {
-          this.jump = true;
-        } else if (params.toDirection == Game.DIR_CLOCKWISE && this.targetRot <= this.startRot)
-        {
-            this.targetRot += 360;
-        } else if (params.toDirection == Game.DIR_CCLOCKWISE && this.targetRot >= this.startRot) {
-            this.targetRot -= 360;
-        }
+    // -----------------------------------------------------------------------
+    // Animatable
+    // -----------------------------------------------------------------------
 
-        this.isAnimating = true;
+    @Override
+    public void startAnimation(AnimationParams params) {
+        startTime  = params.startTime;
+        duration   = params.duration;
+        startRot   = rot;
+        targetRot  = params.toRot;
+        scale      = 1f;
+        jump       = params.toDirection == Game.DIR_NONE;
+
+        if (!jump) {
+            // Ensure rotation sweeps in the correct direction
+            if (params.toDirection == Game.DIR_CLOCKWISE && targetRot <= startRot) {
+                targetRot += 360f;
+            } else if (params.toDirection == Game.DIR_CCLOCKWISE && targetRot >= startRot) {
+                targetRot -= 360f;
+            }
+        }
+        isAnimating = true;
     }
 
+    @Override
     public void update() {
         if (!isAnimating) return;
 
-        long elapsedTime = System.currentTimeMillis() - startTime;
-        if (elapsedTime >= duration) {
-            rot = (targetRot + 360) % 360;
-            scale = 1;
+        long elapsed = System.currentTimeMillis() - startTime;
+        if (elapsed >= duration) {
+            rot         = ((targetRot % 360f) + 360f) % 360f;
+            scale       = 1f;
             isAnimating = false;
             return;
         }
 
-        float progress = (float) elapsedTime / duration;
+        float t = (float) elapsed / duration;
         if (jump) {
-            rot = progress < 0.5 ? startRot : targetRot;
-            this.scale = Math.abs(1 - 2 * progress);
+            // Pointer "pops" — shrink to zero at mid-point then expand again
+            rot   = t < 0.5f ? startRot : targetRot;
+            scale = Math.abs(1f - 2f * t);
         } else {
-            this.rot = startRot + progress * (targetRot - startRot);
+            rot   = startRot + t * (targetRot - startRot);
+            scale = 1f;
         }
     }
 
-    public boolean isAnimating() {
-        return isAnimating;
-    }
+    @Override
+    public boolean isAnimating() { return isAnimating; }
 
-    public float getRot() { return rot;}
+    // -----------------------------------------------------------------------
+    // Accessors
+    // -----------------------------------------------------------------------
 
-    public float getScale() {return scale;}
-
-    public void setRot(float rot) {
-        this.rot = rot;
-    }
+    public float getRot()        { return rot; }
+    public float getScale()      { return scale; }
+    public void  setRot(float r) { rot = r; }
 }
