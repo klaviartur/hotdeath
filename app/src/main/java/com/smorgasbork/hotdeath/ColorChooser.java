@@ -1,42 +1,51 @@
 package com.smorgasbork.hotdeath;
 
 import android.graphics.Color;
-
 import java.util.Arrays;
 
-public class ColorChooser implements Animatable{
+/**
+ * Singleton that manages the color-chooser overlay animation.
+ * Segments fan in/out when the player needs to pick a wild-card color.
+ */
+public class ColorChooser implements Animatable {
+
     public static final int numSegments = 4;
-    private static ColorChooser instance;
 
-    // Animation related properties
-    private int [] segmentColors;
+    private static volatile ColorChooser instance;
 
-    private float [] segmentScales;
+    // ── animation state ──────────────────────────────────────────────────────
+    private final int[]   segmentColors = new int[numSegments];
+    private final float[] segmentScales = new float[numSegments];
+
     private boolean show;
-    private long startTime;  // Start time of the animation
-    private long duration; // Animation duration in milliseconds
-    private int direction;
-    private boolean isAnimating;  // Animation status
+    private long    startTime;
+    private long    duration;
+    private boolean isAnimating;
 
-    private ColorChooser() {} // Private constructor
+    // ── singleton ─────────────────────────────────────────────────────────────
+    private ColorChooser() {}
 
-    public static synchronized ColorChooser getInstance() {
+    public static ColorChooser getInstance() {
         if (instance == null) {
-            instance = new ColorChooser();
-            instance.segmentColors = new int[numSegments];
-            instance.segmentScales = new float [numSegments];
-            instance.reset();
+            synchronized (ColorChooser.class) {
+                if (instance == null) {
+                    instance = new ColorChooser();
+                    instance.reset();
+                }
+            }
         }
         return instance;
     }
 
+    // ── public API ────────────────────────────────────────────────────────────
+
     public void reset() {
         show = false;
-        Arrays.fill(segmentScales, 0);
+        Arrays.fill(segmentScales, 0f);
         Arrays.fill(segmentColors, Color.TRANSPARENT);
-        this.direction = Game.DIR_NONE;
     }
 
+    @Override
     public void startAnimation(AnimationParams params) {
         this.show = params.toFaceUp;
         this.direction = params.toDirection;
@@ -45,27 +54,35 @@ public class ColorChooser implements Animatable{
         this.isAnimating = true;
     }
 
+    @Override
     public void update() {
         if (!isAnimating) return;
 
-        long elapsedTime = System.currentTimeMillis() - startTime;
-        if (elapsedTime >= duration) {
-            elapsedTime = duration;
-            isAnimating = false;
+        long elapsed = System.currentTimeMillis() - startTime;
+        if (elapsed >= duration) {
+            elapsed      = duration;
+            isAnimating  = false;
         }
 
-        float progress = (float) elapsedTime / duration;
+        float progress = (float) elapsed / duration;
+
         for (int i = 0; i < numSegments; i++) {
-            float segmentProgress = Math.min(1, Math.max(0, 2 * numSegments * progress - numSegments - i));
-            segmentProgress = show ? segmentProgress : 1 - segmentProgress;
-            segmentColors[i] = ((int) (255 * segmentProgress) << 24) | GameTable.getColorRgb(i + 1) & 0x00FFFFFF;
-            segmentScales[i] = segmentProgress;
+            // Each segment fans in/out with a staggered delay.
+            float raw  = 2f * numSegments * progress - numSegments - i;
+            float t    = Math.min(1f, Math.max(0f, raw));
+            float segT = show ? t : 1f - t;
+
+            segmentScales[i] = segT;
+            int alpha = (int) (255 * segT);
+            int rgb   = GameTable.getColorRgb(i + 1) & 0x00FFFFFF;
+            segmentColors[i] = (alpha << 24) | rgb;
         }
     }
 
     public boolean isAnimating() {
         return isAnimating;
     }
-    public int getSegmentColor(int i) {return segmentColors[i];}
-    public float getSegmentScale(int i) {return segmentScales[i];}
+
+    public int   getSegmentColor(int i) { return segmentColors[i]; }
+    public float getSegmentScale(int i) { return segmentScales[i]; }
 }
