@@ -1,99 +1,132 @@
 package com.smorgasbork.hotdeath;
 
 import android.graphics.Color;
-
 import java.util.Arrays;
 
-public class DirectionIndicator implements Animatable{
+/**
+ * Singleton that manages the ring-segment direction indicator animation.
+ * Segments animate in/out to show the current play direction and color.
+ */
+public class DirectionIndicator implements Animatable {
+
     public static final int numSegments = 12;
-    private static DirectionIndicator instance;
 
-    // Animation related properties
-    private int [] segmentColors;
-    private long startTime;  // Start time of the animation
-    private long duration; // Animation duration in milliseconds
-    private int color;
-    private int startColor;
-    private int targetColor;
-    private int direction;
-    private int startDirection;
-    private int targetDirection;
-    private boolean isAnimating;  // Animation status
+    private static volatile DirectionIndicator instance;
 
-    private DirectionIndicator() {} // Private constructor
+    // ── persistent state ──────────────────────────────────────────────────────
+    private final int[] segmentColors = new int[numSegments];
+    private int   color     = Color.TRANSPARENT;
+    private int   direction = Game.DIR_NONE;
 
-    public static synchronized DirectionIndicator getInstance() {
+    // ── animation state ───────────────────────────────────────────────────────
+    private int  startColor;
+    private int  targetColor;
+    private int  startDirection;
+    private int  targetDirection;
+    private long startTime;
+    private long duration;
+    private boolean isAnimating;
+
+    // ── singleton ─────────────────────────────────────────────────────────────
+    private DirectionIndicator() {}
+
+    public static DirectionIndicator getInstance() {
         if (instance == null) {
-            instance = new DirectionIndicator();
-            instance.segmentColors = new int[numSegments];
-            instance.reset();
+            synchronized (DirectionIndicator.class) {
+                if (instance == null) {
+                    instance = new DirectionIndicator();
+                    instance.reset();
+                }
+            }
         }
         return instance;
     }
 
+    // ── public API ────────────────────────────────────────────────────────────
+
     public void reset() {
-        this.color = Color.TRANSPARENT;
+        color     = Color.TRANSPARENT;
+        direction = Game.DIR_NONE;
         Arrays.fill(segmentColors, Color.TRANSPARENT);
-        this.direction = Game.DIR_NONE;
     }
 
+    @Override
     public void startAnimation(AnimationParams params) {
-        this.startColor = this.color;
-        this.targetColor = params.toColor;
+        this.startColor     = this.color;
+        this.targetColor    = params.toColor;
         this.startDirection = this.direction;
         this.targetDirection = params.toDirection;
-        this.startTime = params.startTime;
-        this.duration = params.duration;
-        if (targetDirection != startDirection) {
-            this.duration *= 2;
-        }
-        this.isAnimating = true;
+        this.startTime      = params.startTime;
+        // Direction changes get double time so the wipe-out / wipe-in is visible.
+        this.duration       = (targetDirection != startDirection)
+                ? params.duration * 2
+                : params.duration;
+        this.isAnimating    = true;
     }
 
+    @Override
     public void update() {
         if (!isAnimating) return;
 
-        long elapsedTime = System.currentTimeMillis() - startTime;
-        if (elapsedTime >= duration) {
-            elapsedTime = duration;
-            this.color = this.targetColor;
-            this.direction = this.targetDirection;
+        long elapsed = System.currentTimeMillis() - startTime;
+        if (elapsed >= duration) {
+            elapsed    = duration;
+            color      = targetColor;
+            direction  = targetDirection;
             isAnimating = false;
         }
 
-        float progress = (float) elapsedTime / duration;
+        float progress = (float) elapsed / duration;
+
         if (targetDirection != startDirection) {
-            if (targetDirection != direction) {
-                if (progress <= 0.5) {
-                    for (int i = 0; i < numSegments; i++) {
-                        segmentColors[i] = (int) (((color >> 24) & 0xFF) * Math.min(1, Math.max(0, numSegments - i - 2 * numSegments * progress))) << 24 | (color & 0x00FFFFFF);
-                    }
-                } else {
-                    direction = targetDirection;
-                    this.color = targetColor;
-                }
-            }
-            if (startDirection != direction) {
+            updateDirectionChange(progress);
+        } else if (targetColor != startColor) {
+            updateColorChange(progress);
+        }
+    }
+
+    /**
+     * Two-phase wipe: fade out old direction segments, then fade in new ones.
+     */
+    private void updateDirectionChange(float progress) {
+        if (direction != targetDirection) {
+            // Phase 1 – wipe out (first half of animation).
+            if (progress <= 0.5f) {
                 for (int i = 0; i < numSegments; i++) {
-                    segmentColors[i] = ((int) (255 * Math.min(1, Math.max(0, 24 * progress - numSegments - i))) << 24) | (color & 0x00FFFFFF);
+                    float t     = Math.min(1f, Math.max(0f,
+                            numSegments - i - 2f * numSegments * progress));
+                    int   alpha = (int) (((color >> 24) & 0xFF) * t);
+                    segmentColors[i] = (alpha << 24) | (color & 0x00FFFFFF);
                 }
+            } else {
+                // Flip to new direction at the midpoint.
+                direction = targetDirection;
+                color     = targetColor;
             }
-        }
-        else if (targetColor != startColor){
+        } else {
+            // Phase 2 – wipe in new segments.
             for (int i = 0; i < numSegments; i++) {
-                segmentColors[i] = progress * numSegments >= i + 1 ? this.targetColor : startColor;
+                float t     = Math.min(1f, Math.max(0f,
+                        24f * progress - numSegments - i));
+                int   alpha = (int) (255 * t);
+                segmentColors[i] = (alpha << 24) | (color & 0x00FFFFFF);
             }
         }
-//        this.color = this.targetColor & 0x00FFFFFF | ((int) (progress * 255) << 24);
+    }
+
+    /** Segment-by-segment color swap (no direction change). */
+    private void updateColorChange(float progress) {
+        for (int i = 0; i < numSegments; i++) {
+            segmentColors[i] = (progress * numSegments >= i + 1)
+                    ? targetColor
+                    : startColor;
+        }
     }
 
     public boolean isAnimating() {
         return isAnimating;
     }
 
-    public int getDirection() {
-            return direction;
-    }
-
-    public int getSegmentColor(int i) {return segmentColors[i];}
+    public int getDirection()            { return direction; }
+    public int getSegmentColor(int i)    { return segmentColors[i]; }
 }
