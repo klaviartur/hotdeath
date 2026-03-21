@@ -47,10 +47,9 @@ public class ColorChooser implements Animatable {
 
     @Override
     public void startAnimation(AnimationParams params) {
-        this.show = params.toFaceUp;
-        this.direction = params.toDirection;
-        this.startTime = params.startTime;
-        this.duration = params.duration;
+        this.show        = params.toFaceUp;
+        this.startTime   = params.startTime;
+        this.duration    = params.duration;
         this.isAnimating = true;
     }
 
