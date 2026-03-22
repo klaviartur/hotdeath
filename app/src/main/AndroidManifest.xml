@@ -19,7 +19,9 @@
                   android:theme="@android:style/Theme.NoTitleBar">
         </activity>
         <activity android:name=".Prefs"
-                  android:label="@string/settings_title">
+                  android:label="@string/settings_title"
+                  android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
         </activity>
+
     </application>
 </manifest>

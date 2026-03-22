@@ -152,19 +152,19 @@ public class Card implements Animatable {
 	public static final int ID_YELLOW_R_SKIP     = 180;
 
 	// ---- v3 new cards ----
-	//public static final int ID_RED_R_BACKSTAB    = 181;  // Backstab (Red Reverse)
-	//public static final int ID_GREEN_R_BACKSTAB  = 182;  // Backstab (Green Reverse)
-	//public static final int ID_BLUE_R_BACKSTAB   = 183;  // Backstab (Blue Reverse)
-	//public static final int ID_YELLOW_R_BACKSTAB = 184;  // Backstab (Yellow Reverse)
+	public static final int ID_RED_R_BACKSTAB    = 181;  // Backstab (Red Reverse)
+	public static final int ID_GREEN_R_BACKSTAB  = 182;  // Backstab (Green Reverse)
+	public static final int ID_BLUE_R_BACKSTAB   = 183;  // Backstab (Blue Reverse)
+	public static final int ID_YELLOW_R_BACKSTAB = 184;  // Backstab (Yellow Reverse)
 	//public static final int ID_RED_8_DODGE       = 185;  // Dodge (Red 8)
 	//public static final int ID_GREEN_8_DODGE     = 186;  // Dodge (Green 8)
 	//public static final int ID_BLUE_8_DODGE      = 187;  // Dodge (Blue 8)
 	//public static final int ID_YELLOW_8_DODGE    = 188;  // Dodge (Yellow 8)
-	//public static final int ID_GREEN_2_CLONE     = 189;  // Clone (Green 2)
-	//public static final int ID_YELLOW_2_CLONE    = 190;  // Clone (Yellow 2)
-	//public static final int ID_BLUE_1_PING       = 191;  // Ping (Blue 1)
-	//public static final int ID_GREEN_R_SWAP      = 192;  // Swap (Green Reverse)
-	//public static final int ID_YELLOW_R_SWAP     = 193;  // Swap (Yellow Reverse)
+	public static final int ID_GREEN_2_CLONE     = 189;  // Clone (Green 2)
+	public static final int ID_YELLOW_2_CLONE    = 190;  // Clone (Yellow 2)
+	public static final int ID_BLUE_1_PING       = 191;  // Ping (Blue 1)
+	public static final int ID_GREEN_R_SWAP      = 192;  // Swap (Green Reverse)
+	public static final int ID_YELLOW_R_SWAP     = 193;  // Swap (Yellow Reverse)
 
 	// -----------------------------------------------------------------------
 	// Fields
@@ -270,19 +270,19 @@ public class Card implements Animatable {
 			case ID_YELLOW_1_MAD:     return ctx.getString(R.string.cardname_yellow_1_mad);
 			case ID_YELLOW_69:        return ctx.getString(R.string.cardname_yellow_69);
 			// v3 new cards
-			//case ID_RED_R_BACKSTAB:
-			//case ID_GREEN_R_BACKSTAB:
-			//case ID_BLUE_R_BACKSTAB:
-			//case ID_YELLOW_R_BACKSTAB: return ctx.getString(R.string.cardname_backstab);
+			case ID_RED_R_BACKSTAB:
+			case ID_GREEN_R_BACKSTAB:
+			case ID_BLUE_R_BACKSTAB:
+			case ID_YELLOW_R_BACKSTAB: return ctx.getString(R.string.cardname_backstab);
 			//case ID_RED_8_DODGE:
 			//case ID_GREEN_8_DODGE:
 			//case ID_BLUE_8_DODGE:
 			//case ID_YELLOW_8_DODGE:    return ctx.getString(R.string.cardname_dodge);
-			//case ID_GREEN_2_CLONE:
-			//case ID_YELLOW_2_CLONE:    return ctx.getString(R.string.cardname_clone);
-			//case ID_BLUE_1_PING:       return ctx.getString(R.string.cardname_ping);
-			//case ID_GREEN_R_SWAP:
-			//case ID_YELLOW_R_SWAP:     return ctx.getString(R.string.cardname_swap);
+			case ID_GREEN_2_CLONE:
+			case ID_YELLOW_2_CLONE:    return ctx.getString(R.string.cardname_clone);
+			case ID_BLUE_1_PING:       return ctx.getString(R.string.cardname_ping);
+			case ID_GREEN_R_SWAP:
+			case ID_YELLOW_R_SWAP:     return ctx.getString(R.string.cardname_swap);
 			default:                  return null;
 		}
 	}
@@ -305,11 +305,11 @@ public class Card implements Animatable {
 			case VAL_D_SPREAD: return ctx.getString(R.string.cardval_d_spread);
 			case VAL_S_DOUBLE: return ctx.getString(R.string.cardval_s_double);
 			case VAL_R_SKIP:   return ctx.getString(R.string.cardval_r_skip);
-			//case VAL_R_BACKSTAB: return ctx.getString(R.string.cardname_backstab);
+			case VAL_R_BACKSTAB: return ctx.getString(R.string.cardname_backstab);
 			//case VAL_DODGE:    return ctx.getString(R.string.cardname_dodge);
-			//case VAL_CLONE:    return ctx.getString(R.string.cardname_clone);
-			//case VAL_PING:     return ctx.getString(R.string.cardname_ping);
-			//case VAL_SWAP:     return ctx.getString(R.string.cardname_swap);
+			case VAL_CLONE:    return ctx.getString(R.string.cardname_clone);
+			case VAL_PING:     return ctx.getString(R.string.cardname_ping);
+			case VAL_SWAP:     return ctx.getString(R.string.cardname_swap);
 			default:           return String.valueOf(m_value);
 		}
 	}

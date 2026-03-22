@@ -1,6 +1,8 @@
 package com.smorgasbork.hotdeath;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
@@ -18,6 +20,48 @@ import java.util.Random;
  */
 public class CardDeck {
 
+	public enum DeckType {
+		STANDARD(0, "standard", 2, true, false, false),
+		HALF(1, "half", 1, true, false, false),
+		COMPACT(2, "compact", 1, false, true, false),
+		EXTENDED(3, "extended", 2, true, false, true),
+		VANILLA(4, "vanilla", 1, false, false, false);
+
+		public final int id;
+		public final String key;
+		public final int baseDeckCount;
+		public final boolean modifyDecks;
+		public final boolean addModifiedCards;
+		public final boolean addExtendedCards;
+
+		public final int cardCount;
+
+		DeckType(int id, String key, int baseDeckCount, boolean modifyDecks, boolean addModifiedCards, boolean addExtendedCards) {
+			this.id = id;
+			this.key = key;
+			this.baseDeckCount = baseDeckCount;
+			this.modifyDecks = modifyDecks;
+			this.addModifiedCards = addModifiedCards;
+			this.addExtendedCards = addExtendedCards;
+			this.cardCount = baseDeckCount * 108 + (addModifiedCards ? 27 : 0) + (addExtendedCards ? 9 : 0);
+		}
+
+		public static DeckType fromId(int id) {
+			for (DeckType type : values()) {
+				if (type.id == id) return type;
+			}
+			return STANDARD; // default
+		}
+
+		public static DeckType fromKey(String key) {
+			if (key == null) return VANILLA;
+			for (DeckType type : values()) {
+				if (type.key.equals(key)) return type;
+			}
+			return STANDARD; // default
+		}
+	}
+
 	// -----------------------------------------------------------------------
 	// Inner helper: a lightweight description of one card in the deck
 	// -----------------------------------------------------------------------
@@ -30,7 +74,6 @@ public class CardDeck {
 			this.id     = id;
 			this.points = points;
 		}
-		 int getId() { return this.id; }
 	}
 
 	// -----------------------------------------------------------------------
@@ -65,8 +108,8 @@ public class CardDeck {
 	// Constructor
 	// -----------------------------------------------------------------------
 
-	public CardDeck(boolean standardRules, boolean oneDeck) {
-		List<CardDef> defs = buildDefinitions(standardRules, oneDeck);
+	public CardDeck(DeckType deckType) {
+		List<CardDef> defs = buildDefinitions(deckType);
 		m_numCards = defs.size();
 		m_cards  = new Card[m_numCards];
 		m_oCards = new Card[m_numCards];
@@ -103,14 +146,33 @@ public class CardDeck {
 	// Definition builder — returns an ordered list of CardDef entries
 	// -----------------------------------------------------------------------
 
-	private static List<CardDef> buildDefinitions(boolean standardRules, boolean oneDeck) {
-		List<CardDef> defs = new ArrayList<>(oneDeck ? 108 : 216);
-		int copies = oneDeck ? 1 : 2;
+	private static List<CardDef> buildDefinitions(DeckType deckType) {
 
-		addVanillaCards(defs, copies);
-		if (!standardRules) {
-			swapInHotDeathCards(defs, copies);
+		List<CardDef> defs = new ArrayList<>(deckType.cardCount);
+
+		addVanillaCards(defs, deckType.baseDeckCount);
+		if (deckType.modifyDecks) {
+			swapInHotDeathCards(defs, deckType.baseDeckCount);
+			if (deckType.addExtendedCards) {
+				addExtendedCards(defs);
+			}
+		} else if (deckType.addModifiedCards) {
+			addHotDeathCards(defs);
 		}
+		//sort defs by color, then value, then id
+		Collections.sort(defs, new Comparator<CardDef>() {
+			@Override
+			public int compare(CardDef a, CardDef b) {
+				// compare color
+				int c = Integer.compare(a.color, b.color);
+				if (c != 0) return c;
+				// compare value
+				c = Integer.compare(a.value, b.value);
+				if (c != 0) return c;
+				// compare ID
+				return Integer.compare(a.id, b.id);
+			}
+		});;
 		return defs;
 	}
 
@@ -173,59 +235,38 @@ public class CardDeck {
 	 * For the two-deck variant each entry is simply added twice.
 	 */
 	private static final int[][] HD_CARDS = {
-		// ---- RED ----
-		{ Card.ID_RED_0, 1, Card.COLOR_RED, 0,						Card.ID_RED_0_HD,       0   },
-		{ Card.ID_RED_2, 1, Card.COLOR_RED, 2,     					Card.ID_RED_2_GLASNOST, 75  },
-		{ Card.ID_RED_5, 1, Card.COLOR_RED, 5,     					Card.ID_RED_5_MAGIC,   -5   },
-		{ Card.ID_RED_D, 2, Card.COLOR_RED, Card.VAL_D_SPREAD, 		Card.ID_RED_D_SPREADER, 60 	},
-		{ Card.ID_RED_S, 2, Card.COLOR_RED, Card.VAL_S_DOUBLE, 		Card.ID_RED_S_DOUBLE, 	40 	},
-		{ Card.ID_RED_R, 2, Card.COLOR_RED, Card.VAL_R_SKIP, 		Card.ID_RED_R_SKIP,  	40  },
-		// ---- GREEN ----
-		{ Card.ID_GREEN_0, 1, Card.COLOR_GREEN, 0,					Card.ID_GREEN_0_QUITTER, 	100 },
-		{ Card.ID_GREEN_3, 1, Card.COLOR_GREEN, 3,					Card.ID_GREEN_3_AIDS, 		3 	},
-		{ Card.ID_GREEN_4, 1, Card.COLOR_GREEN, 4,					Card.ID_GREEN_4_IRISH, 		75  },
-		{ Card.ID_GREEN_D, 2, Card.COLOR_GREEN, Card.VAL_D_SPREAD, 	Card.ID_GREEN_D_SPREADER, 	60 	},
-		{ Card.ID_GREEN_S, 2, Card.COLOR_GREEN, Card.VAL_S_DOUBLE, 	Card.ID_GREEN_S_DOUBLE, 	40 	},
-		{ Card.ID_GREEN_R, 2, Card.COLOR_GREEN, Card.VAL_R_SKIP, 	Card.ID_GREEN_R_SKIP,  		40  },
-		// ---- BLUE ----
-		{ Card.ID_BLUE_0, 1, Card.COLOR_BLUE, 0,             		Card.ID_BLUE_0_FUCK_YOU, 	0 },
-		{ Card.ID_BLUE_2, 1, Card.COLOR_BLUE, 2,		            Card.ID_BLUE_2_SHIELD, 		0 },
-		{ Card.ID_BLUE_D, 2, Card.COLOR_BLUE, Card.VAL_D_SPREAD, 	Card.ID_BLUE_D_SPREADER, 	60 },
-		{ Card.ID_BLUE_S, 2, Card.COLOR_BLUE, Card.VAL_S_DOUBLE, 	Card.ID_BLUE_S_DOUBLE, 		40 	},
-		{ Card.ID_BLUE_R, 2, Card.COLOR_BLUE, Card.VAL_R_SKIP, 		Card.ID_BLUE_R_SKIP,  		40  },
-		// ---- YELLOW ----
-		{ Card.ID_YELLOW_0, 1, Card.COLOR_YELLOW, 0,           			Card.ID_YELLOW_0_SHITTER, 0  },
-		{ Card.ID_YELLOW_1, 1, Card.COLOR_YELLOW, 1,           			Card.ID_YELLOW_1_MAD,   100 },
-		{ Card.ID_YELLOW_6, 1, Card.COLOR_YELLOW, 6,           			Card.ID_YELLOW_69,      69   },
-		{ Card.ID_YELLOW_D, 2, Card.COLOR_YELLOW, Card.VAL_D_SPREAD, 	Card.ID_YELLOW_D_SPREADER, 60 	},
-		{ Card.ID_YELLOW_S, 2, Card.COLOR_YELLOW, Card.VAL_S_DOUBLE, 	Card.ID_YELLOW_S_DOUBLE, 	40 	},
-		{ Card.ID_YELLOW_R, 2, Card.COLOR_YELLOW, Card.VAL_R_SKIP, 		Card.ID_YELLOW_R_SKIP,  	40  },
-		// ---- WILD ----
-		{ Card.ID_WILD, 1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DB,      100 },
-		{ Card.ID_WILD, 1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_MYSTERY, 0 },
-		{ Card.ID_WILD, 1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_HD,      100 },
-		{ Card.ID_WILD, 1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_HOS, 	  0 },
-		// ---- v3 new cards ----
-		// Backstab (one per color, replaces one Reverse slot — added on top of existing Reverses)
-		//{ Card.COLOR_RED,    Card.VAL_R_BACKSTAB, Card.ID_RED_R_BACKSTAB,    20 },
-		//{ Card.COLOR_GREEN,  Card.VAL_R_BACKSTAB, Card.ID_GREEN_R_BACKSTAB,  20 },
-		//{ Card.COLOR_BLUE,   Card.VAL_R_BACKSTAB, Card.ID_BLUE_R_BACKSTAB,   20 },
-		//{ Card.COLOR_YELLOW, Card.VAL_R_BACKSTAB, Card.ID_YELLOW_R_BACKSTAB, 20 },
-		// Dodge (one per color, replaces one 8 slot)
-		/*
-		{ Card.COLOR_RED,    Card.VAL_DODGE, Card.ID_RED_8_DODGE,    8 },
-		{ Card.COLOR_GREEN,  Card.VAL_DODGE, Card.ID_GREEN_8_DODGE,  8 },
-		{ Card.COLOR_BLUE,   Card.VAL_DODGE, Card.ID_BLUE_8_DODGE,   8 },
-		{ Card.COLOR_YELLOW, Card.VAL_DODGE, Card.ID_YELLOW_8_DODGE, 8 },
-		 */
-		// Clone (2 total: Green 2, Yellow 2)
-		//{ Card.COLOR_GREEN,  Card.VAL_CLONE, Card.ID_GREEN_2_CLONE,  20 },
-		//{ Card.COLOR_YELLOW, Card.VAL_CLONE, Card.ID_YELLOW_2_CLONE, 20 },
-		// Ping (Blue 1 directed)
-		//{ Card.COLOR_BLUE,   Card.VAL_PING,  Card.ID_BLUE_1_PING,    1  },
-		// Swap (Green Reverse + Yellow Reverse)
-		//{ Card.COLOR_GREEN,  Card.VAL_SWAP,  Card.ID_GREEN_R_SWAP,   20 },
-		//{ Card.COLOR_YELLOW, Card.VAL_SWAP,  Card.ID_YELLOW_R_SWAP,  20 },
+			// ---- RED ----
+			{ Card.ID_RED_0, 1, Card.COLOR_RED, 0,						Card.ID_RED_0_HD,       0   },
+			{ Card.ID_RED_2, 1, Card.COLOR_RED, 2,     					Card.ID_RED_2_GLASNOST, 75  },
+			{ Card.ID_RED_5, 1, Card.COLOR_RED, 5,     					Card.ID_RED_5_MAGIC,   -5   },
+			{ Card.ID_RED_D, 2, Card.COLOR_RED, Card.VAL_D_SPREAD, 		Card.ID_RED_D_SPREADER, 60 	},
+			{ Card.ID_RED_S, 2, Card.COLOR_RED, Card.VAL_S_DOUBLE, 		Card.ID_RED_S_DOUBLE, 	40 	},
+			{ Card.ID_RED_R, 2, Card.COLOR_RED, Card.VAL_R_SKIP, 		Card.ID_RED_R_SKIP,  	40  },
+			// ---- GREEN ----
+			{ Card.ID_GREEN_0, 1, Card.COLOR_GREEN, 0,					Card.ID_GREEN_0_QUITTER, 	100 },
+			{ Card.ID_GREEN_3, 1, Card.COLOR_GREEN, 3,					Card.ID_GREEN_3_AIDS, 		3 	},
+			{ Card.ID_GREEN_4, 1, Card.COLOR_GREEN, 4,					Card.ID_GREEN_4_IRISH, 		75  },
+			{ Card.ID_GREEN_D, 2, Card.COLOR_GREEN, Card.VAL_D_SPREAD, 	Card.ID_GREEN_D_SPREADER, 	60 	},
+			{ Card.ID_GREEN_S, 2, Card.COLOR_GREEN, Card.VAL_S_DOUBLE, 	Card.ID_GREEN_S_DOUBLE, 	40 	},
+			{ Card.ID_GREEN_R, 2, Card.COLOR_GREEN, Card.VAL_R_SKIP, 	Card.ID_GREEN_R_SKIP,  		40  },
+			// ---- BLUE ----
+			{ Card.ID_BLUE_0, 1, Card.COLOR_BLUE, 0,             		Card.ID_BLUE_0_FUCK_YOU, 	0 },
+			{ Card.ID_BLUE_2, 1, Card.COLOR_BLUE, 2,		            Card.ID_BLUE_2_SHIELD, 		0 },
+			{ Card.ID_BLUE_D, 2, Card.COLOR_BLUE, Card.VAL_D_SPREAD, 	Card.ID_BLUE_D_SPREADER, 	60 },
+			{ Card.ID_BLUE_S, 2, Card.COLOR_BLUE, Card.VAL_S_DOUBLE, 	Card.ID_BLUE_S_DOUBLE, 		40 	},
+			{ Card.ID_BLUE_R, 2, Card.COLOR_BLUE, Card.VAL_R_SKIP, 		Card.ID_BLUE_R_SKIP,  		40  },
+			// ---- YELLOW ----
+			{ Card.ID_YELLOW_0, 1, Card.COLOR_YELLOW, 0,           			Card.ID_YELLOW_0_SHITTER, 0  },
+			{ Card.ID_YELLOW_1, 1, Card.COLOR_YELLOW, 1,           			Card.ID_YELLOW_1_MAD,   100 },
+			{ Card.ID_YELLOW_6, 1, Card.COLOR_YELLOW, 6,           			Card.ID_YELLOW_69,      69   },
+			{ Card.ID_YELLOW_D, 2, Card.COLOR_YELLOW, Card.VAL_D_SPREAD, 	Card.ID_YELLOW_D_SPREADER, 60 	},
+			{ Card.ID_YELLOW_S, 2, Card.COLOR_YELLOW, Card.VAL_S_DOUBLE, 	Card.ID_YELLOW_S_DOUBLE, 	40 	},
+			{ Card.ID_YELLOW_R, 2, Card.COLOR_YELLOW, Card.VAL_R_SKIP, 		Card.ID_YELLOW_R_SKIP,  	40  },
+			// ---- WILD ----
+			{ Card.ID_WILD, 1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DB,      100 },
+			{ Card.ID_WILD, 1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_MYSTERY, 0 },
+			{ Card.ID_WILD, 1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_HD,      100 },
+			{ Card.ID_WILD, 1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_HOS, 	  0 },
 	};
 
 	private static void swapInHotDeathCards(List<CardDef> defs, int copies) {
@@ -245,12 +286,64 @@ public class CardDeck {
 			// iterate once through the list bottom to top, replacing up to totalAllowed occurrences
 			for (int i = defs.size() - 1; i >= 0  && replaced < totalAllowed; i--) {
 				CardDef cd = defs.get(i);
-				if (cd.getId() == idToReplace) {
+				if (cd.id == idToReplace) {
 					// replace this entry with the HD variant
 					defs.set(i, new CardDef(color, value, newId, points));
 					replaced++;
 				}
 			}
+		}
+	}
+
+	private static void addHotDeathCards(List<CardDef> defs) {
+		for (int[] row : HD_CARDS) {
+			int count = row[1];
+			int color = row[2];
+			int value = row[3];
+			int id = row[4];
+			int points = row[5];
+
+			for (int i = 0; i < count; i++) {
+				defs.add(new CardDef(color, value, id, points));
+			}
+		}
+	}
+
+	//------------------------------
+ 	// Extended Cards
+ 	//------------------------------
+
+	private static final int[][] EXTENDED_CARDS = {
+			// Backstab (one per color, replaces one Reverse slot — added on top of existing Reverses)
+			{ Card.COLOR_RED,    Card.VAL_R_BACKSTAB, Card.ID_RED_R_BACKSTAB,    20 },
+			{ Card.COLOR_GREEN,  Card.VAL_R_BACKSTAB, Card.ID_GREEN_R_BACKSTAB,  20 },
+			{ Card.COLOR_BLUE,   Card.VAL_R_BACKSTAB, Card.ID_BLUE_R_BACKSTAB,   20 },
+			{ Card.COLOR_YELLOW, Card.VAL_R_BACKSTAB, Card.ID_YELLOW_R_BACKSTAB, 20 },
+			// Dodge (one per color, replaces one 8 slot)
+			/*
+            { Card.COLOR_RED,    Card.VAL_DODGE, Card.ID_RED_8_DODGE,    8 },
+            { Card.COLOR_GREEN,  Card.VAL_DODGE, Card.ID_GREEN_8_DODGE,  8 },
+            { Card.COLOR_BLUE,   Card.VAL_DODGE, Card.ID_BLUE_8_DODGE,   8 },
+            { Card.COLOR_YELLOW, Card.VAL_DODGE, Card.ID_YELLOW_8_DODGE, 8 },
+             */
+			// Clone (2 total: Green 2, Yellow 2)
+			{ Card.COLOR_GREEN,  Card.VAL_CLONE, Card.ID_GREEN_2_CLONE,  20 },
+			{ Card.COLOR_YELLOW, Card.VAL_CLONE, Card.ID_YELLOW_2_CLONE, 20 },
+			// Ping (Blue 1 directed)
+			{ Card.COLOR_BLUE,   Card.VAL_PING,  Card.ID_BLUE_1_PING,    1  },
+			// Swap (Green Reverse + Yellow Reverse)
+			{ Card.COLOR_GREEN,  Card.VAL_SWAP,  Card.ID_GREEN_R_SWAP,   20 },
+			{ Card.COLOR_YELLOW, Card.VAL_SWAP,  Card.ID_YELLOW_R_SWAP,  20 },
+	};
+
+	private static void addExtendedCards(List<CardDef> defs) {
+		for (int[] row : EXTENDED_CARDS) {
+				int color = row[0];
+				int value = row[1];
+				int id = row[2];
+				int points = row[3];
+
+				defs.add(new CardDef(color, value, id, points));
 		}
 	}
 }

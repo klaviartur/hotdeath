@@ -57,7 +57,7 @@ public class Game extends Thread {
 	
 	private JSONObject m_snapshot = null;
 	private boolean m_standardRules;
-	private boolean m_oneDeck;
+	private CardDeck.DeckType m_deckType;
 
 	public boolean getStopping ()
 	{
@@ -222,12 +222,12 @@ public class Game extends Thread {
 		try
 		{
 			m_standardRules = gamestate.getBoolean("standardRules");
-			m_oneDeck = gamestate.getBoolean("oneDeck");
+			m_deckType = CardDeck.DeckType.fromKey(gamestate.getString("deckType"));
 			o = gamestate.getJSONObject("state");
 			
 			m_snapshot = gamestate;
 			
-			m_deck = new CardDeck(m_standardRules, m_oneDeck);
+			m_deck = new CardDeck(m_deckType);
 			m_drawPile = new CardPile(gamestate.getJSONObject("drawPile"), m_deck, m_go.getFaceUp(), Card.CardState.DRAW_PILE);
 			m_discardPile = new CardPile(gamestate.getJSONObject("discardPile"), m_deck, true, Card.CardState.DISCARD_PILE);
 	
@@ -309,7 +309,7 @@ public class Game extends Thread {
 			try
 			{
 				o.put("standardRules", m_standardRules);
-				o.put("oneDeck", m_oneDeck);
+				o.put("deckType", m_deckType);
 
 				JSONObject o2 = new JSONObject ();
 				o2.put("dealer", m_dealer.getSeat());
@@ -374,7 +374,7 @@ public class Game extends Thread {
 		m_penalty = null;
 
 		m_standardRules = m_go.getStandardRules();
-		m_oneDeck = m_go.getOneDeck();
+		m_deckType = m_go.getDeckType();
 
 		m_players = new Player[4];
 		
@@ -407,7 +407,7 @@ public class Game extends Thread {
 	public void resetRound()
 	{
 		m_direction = DIR_CLOCKWISE;
-		m_deck =        new CardDeck (m_standardRules, m_oneDeck);
+		m_deck =        new CardDeck (m_deckType);
 		m_drawPile =    new CardPile (m_go.getFaceUp(), Card.CardState.DRAW_PILE);
 		m_discardPile = new CardPile (true, Card.CardState.DISCARD_PILE);
 		m_cardsPlayed = 0;
@@ -2123,11 +2123,6 @@ public class Game extends Thread {
 		{
 			return;
 		}
-		// manipulate the m_currPlayer so that the drawing engine will
-		// point at the player who is drawing; we'll put it back when done.
-//		Player realCurrPlayer = m_currPlayer;
-//		m_currPlayer = p;
-//		redrawTable();
 
 		Hand h = p.getHand();
 		for (i = 0; i < h.getNumCards(); i++)
@@ -2175,8 +2170,6 @@ public class Game extends Thread {
 		{
 			promptUser (getString(R.string.msg_discard_empty));
 		}
-
-		//m_currPlayer = realCurrPlayer;
 	}
 	
 	private void logCardPlay (Player p, Card c)

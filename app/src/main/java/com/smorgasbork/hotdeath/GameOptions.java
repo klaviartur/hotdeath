@@ -84,9 +84,8 @@ public class GameOptions {
         return s.contains("standardrules");
     }
 
-	public boolean getOneDeck() 
-    {
-		return !Prefs.getTwoDecks(m_ga);
-    }
+	public CardDeck.DeckType getDeckType() {
+		return Prefs.getDeckType(m_ga);
+	}
 
 }
