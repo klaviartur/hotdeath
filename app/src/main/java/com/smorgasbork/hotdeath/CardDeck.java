@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Random;
 
 /**
  * Builds and holds the card deck.
@@ -15,7 +14,7 @@ import java.util.Random;
  * its former size while being far easier to maintain.
  *
  * <p>The public API ({@link #getCards()}, {@link #getNumCards()},
- * {@link #getCard(int)}, {@link #getCard(int, int)}, {@link #shuffle()}) is
+ * {@link #getCard(int)}, {@link #getCard(int, int)} is
  * unchanged so the rest of the codebase requires no modifications.
  */
 public class CardDeck {
@@ -23,7 +22,7 @@ public class CardDeck {
 	public enum DeckType {
 		STANDARD(0, "standard", 2, true, false, false),
 		HALF(1, "half", 1, true, false, false),
-		COMPACT(2, "compact", 1, false, true, false),
+		HYBRID(2, "hybrid", 1, false, true, false),
 		EXTENDED(3, "extended", 2, true, false, true),
 		VANILLA(4, "vanilla", 1, false, false, false);
 

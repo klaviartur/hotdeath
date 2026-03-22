@@ -22,7 +22,7 @@
 <string-array name="deck_types">
 <item>@string/deck_original</item>
 <item>@string/deck_half</item>
-<item>@string/deck_compact</item>
+<item>@string/deck_hybrid</item>
 <item>@string/deck_extended</item>
 <item>@string/deck_vanilla</item>
 </string-array>

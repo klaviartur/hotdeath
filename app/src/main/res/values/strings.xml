@@ -24,7 +24,7 @@
 	<string name="deck_type_summary">Choose which deck type to use</string>
 	<string name="deck_original">Original (1 vanilla deck + 1 modified deck = 216 Cards)</string>
 	<string name="deck_half">Half (1 modified deck, 108 Cards)</string>
-	<string name="deck_compact">Compact (1 vanilla deck + 39 modified cards = 147 Cards)</string>
+	<string name="deck_hybrid">Hybrid (1 vanilla deck + 39 modified cards = 147 Cards)</string>
 	<string name="deck_extended">Extended (Original + 9 extra cards = 225 Cards)</string>
 	<string name="deck_vanilla">Vanilla (108 Cards)</string>
 
