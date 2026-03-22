@@ -21,15 +21,21 @@ public class CardPile {
 
 	private final boolean        faceUp;
 	private final Card.CardState cardState;
-	private final List<Card>     cards = new ArrayList<>();
+	private final List<Card>     cards;
 
 	// -----------------------------------------------------------------------
 	// Constructors
 	// -----------------------------------------------------------------------
 
 	public CardPile(boolean faceUp, Card.CardState cardState) {
+		this(faceUp, cardState, null);
+	}
+
+	public CardPile(boolean faceUp, Card.CardState cardState, List<Card> cards) {
 		this.faceUp    = faceUp;
 		this.cardState = cardState;
+		this.cards = cards != null ? cards : new ArrayList<Card>() {
+		};
 	}
 
 	/** Deserialisation constructor. */

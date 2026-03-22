@@ -81,7 +81,6 @@ public class CardDeck {
 	// -----------------------------------------------------------------------
 
 	private final Card[] m_cards;
-	private final Card[] m_oCards;   // shuffled order
 	private int    m_numCards = 0;
 
 	// -----------------------------------------------------------------------
@@ -92,7 +91,7 @@ public class CardDeck {
 	public int    getNumCards() { return m_numCards; }
 
 	public Card getCard(int i) {
-		return (i >= 0 && i < m_numCards) ? m_oCards[i] : null;
+		return (i >= 0 && i < m_numCards) ? m_cards[i] : null;
 	}
 
 	public Card getCard(int color, int value) {
@@ -112,33 +111,10 @@ public class CardDeck {
 		List<CardDef> defs = buildDefinitions(deckType);
 		m_numCards = defs.size();
 		m_cards  = new Card[m_numCards];
-		m_oCards = new Card[m_numCards];
 
 		for (int i = 0; i < m_numCards; i++) {
 			CardDef d = defs.get(i);
 			m_cards[i]  = new Card(i, d.color, d.value, d.id, d.points);
-			m_oCards[i] = m_cards[i];
-		}
-	}
-
-	// -----------------------------------------------------------------------
-	// Shuffle
-	// -----------------------------------------------------------------------
-
-	public void shuffle() {
-		for (int i = 0; i < m_numCards; i++) m_cards[i].setFaceUp(false);
-		shuffle(7);
-	}
-
-	public void shuffle(int numTimes) {
-		Random rng = new Random();
-		for (int pass = 0; pass < numTimes; pass++) {
-			for (int j = 0; j < m_numCards; j++) {
-				int k = rng.nextInt(m_numCards);
-				Card tmp   = m_oCards[j];
-				m_oCards[j] = m_oCards[k];
-				m_oCards[k] = tmp;
-			}
 		}
 	}
 

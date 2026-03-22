@@ -1,5 +1,8 @@
 package com.smorgasbork.hotdeath;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 import android.graphics.Color;
@@ -407,8 +410,7 @@ public class Game extends Thread {
 	public void resetRound()
 	{
 		m_direction = DIR_CLOCKWISE;
-		m_deck =        new CardDeck (m_deckType);
-		m_drawPile =    new CardPile (m_go.getFaceUp(), Card.CardState.DRAW_PILE);
+		m_drawPile =    new CardPile (m_go.getFaceUp(), Card.CardState.DRAW_PILE, new ArrayList<>(Arrays.asList(m_deck.getCards())));
 		m_discardPile = new CardPile (true, Card.CardState.DISCARD_PILE);
 		m_cardsPlayed = 0;
 		m_roundComplete = false;
@@ -419,6 +421,10 @@ public class Game extends Thread {
 		{
 			m_players[i].resetRound();
 		}
+
+		m_penalty = new Penalty ();
+		m_currCard = null;
+		m_prevCard = null;
 	}
 
 
@@ -435,6 +441,7 @@ public class Game extends Thread {
 		Random rgen = new Random();
 		int dealer = rgen.nextInt(4);
 		m_dealer = m_players[dealer];
+		m_deck = new CardDeck (m_deckType);
 		//m_dealer = m_players[2]; //DEBUG
 	}
 
@@ -533,24 +540,11 @@ public class Game extends Thread {
 				int[] hCards = hands[i];
 				for (int j = 0; j < hCards.length; j++)
 				{
-					for (int k = 0; k < m_deck.getNumCards(); k++)
-					{
-						Card c = m_deck.getCard(k);
-						if ((c.getHand() == null) && (c.getID() == hands[i][j]))
-						{
-							p.addCardToHand(c, true);
-							break;
-						}
+					Card c = m_drawPile.pullCard(hands[i][j]);
+					if (c != null && c.getHand() == null) {
+						p.addCardToHand(c, true);
+						break;
 					}
-				}
-			}
-			
-			for (i = 0; i < m_deck.getNumCards(); i++) 
-			{
-				Card c = m_deck.getCard(i);
-				if (c.getHand() == null)
-				{
-					m_drawPile.addCard(c, true);
 				}
 			}
 		}
@@ -558,10 +552,9 @@ public class Game extends Thread {
 		{
 			for (i = 0; i < 4 * m_numCardsToDeal; i++) 
 			{
-				Card c = m_deck.getCard(i);
+				Card c = m_drawPile.drawCard();
 	
 				p.addCardToHand(c, false);
-
 				m_gt.dealCard(c, m_dealer.getSeat(), p, 60);
 	
 				p = getNextPlayer(p);
@@ -570,35 +563,31 @@ public class Game extends Thread {
 		
 			int cheatlevel = m_go.getCheatLevel();
 	
-			for (; i < m_deck.getNumCards(); i++) 
+			for (i = 0; i < m_drawPile.getNumCards(); i++)
 			{
-				Card c = m_deck.getCard(i);
+				Card c = m_drawPile.getCard(i);
 	
 				// MWUAHAHAHA
-				if (cheatlevel > 0) 
-				{
+				if (cheatlevel > 0) {
 					if (c.getID() == Card.ID_RED_0_HD
-						|| c.getID() == Card.ID_RED_2_GLASNOST
-						|| c.getID() == Card.ID_RED_5_MAGIC
-						|| c.getID() == Card.ID_RED_D_SPREADER
-						|| c.getID() == Card.ID_YELLOW_69
-						|| c.getID() == Card.ID_GREEN_D_SPREADER
-						|| c.getID() == Card.ID_WILD_MYSTERY
-						|| c.getID() == Card.ID_GREEN_3_AIDS
-						|| c.getID() == Card.ID_WILD_DB
-						|| c.getID() == Card.ID_BLUE_2_SHIELD
-						|| c.getID() == Card.ID_GREEN_4_IRISH
-						|| c.getID() == Card.ID_WILD_DRAW_FOUR
-						) 
-					{
+							|| c.getID() == Card.ID_RED_2_GLASNOST
+							|| c.getID() == Card.ID_RED_5_MAGIC
+							|| c.getID() == Card.ID_RED_D_SPREADER
+							|| c.getID() == Card.ID_YELLOW_69
+							|| c.getID() == Card.ID_GREEN_D_SPREADER
+							|| c.getID() == Card.ID_WILD_MYSTERY
+							|| c.getID() == Card.ID_GREEN_3_AIDS
+							|| c.getID() == Card.ID_WILD_DB
+							|| c.getID() == Card.ID_BLUE_2_SHIELD
+							|| c.getID() == Card.ID_GREEN_4_IRISH
+							|| c.getID() == Card.ID_WILD_DRAW_FOUR
+					) {
 						c.setFaceUp(true);
 						c = ((m_players[SEAT_SOUTH - 1]).getHand()).swapCard(c);
 						c.setFaceUp(false);
 						cheatlevel--;
 					}
 				}
-	
-				m_drawPile.addCard(c, true);
 			}
 		}
 	}	
@@ -693,14 +682,9 @@ public class Game extends Thread {
 		m_currPlayer = m_dealer;
 		Pointer.getInstance().setRot((m_currPlayer.getSeat() -1) * 90);
 
-		m_penalty = new Penalty ();
-
-		m_currCard = null;
-		m_prevCard = null;
-
 		int i;
 
-		m_deck.shuffle();
+		m_drawPile.shuffle();
 
 		for (i = 0; i < 4; i++) 
 		{
