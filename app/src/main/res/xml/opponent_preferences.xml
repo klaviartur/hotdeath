@@ -8,14 +8,16 @@
             android:summary="@string/skill_summary"
             android:defaultValue="1"
             android:entries="@array/skill_levels"
-            android:entryValues="@array/skill_level_values" />
+            android:entryValues="@array/skill_level_values"
+            android:icon="@drawable/ic_skill" />
         <ListPreference
             android:key="p1_aggression"
             android:title="@string/aggression_title"
             android:summary="@string/aggression_summary"
             android:defaultValue="0"
             android:entries="@array/aggression_levels"
-            android:entryValues="@array/aggression_level_values" />
+            android:entryValues="@array/aggression_level_values"
+            android:icon="@drawable/ic_aggression" />
     </PreferenceCategory>
 
     <!-- Player 2 -->
@@ -26,14 +28,16 @@
             android:summary="@string/skill_summary"
             android:defaultValue="1"
             android:entries="@array/skill_levels"
-            android:entryValues="@array/skill_level_values" />
+            android:entryValues="@array/skill_level_values"
+            android:icon="@drawable/ic_skill" />
         <ListPreference
             android:key="p2_aggression"
             android:title="@string/aggression_title"
             android:summary="@string/aggression_summary"
             android:defaultValue="0"
             android:entries="@array/aggression_levels"
-            android:entryValues="@array/aggression_level_values" />
+            android:entryValues="@array/aggression_level_values"
+            android:icon="@drawable/ic_aggression" />
     </PreferenceCategory>
 
     <!-- Player 3 -->
@@ -44,13 +48,15 @@
             android:summary="@string/skill_summary"
             android:defaultValue="1"
             android:entries="@array/skill_levels"
-            android:entryValues="@array/skill_level_values" />
+            android:entryValues="@array/skill_level_values"
+            android:icon="@drawable/ic_skill" />
         <ListPreference
             android:key="p3_aggression"
             android:title="@string/aggression_title"
             android:summary="@string/aggression_summary"
             android:defaultValue="0"
             android:entries="@array/aggression_levels"
-            android:entryValues="@array/aggression_level_values" />
+            android:entryValues="@array/aggression_level_values"
+            android:icon="@drawable/ic_aggression" />
     </PreferenceCategory>
 </PreferenceScreen>

@@ -6,41 +6,41 @@
 		android:summary="@string/game_speed_summary"
 		android:defaultValue="1"
 		android:entries="@array/game_speeds"
-		android:entryValues="@array/game_speed_values" />
+		android:entryValues="@array/game_speed_values"
+		android:icon="@drawable/ic_speed" />
 	<ListPreference
 		android:key="deck_type"
 		android:title="@string/deck_type_title"
 		android:summary="@string/deck_type_summary"
-		android:defaultValue="vanilla"
+		android:defaultValue="hybrid"
 		android:entries="@array/deck_types"
-		android:entryValues="@array/deck_type_values" />
+		android:entryValues="@array/deck_type_values"
+		android:icon="@drawable/ic_deck" />
 	<CheckBoxPreference
 		android:key="computer_4th"
 		android:title="@string/computer_4th_title"
 		android:summary="@string/computer_4th_summary"
-		android:defaultValue="false" />
+		android:defaultValue="false"
+		android:icon="@drawable/ic_robot" />
 	<CheckBoxPreference
 		android:key="face_up"
 		android:title="@string/face_up_title"
 		android:summary="@string/face_up_summary"
-		android:defaultValue="false" />
+		android:defaultValue="false"
+		android:icon="@drawable/ic_faceup" />
 	<ListPreference
 		android:key="cheat_level"
 		android:title="@string/cheat_level_title"
 		android:summary="@string/cheat_level_summary"
 		android:defaultValue="0"
 		android:entries="@array/cheat_levels"
-		android:entryValues="@array/cheat_level_values" />
-	<EditTextPreference
-		android:key="cheat_code"
-		android:title="@string/cheat_code_title"
-		android:summary="@string/cheat_code_summary"
-		android:defaultValue="" />
-
+		android:entryValues="@array/cheat_level_values"
+		android:icon="@drawable/ic_cheat" />
 	<!-- Navigate to players preferences fragment -->
 	<androidx.preference.Preference
 		android:key="players_prefs"
 		android:title="@string/players"
 		android:summary="@string/players_summary"
-		android:fragment="com.smorgasbork.hotdeath.Prefs$PlayersPrefsFragment" />
+		android:fragment="com.smorgasbork.hotdeath.Prefs$PlayersPrefsFragment"
+		android:icon="@drawable/ic_opponents" />
 </PreferenceScreen>

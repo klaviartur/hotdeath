@@ -4,15 +4,18 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.ActionBar;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
+import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.PreferenceGroup;
 import androidx.preference.PreferenceManager;
 
 public class Prefs extends AppCompatActivity {
 	private static final String OPT_GAME_SPEED = "game_speed";
 	private static final String OPT_GAME_SPEED_DEF = "1";
 	private static final String OPT_DECK_TYPE = "deck_type";
-	private static final String OPT_DECK_TYPE_DEF = "standard";
+	private static final String OPT_DECK_TYPE_DEF = "hybrid";
 	private static final String OPT_COMPUTER_4TH = "computer_4th";
 	private static final boolean OPT_COMPUTER_4TH_DEF = false;
 	private static final String OPT_FACE_UP = "face_up";
@@ -53,12 +56,6 @@ public class Prefs extends AppCompatActivity {
 		}
 	}
 
-	@Override
-	public boolean onSupportNavigateUp() {
-		finish();
-		return true;
-	}
-
 	/**
 	 * Fragment displaying preference UI.
 	 * Uses AndroidX PreferenceFragmentCompat for API 21 compatibility.
@@ -67,6 +64,45 @@ public class Prefs extends AppCompatActivity {
 		@Override
 		public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
 			setPreferencesFromResource(R.xml.main_preferences, rootKey);
+			tintAllIcons(getPreferenceScreen());
+		}
+
+		private void tintAllIcons(PreferenceGroup group) {
+			int color = ContextCompat.getColor(requireContext(), android.R.color.white);
+			for (int i = 0; i < group.getPreferenceCount(); i++) {
+				Preference preference = group.getPreference(i);
+
+				if (preference.getIcon() != null) {
+					DrawableCompat.setTint(preference.getIcon(), color);
+				}
+
+				if (preference instanceof PreferenceGroup) {
+					tintAllIcons((PreferenceGroup) preference);
+				}
+			}
+		}
+	}
+
+	public static class PlayersPrefsFragment extends PreferenceFragmentCompat {
+		@Override
+		public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
+			setPreferencesFromResource(R.xml.opponent_preferences, rootKey);
+			tintAllIcons(getPreferenceScreen());
+		}
+
+		private void tintAllIcons(PreferenceGroup group) {
+			int color = ContextCompat.getColor(requireContext(), android.R.color.white);
+			for (int i = 0; i < group.getPreferenceCount(); i++) {
+				Preference preference = group.getPreference(i);
+
+				if (preference.getIcon() != null) {
+					DrawableCompat.setTint(preference.getIcon(), color);
+				}
+
+				if (preference instanceof PreferenceGroup) {
+					tintAllIcons((PreferenceGroup) preference);
+				}
+			}
 		}
 	}
 
@@ -156,12 +192,5 @@ public class Prefs extends AppCompatActivity {
 	public static int getP3AggressionLevel(Context context) {
 		return Integer.parseInt(PreferenceManager.getDefaultSharedPreferences(context)
 				.getString(OPT_P3_AGGRESSION_LEVEL, OPT_P3_AGGRESSION_LEVEL_DEF));
-	}
-
-	public static class PlayersPrefsFragment extends PreferenceFragmentCompat {
-		@Override
-		public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
-			setPreferencesFromResource(R.xml.opponent_preferences, rootKey);
-		}
 	}
 }
