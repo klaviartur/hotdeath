@@ -21,20 +21,21 @@ public class CardPile {
 
 	private final boolean        faceUp;
 	private final Card.CardState cardState;
-	private final List<Card>     cards;
+	private final List<Card>     cards  = new ArrayList<Card>();
 
 	// -----------------------------------------------------------------------
 	// Constructors
 	// -----------------------------------------------------------------------
 
 	public CardPile(boolean faceUp, Card.CardState cardState) {
-		this(faceUp, cardState, null);
+		this.faceUp    = faceUp;
+		this.cardState = cardState;
 	}
 
 	public CardPile(boolean faceUp, Card.CardState cardState, List<Card> cards) {
-		this.faceUp    = faceUp;
-		this.cardState = cardState;
-		this.cards = cards != null ? cards : new ArrayList<Card>() {
+		this(faceUp, cardState);
+		for (Card c : cards) {
+			addCard(c, true);
 		};
 	}
 
@@ -83,13 +84,14 @@ public class CardPile {
 	 * Finds and removes the first card with the given {@code id}.
 	 * Returns null if not found.
 	 */
-	public Card pullCard(int id) {
-		for (int i = 0; i < cards.size(); i++) {
-			if (cards.get(i).getID() == id) {
-				return cards.remove(i);
-			}
-		}
-		return null;
+	public int pullCard(Card c) {
+		int idx = cards.indexOf(c);
+		if (idx != -1) cards.remove(idx);
+		return idx;
+	}
+
+	public void putCard(Card c, int idx) {
+		cards.add(idx, c);
 	}
 
 	// -----------------------------------------------------------------------
@@ -99,7 +101,7 @@ public class CardPile {
 	public void shuffle() { shuffle(7); }
 
 	public void shuffle(int numTimes) {
-		for (Card c : cards) c.setFaceUp(false);
+		for (Card c : cards) c.setFaceUp(faceUp);
 		Random rng = new Random();
 		for (int pass = 0; pass < numTimes; pass++) {
 			Collections.shuffle(cards, rng);

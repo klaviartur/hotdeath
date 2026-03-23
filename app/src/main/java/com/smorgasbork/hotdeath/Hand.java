@@ -74,12 +74,9 @@ public class Hand {
 	{
 		Random rgen = new Random();
 		int cnum = rgen.nextInt (m_numCards);
-		
 		Card oc = m_cards[cnum];
-		
-		m_cards[cnum] = c;
-		c.setHand(this);
-		oc.setHand(null);
+		removeCard(oc);
+		addCard(c, false);
 		return oc;
 	}
 

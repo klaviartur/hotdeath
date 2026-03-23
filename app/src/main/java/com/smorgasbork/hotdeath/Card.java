@@ -1,6 +1,10 @@
 package com.smorgasbork.hotdeath;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Camera;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
 
 public class Card implements Animatable {
 
@@ -380,6 +384,43 @@ public class Card implements Animatable {
 
 	@Override
 	public boolean isAnimating() { return m_isAnimating; }
+
+	@Override
+	public void draw(Canvas canvas) {
+		Camera camera = new Camera();
+		Matrix matrix = new Matrix();
+		matrix.reset();
+		camera.save();
+		camera.rotateY(m_flip);
+		camera.getMatrix(matrix);
+		camera.restore();
+		//matrix.preTranslate( - m_cardWidth / 2, - m_cardHeight / 2);
+		matrix.postTranslate(m_x, m_y);
+
+		Bitmap b;
+		if (m_faceUp)
+		{
+			//     b = m_imageLookup.get(c.getID());
+		}
+		else
+		{
+			//    b = m_bmpCardBack;
+			/*
+			 * show some cards upside down -- this doesn't look as good as I thought it would
+			 */
+			/*
+			Random rgen = new Random();
+			int orientation = rgen.nextInt(100);
+			if (orientation < 25)
+			{
+				m_drawMatrix.postRotate(180, x + b.getWidth() / 2, y + b.getHeight() / 2);
+			}
+			*/
+		}
+
+
+		//canvas.drawBitmap(b, matrix, null);
+	}
 
 	// -----------------------------------------------------------------------
 	// Utility

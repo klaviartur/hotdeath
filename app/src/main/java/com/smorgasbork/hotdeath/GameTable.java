@@ -436,6 +436,15 @@ public class GameTable extends View
 		m_game.waitABit(speed);
 	}
 
+	public void swapCheatCard(Card c1, Card c2, int speed) {
+		m_discardPileOnTop = false;
+		c1.setX(m_ptDrawPile.x);
+		c1.setY(m_ptDrawPile.y);
+		startCardAnimation(c1, Card.CardState.HAND, m_ptSeat[Game.SEAT_SOUTH - 1].x, m_ptSeat[Game.SEAT_SOUTH - 1].y, 0, true, m_game.getDelay() / 4);
+		startCardAnimation(c2, Card.CardState.DRAW_PILE, m_ptDrawPile.x, m_ptDrawPile.y, 0, m_go.getFaceUp(), m_game.getDelay() / 4);
+		m_game.waitABit(speed);
+	}
+
 	public void dealCard(Card card, int dealer, Player player, int speed)
 	{
 		m_discardPileOnTop = false;
@@ -1038,13 +1047,13 @@ public class GameTable extends View
 
 		// draw the draw pile
 
-		m_drawPileBoundingRect = drawPile(m_game.getDrawPile(), canvas, m_ptDrawPile, false, true);
+		m_drawPileBoundingRect = drawPile(m_game.getDrawPile(), canvas, m_ptDrawPile);
 
 		// draw the discard pile
 
 		if (!m_discardPileOnTop)
 		{
-			m_discardPileBoundingRect = drawPile(m_game.getDiscardPile(), canvas, m_ptDiscardPile, true, false);
+			m_discardPileBoundingRect = drawPile(m_game.getDiscardPile(), canvas, m_ptDiscardPile);
 		}
 
 		// draw the hands
@@ -1065,7 +1074,7 @@ public class GameTable extends View
 
 		if (m_discardPileOnTop)
 		{
-			m_discardPileBoundingRect = drawPile(m_game.getDiscardPile(), canvas,m_ptDiscardPile, true, false);
+			m_discardPileBoundingRect = drawPile(m_game.getDiscardPile(), canvas,m_ptDiscardPile);
 		}
 
 		for (i = 1; i <= ColorChooser.numSegments; i++) {
@@ -1091,7 +1100,7 @@ public class GameTable extends View
 		drawPenalty(canvas);
 	}
 
-	private Rect drawPile(CardPile pile, Canvas canvas, Point pt, boolean faceUp, boolean badge)
+	private Rect drawPile(CardPile pile, Canvas canvas, Point pt)
 	{
 		if (pile != null)
 		{
@@ -1111,44 +1120,21 @@ public class GameTable extends View
 			int y = pt.y;
 			int numCardsInPile = pile.getNumCards();
 
-			for (int i = 0; i < numCardsInPile - 1; i += skip)
+			for (int i = 0; i < numCardsInPile; i++)
 			{
-				// make sure that the top card is drawn...
-				if (i >= numCardsInPile - 1 - skip)
-				{
-					i = numCardsInPile - 2;
-				}
-
 				c = pile.getCard(i);
-				if (c != null)
-				{
-					// FIXME -- make resolution independent
-					x = pt.x + (int)((float)i / (float)skip) * 2;
-					y = pt.y + (int)((float)i / (float)skip) * 2;
-					this.drawCard (canvas, c, x, y);
-				}
-			}
-			if (numCardsInPile > 0)
-			{
-				c = pile.getCard(numCardsInPile - 1);
-				if (c != null)
-				{
-					if (!c.isAnimating())
-					{
-						this.drawCard(canvas, c, x, y);
-					}
-					else
-					{
+				if (c != null) {
+					if (c.isAnimating()) {
 						this.drawCard(canvas, c);
 					}
+					else if (i % skip == 0 || i >= numCardsInPile - 2 ) {
+						// FIXME -- make resolution independent
+						x = pt.x + (int)((float)i / (float)skip) * 2;
+						y = pt.y + (int)((float)i / (float)skip) * 2;
+						this.drawCard (canvas, c, x, y);
+					}
 				}
 			}
-
-			if (badge)
-			{
-
-			}
-
 			return new Rect(pt.x, pt.y, x + m_cardWidth, y + m_cardHeight);
 		}
 		return new Rect();
@@ -2034,12 +2020,11 @@ public class GameTable extends View
 		Camera camera = new Camera();
 		m_drawMatrix.reset();
 		camera.save();
-		camera.rotateY(flip); // e.g., 30 degrees
+		camera.rotateY(flip);
 		camera.getMatrix(m_drawMatrix);
 		camera.restore();
 		m_drawMatrix.preTranslate( - m_cardWidth / 2, - m_cardHeight / 2);
 		m_drawMatrix.postTranslate(x + m_cardWidth / 2, y + m_cardHeight / 2);
-		//m_drawMatrix.preScale(flip, 1);
 
 		Bitmap b;
 		if (c.isFaceUp())
