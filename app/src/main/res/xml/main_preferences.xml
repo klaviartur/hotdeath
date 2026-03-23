@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+	<ListPreference
+		android:key="game_speed"
+		android:title="@string/game_speed_title"
+		android:summary="@string/game_speed_summary"
+		android:defaultValue="1"
+		android:entries="@array/game_speeds"
+		android:entryValues="@array/game_speed_values" />
+	<ListPreference
+		android:key="deck_type"
+		android:title="@string/deck_type_title"
+		android:summary="@string/deck_type_summary"
+		android:defaultValue="vanilla"
+		android:entries="@array/deck_types"
+		android:entryValues="@array/deck_type_values" />
+	<CheckBoxPreference
+		android:key="computer_4th"
+		android:title="@string/computer_4th_title"
+		android:summary="@string/computer_4th_summary"
+		android:defaultValue="false" />
+	<CheckBoxPreference
+		android:key="face_up"
+		android:title="@string/face_up_title"
+		android:summary="@string/face_up_summary"
+		android:defaultValue="false" />
+	<ListPreference
+		android:key="cheat_level"
+		android:title="@string/cheat_level_title"
+		android:summary="@string/cheat_level_summary"
+		android:defaultValue="0"
+		android:entries="@array/cheat_levels"
+		android:entryValues="@array/cheat_level_values" />
+	<EditTextPreference
+		android:key="cheat_code"
+		android:title="@string/cheat_code_title"
+		android:summary="@string/cheat_code_summary"
+		android:defaultValue="" />
+
+	<!-- Navigate to players preferences fragment -->
+	<androidx.preference.Preference
+		android:key="players_prefs"
+		android:title="@string/players"
+		android:summary="@string/players_summary"
+		android:fragment="com.smorgasbork.hotdeath.Prefs$PlayersPrefsFragment" />
+</PreferenceScreen>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Player 1 -->
+    <PreferenceCategory android:title="@string/player1">
+        <ListPreference
+            android:key="p1_skill"
+            android:title="@string/skill_title"
+            android:summary="@string/skill_summary"
+            android:defaultValue="1"
+            android:entries="@array/skill_levels"
+            android:entryValues="@array/skill_level_values" />
+        <ListPreference
+            android:key="p1_aggression"
+            android:title="@string/aggression_title"
+            android:summary="@string/aggression_summary"
+            android:defaultValue="0"
+            android:entries="@array/aggression_levels"
+            android:entryValues="@array/aggression_level_values" />
+    </PreferenceCategory>
+
+    <!-- Player 2 -->
+    <PreferenceCategory android:title="@string/player2">
+        <ListPreference
+            android:key="p2_skill"
+            android:title="@string/skill_title"
+            android:summary="@string/skill_summary"
+            android:defaultValue="1"
+            android:entries="@array/skill_levels"
+            android:entryValues="@array/skill_level_values" />
+        <ListPreference
+            android:key="p2_aggression"
+            android:title="@string/aggression_title"
+            android:summary="@string/aggression_summary"
+            android:defaultValue="0"
+            android:entries="@array/aggression_levels"
+            android:entryValues="@array/aggression_level_values" />
+    </PreferenceCategory>
+
+    <!-- Player 3 -->
+    <PreferenceCategory android:title="@string/player3">
+        <ListPreference
+            android:key="p3_skill"
+            android:title="@string/skill_title"
+            android:summary="@string/skill_summary"
+            android:defaultValue="1"
+            android:entries="@array/skill_levels"
+            android:entryValues="@array/skill_level_values" />
+        <ListPreference
+            android:key="p3_aggression"
+            android:title="@string/aggression_title"
+            android:summary="@string/aggression_summary"
+            android:defaultValue="0"
+            android:entries="@array/aggression_levels"
+            android:entryValues="@array/aggression_level_values" />
+    </PreferenceCategory>
+</PreferenceScreen>

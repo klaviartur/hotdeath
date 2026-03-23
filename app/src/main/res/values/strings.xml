@@ -162,7 +162,7 @@
 	<string name="cardhelp_ping">Choose any player — they draw exactly 1 card. Play continues normally. No card or rule in the game stops Ping or changes its 1-card pickup.</string>
 	<string name="cardhelp_swap">Swap your hand with the player before you (Field cards are not swapped). Turn order then reverses.</string>
 
-	<string name="settings_title">Hot Death settings</string>
+	<string name="settings_title">Settings</string>
 	<string name="game_speed_title">Game speed</string>
 	<string name="game_speed_summary">How fast the computer players move</string>
 
@@ -175,9 +175,6 @@
 	<string name="standard_rules_title">Standard rules</string>
 	<string name="standard_rules_summary">Disable special cards; play standard rules</string>
 
-	<string name="two_decks_title">Two decks</string>
-	<string name="two_decks_summary">Use two decks instead of one</string>
-
 	<string name="computer_4th_title">Computer 4th</string>
 	<string name="computer_4th_summary">Have a computer play the 4th (south) seat; mostly useful for testing</string>
 
@@ -185,17 +182,18 @@
 	<string name="face_up_summary">Play with cards face up; useful for learning the game or for testing</string>
 
 	<string name="cheat_level_title">Cheat level</string>
-	<string name="cheat_level_summary">Stack the deals in your favor</string>
+	<string name="cheat_level_summary">Swap out some cards for good ones after hands are dealt out</string>
 
 	<string name="cheat_code_title">Cheat code(s)</string>
 	<string name="cheat_code_summary">Enter cheat codes, comma separated; may require restart</string>
 
 	<string name="cheat_level_0">Honest</string>
-	<string name="cheat_level_1">Rascal</string>
-	<string name="cheat_level_2">Scoundrel</string>
-	<string name="cheat_level_3">Dirtbag</string>
+	<string name="cheat_level_1">Rascal (Swap 1 Card)</string>
+	<string name="cheat_level_2">Scoundrel (Swap 2 Cards)</string>
+	<string name="cheat_level_3">Dirtbag (Swap 3 Cards)</string>
 
-	<string name="players">Players</string>
+	<string name="players">Opponents</string>
+	<string name ="players_summary">Change skill and aggression</string>
 
 	<string name="player1">West</string>
 	<string name="player2">North</string>

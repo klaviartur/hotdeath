@@ -42,7 +42,7 @@ public class Prefs extends AppCompatActivity {
 		setContentView(R.layout.activity_prefs);
 
 		// Initialize default preferences
-		PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+		PreferenceManager.setDefaultValues(this, R.xml.main_preferences, false);
 
 		// Load the preferences fragment
 		if (savedInstanceState == null) {
@@ -50,12 +50,6 @@ public class Prefs extends AppCompatActivity {
 					.beginTransaction()
 					.replace(R.id.settings, new PrefsFragment())
 					.commit();
-		}
-
-		// Add back arrow to actionbar
-		ActionBar actionBar = getSupportActionBar();
-		if (actionBar != null) {
-			actionBar.setDisplayHomeAsUpEnabled(true);
 		}
 	}
 
@@ -72,7 +66,7 @@ public class Prefs extends AppCompatActivity {
 	public static class PrefsFragment extends PreferenceFragmentCompat {
 		@Override
 		public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
-			setPreferencesFromResource(R.xml.preferences, rootKey);
+			setPreferencesFromResource(R.xml.main_preferences, rootKey);
 		}
 	}
 
@@ -162,5 +156,12 @@ public class Prefs extends AppCompatActivity {
 	public static int getP3AggressionLevel(Context context) {
 		return Integer.parseInt(PreferenceManager.getDefaultSharedPreferences(context)
 				.getString(OPT_P3_AGGRESSION_LEVEL, OPT_P3_AGGRESSION_LEVEL_DEF));
+	}
+
+	public static class PlayersPrefsFragment extends PreferenceFragmentCompat {
+		@Override
+		public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
+			setPreferencesFromResource(R.xml.opponent_preferences, rootKey);
+		}
 	}
 }
