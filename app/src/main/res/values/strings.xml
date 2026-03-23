@@ -181,11 +181,11 @@
 	<string name="face_up_title">Face up</string>
 	<string name="face_up_summary">Play with cards face up; useful for learning the game or for testing</string>
 
+	<string name="family_friendly_title">Family friendly</string>
+	<string name="family_friendly_summary">Replace politically incorrect original Hot Death cards with family friendly alternative designs</string>
+
 	<string name="cheat_level_title">Cheat level</string>
 	<string name="cheat_level_summary">Swap out some cards for good ones after hands are dealt out</string>
-
-	<string name="cheat_code_title">Cheat code(s)</string>
-	<string name="cheat_code_summary">Enter cheat codes, comma separated; may require restart</string>
 
 	<string name="cheat_level_0">Honest</string>
 	<string name="cheat_level_1">Rascal (Swap 1 Card)</string>

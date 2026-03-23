@@ -28,6 +28,12 @@
 		android:summary="@string/face_up_summary"
 		android:defaultValue="false"
 		android:icon="@drawable/ic_faceup" />
+	<CheckBoxPreference
+		android:key="family_friendly"
+		android:title="@string/family_friendly_title"
+		android:summary="@string/family_friendly_summary"
+		android:defaultValue="true"
+		android:icon="@drawable/ic_family_friendly" />
 	<ListPreference
 		android:key="cheat_level"
 		android:title="@string/cheat_level_title"

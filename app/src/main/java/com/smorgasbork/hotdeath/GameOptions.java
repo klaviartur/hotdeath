@@ -62,11 +62,7 @@ public class GameOptions {
 		return Prefs.getCheatLevel(m_ga);
     }
 	
-	public boolean getFamilyFriendly ()
-	{
-		String s = Prefs.getCheatCode (m_ga);
-        return !s.contains("originalhotdeath");
-    }
+	public boolean getFamilyFriendly ()	{ return Prefs.getFamilyFriendly(m_ga); }
 
 	public boolean getFaceUp() 
     {
@@ -76,12 +72,6 @@ public class GameOptions {
 	public boolean getComputer4th() 
     {
 		return Prefs.getComputer4th(m_ga);
-    }
-
-	public boolean getStandardRules() 
-    {
-		String s = Prefs.getCheatCode (m_ga);
-        return s.contains("standardrules");
     }
 
 	public CardDeck.DeckType getDeckType() {

@@ -22,8 +22,8 @@ public class Prefs extends AppCompatActivity {
 	private static final boolean OPT_FACE_UP_DEF = false;
 	private static final String OPT_CHEAT_LEVEL = "cheat_level";
 	private static final String OPT_CHEAT_LEVEL_DEF = "0";
-	private static final String OPT_CHEAT_CODE = "cheat_code";
-	private static final String OPT_CHEAT_CODE_DEF = "";
+	private static final String OPT_FAMILY_FRIENDLY = "family_friendly";
+	private static final boolean OPT_FAMILY_FRIENDLY_DEF = true;
 
 	private static final String OPT_P1_SKILL_LEVEL = "p1_skill";
 	private static final String OPT_P1_SKILL_LEVEL_DEF = "1";
@@ -159,9 +159,9 @@ public class Prefs extends AppCompatActivity {
 				.getString(OPT_CHEAT_LEVEL, OPT_CHEAT_LEVEL_DEF));
 	}
 
-	public static String getCheatCode(Context context) {
+	public static boolean getFamilyFriendly (Context context) {
 		return PreferenceManager.getDefaultSharedPreferences(context)
-				.getString(OPT_CHEAT_CODE, OPT_CHEAT_CODE_DEF);
+				.getBoolean(OPT_FAMILY_FRIENDLY, OPT_FAMILY_FRIENDLY_DEF);
 	}
 
 	public static int getP1SkillLevel(Context context) {

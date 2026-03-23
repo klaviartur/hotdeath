@@ -139,8 +139,8 @@ public class Game extends Thread {
 		m_ga = ga;
 		m_penalty = null;
 
-		m_standardRules = m_go.getStandardRules();
 		m_deckType 		= m_go.getDeckType();
+		m_standardRules = m_deckType == CardDeck.DeckType.VANILLA;
 		m_direction     = DIR_NONE;
 
 		m_players[0] = m_go.getComputer4th()
@@ -160,8 +160,8 @@ public class Game extends Thread {
 		m_penalty = null;
 
 		try {
-			m_standardRules = gamestate.getBoolean("standardRules");
-			m_deckType = CardDeck.DeckType.fromKey(gamestate.getString("deckType"));
+			m_deckType 		= CardDeck.DeckType.fromKey(gamestate.getString("deckType"));
+			m_standardRules = m_deckType == CardDeck.DeckType.VANILLA;
 			m_snapshot      = gamestate;
 
 			m_deck        = new CardDeck(m_deckType);
@@ -220,7 +220,6 @@ public class Game extends Thread {
 		synchronized (m_pauseLock) {
 			JSONObject o = new JSONObject();
 			try {
-				o.put("standardRules", m_standardRules);
 				o.put("deckType", m_deckType);
 
 				JSONObject state = new JSONObject();
