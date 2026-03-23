@@ -3,211 +3,153 @@ package com.smorgasbork.hotdeath;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class HumanPlayer extends Player 
-{
-	private boolean m_turnDecision = false;
-	private boolean m_colorDecision = false;
-	private boolean m_victimDecision = false;
-	
-	private boolean m_numCardsToDealDecision = false;
-	
-	public HumanPlayer (Game g, GameOptions go)
-	{
-		super (g, go);
-	}
-	
-	public HumanPlayer (JSONObject o, Game g, GameOptions go) throws JSONException
-	{
-		super (o, g, go);
+/**
+ * Human-controlled player. All "decisions" are made by the UI thread setting
+ * volatile flags; this player's game thread then spins on those flags.
+ */
+public class HumanPlayer extends Player {
+
+	// Decision flags – written by UI thread, read by game thread.
+	private volatile boolean m_turnDecision           = false;
+	private volatile boolean m_colorDecision          = false;
+	private volatile boolean m_victimDecision         = false;
+	private volatile boolean m_numCardsToDealDecision = false;
+
+	public HumanPlayer(Game g, GameOptions go) {
+		super(g, go);
 	}
 
-	
-	public void turnDecisionPass()
-	{
-		m_wantsToPass = true;
-		m_turnDecision = true;
+	public HumanPlayer(JSONObject o, Game g, GameOptions go) throws JSONException {
+		super(o, g, go);
 	}
 
-	public void turnDecisionDrawCard()
-	{
-		m_wantsToDraw = true;
-		m_turnDecision = true;
-	}
+	// -------------------------------------------------------------------------
+	// Turn lifecycle
+	// -------------------------------------------------------------------------
 
-	public void turnDecisionPlayCard(Card c)
-	{
-		// when the human player is playing, we're in a spin-wait mode, waiting for
-		// m_turnDecision to turn true.  So if we make a valid play here, we'll 
-		// set that bool to true.
-		
-		if (!m_hand.isInHand(c))
-		{
-			return;
-		}
-		
-
-		if (m_game.checkCard(m_hand, c))
-		{
-			m_playingCard = c;
-			m_wantsToPlayCard = true;
-			m_turnDecision = true;				
-		}
-		else 
-		{
-			m_game.promptUser(m_game.getString (R.string.msg_card_no_good), false);
-		}
-	}
-	
-	// called to wait for the user to make a move -- either to play a
-	// card, draw, or pass
-	public boolean startTurn()
-	{
+	/**
+	 * Blocks the game thread until the player makes a move (play, draw, or pass).
+	 */
+	@Override
+	public boolean startTurn() {
 		m_turnDecision = false;
 
-		if (!super.startTurn())
-		{
+		if (!super.startTurn()) {
 			return false;
 		}
 
-		while (!m_turnDecision)
-		{
-			try
-			{
-				Thread.sleep(100);
-			}
-			catch (InterruptedException e)
-			{
-				
-			}
-			if (m_game.getStopping())
-			{
-				return true;
-			}
-		}
+		waitForDecision(() -> m_turnDecision);
 		return true;
-    }
+	}
 
-	
-	public int getNumCardsToDeal ()
-	{
-		m_game.promptForNumCardsToDeal();
-		
-		m_numCardsToDealDecision = false;
-		while (!m_numCardsToDealDecision)
-		{
-			try
-			{
-				Thread.sleep(100);
-			}
-			catch (InterruptedException e)
-			{
-				
-			}
-			if (m_game.getStopping())
-			{
-				return 0;
-			}
+	// -------------------------------------------------------------------------
+	// UI callbacks – called from UI thread
+	// -------------------------------------------------------------------------
+
+	public void turnDecisionPass() {
+		m_wantsToPass  = true;
+		m_turnDecision = true;
+	}
+
+	public void turnDecisionDrawCard() {
+		m_wantsToDraw  = true;
+		m_turnDecision = true;
+	}
+
+	/**
+	 * Attempts to play {@code c}. If the card is not valid, a toast is shown
+	 * and the decision flag is left false so the spin-wait continues.
+	 */
+	public void turnDecisionPlayCard(Card c) {
+		if (!m_hand.isInHand(c)) return;
+
+		if (m_game.checkCard(m_hand, c)) {
+			m_playingCard      = c;
+			m_wantsToPlayCard  = true;
+			m_turnDecision     = true;
+		} else {
+			m_game.promptUser(m_game.getString(R.string.msg_card_no_good), false);
 		}
-		
+	}
+
+	// -------------------------------------------------------------------------
+	// Decisions that require dialog prompts
+	// -------------------------------------------------------------------------
+
+	@Override
+	public int getNumCardsToDeal() {
+		m_numCardsToDealDecision = false;
+		m_game.promptForNumCardsToDeal();
+		waitForDecision(() -> m_numCardsToDealDecision);
 		return m_numCardsToDeal;
 	}
-	
-	// called after user selects from the alert dialog
-	public void setNumCardsToDeal (int numCardsToDeal)
-	{
-		m_numCardsToDeal = numCardsToDeal;
+
+	/** Called by the dialog's item-click handler once the user picks a count. */
+	public void setNumCardsToDeal(int numCardsToDeal) {
+		m_numCardsToDeal         = numCardsToDeal;
 		m_numCardsToDealDecision = true;
 	}
-	
 
-	public int chooseColor()
-	{
+	@Override
+	public int chooseColor() {
 		m_colorDecision = false;
-		m_game.promptForColor ();
-
-		while (!m_colorDecision)
-		{
-			try
-			{
-				Thread.sleep(100);
-			}
-			catch (InterruptedException e)
-			{
-				
-			}
-			if (m_game.getStopping())
-			{
-				return 0;
-			}
-		}
-		
+		m_game.promptForColor();
+		waitForDecision(() -> m_colorDecision);
 		return m_chosenColor;
 	}
 
-	// called after user selects from the alert dialog
-	public void setColor (int color)
-	{
-		m_chosenColor = color;
+	/** Called by the color-chooser tap handler once the user selects a colour. */
+	public void setColor(int color) {
+		m_chosenColor   = color;
 		m_colorDecision = true;
 	}
 
+	@Override
+	public void chooseVictim() {
+		// If only one other player is active, select automatically.
+		int activeCount      = 0;
+		int onlyActivePlayer = 0;
+		for (int seat : new int[]{Game.SEAT_WEST, Game.SEAT_NORTH, Game.SEAT_EAST}) {
+			if (m_game.getPlayer(seat - 1).getActive()) {
+				activeCount++;
+				onlyActivePlayer = seat;
+			}
+		}
 
-	public void chooseVictim()
-	{
-		// if there's only one other active player, it is silly to
-		// prompt the user for the victim..
-		int activeplayercount = 0;
-		int onlyactiveplayer = 0;
-		if (m_game.getPlayer(Game.SEAT_WEST - 1).getActive())
-		{
-			activeplayercount++;
-			onlyactiveplayer = Game.SEAT_WEST;
-		}
-		if (m_game.getPlayer(Game.SEAT_NORTH - 1).getActive())
-		{
-			activeplayercount++;
-			onlyactiveplayer = Game.SEAT_NORTH;
-		}
-		if (m_game.getPlayer(Game.SEAT_EAST - 1).getActive())
-		{
-			activeplayercount++;
-			onlyactiveplayer = Game.SEAT_EAST;
-		}
-		
-		if (activeplayercount == 1)
-		{
+		if (activeCount == 1) {
+			m_chosenVictim  = onlyActivePlayer;
 			m_victimDecision = true;
-			m_chosenVictim = onlyactiveplayer;
 			return;
 		}
-		
-		// ok -- we've got more than one, so we prompt the user...
-		m_game.promptForVictim();
-		
+
 		m_victimDecision = false;
-		while (!m_victimDecision)
-		{
-			try
-			{
-				Thread.sleep(100);
-			}
-			catch (InterruptedException e)
-			{
-				
-			}
-			if (m_game.getStopping())
-			{
-				return;
-			}
-		}
+		m_game.promptForVictim();
+		waitForDecision(() -> m_victimDecision);
 	}
 
-	// called after user selects from the alert dialog
-	public void setVictim (int victim)
-	{
-		m_chosenVictim = victim;
+	/** Called by the victim-picker dialog once the user makes a selection. */
+	public void setVictim(int victim) {
+		m_chosenVictim   = victim;
 		m_victimDecision = true;
 	}
 
+	// -------------------------------------------------------------------------
+	// Internal helper
+	// -------------------------------------------------------------------------
 
+	/** Spins (sleeping 100 ms per tick) until {@code condition} returns true or game stops. */
+	private void waitForDecision(BooleanSupplier condition) {
+		while (!condition.get()) {
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException ignored) {
+			}
+			if (m_game.getStopping()) return;
+		}
+	}
+
+	/** Minimal functional interface so we can pass lambda conditions without java.util.function. */
+	private interface BooleanSupplier {
+		boolean get();
+	}
 }
