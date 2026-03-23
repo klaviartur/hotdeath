@@ -2,437 +2,390 @@ package com.smorgasbork.hotdeath;
 
 import static java.lang.Math.*;
 
-import android.graphics.drawable.Drawable;
-import android.os.Handler;
-import android.util.Log;
-import java.util.List;
-
 import android.app.AlertDialog;
-
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Camera;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Point;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.Rect;
+import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
+import android.os.Build;
+import android.os.Handler;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
-import android.content.Context;
+
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import android.graphics.*;
-import android.content.res.Resources;
+public class GameTable extends View {
 
+	private static final String TAG = "HDU";
+	private static final int VIEW_ID = 42;
 
-public class GameTable extends View 
-{
-	private static final int ID = 42;  
-	
-	private final int[] m_heldCardsOffset;
-	private final int[] m_tableCardsOffset;
-	private final int[] m_heldCardsDrag;
-	private final int[] m_tableCardsDrag;
+	// -------------------------------------------------------------------------
+	// CardInfo — replaces four parallel HashMaps with one unified record
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Bundles every per-card asset reference that used to live in four separate
+	 * HashMaps (m_cardLookup, m_imageIDLookup, m_imageLookup, m_cardHelpLookup).
+	 * Keeping them together makes initCards() ~4× shorter and eliminates the risk
+	 * of the maps falling out of sync.
+	 */
+	private static final class CardInfo {
+		final Card   card;
+		final int    imageResId;
+		final Bitmap bitmap;
+		final int    helpResId;
+
+		CardInfo(Card card, int imageResId, Bitmap bitmap, int helpResId) {
+			this.card       = card;
+			this.imageResId = imageResId;
+			this.bitmap     = bitmap;
+			this.helpResId  = helpResId;
+		}
+	}
+
+	/** Master lookup: card-ID → CardInfo */
+	private final Map<Integer, CardInfo> m_cardInfo = new HashMap<>();
+	/** Ordered list used by the card-catalog grid */
+	private Integer[] m_cardIDs;
+
+	// -------------------------------------------------------------------------
+	// Layout / drawing state
+	// -------------------------------------------------------------------------
+
+	private final int[] m_heldCardsOffset  = new int[4];
+	private final int[] m_tableCardsOffset = new int[4];
+	private final int[] m_heldCardsDrag    = new int[4];
+	private final int[] m_tableCardsDrag   = new int[4];
 
 	private int m_maxCardsDisplay = 7;
-	
-	private final Matrix m_drawMatrix;
-	
+
+	private final Matrix m_drawMatrix = new Matrix();
+
 	private Point m_ptDiscardPile;
 	private Point m_ptDrawPile;
-
 	private Point m_ptDiscardBadge;
-		
-	private final Point[] m_ptSeat;
-	private final Point[] m_ptEmoticon;
-	//private final Point[] m_ptPlayerIndicator;
-	private final Point[] m_ptHeldCardsOffsetBadge;
-	private final Point[] m_ptTableCardsOffsetBadge;
-	private final Point[] m_ptHeldCardsOverflowBadge;
-	private final Point[] m_ptTableCardsOverflowBadge;
-	private final Point[] m_ptScoreText;
+
+	private final Point[] m_ptSeat                    = new Point[4];
+	private final Point[] m_ptEmoticon                = new Point[4];
+	private final Point[] m_ptHeldCardsOffsetBadge    = new Point[4];
+	private final Point[] m_ptTableCardsOffsetBadge   = new Point[4];
+	private final Point[] m_ptHeldCardsOverflowBadge  = new Point[4];
+	private final Point[] m_ptTableCardsOverflowBadge = new Point[4];
+	private final Point[] m_ptScoreText               = new Point[4];
+
 	private Point m_ptPointer;
-	private Point m_ptWinningMessage;	
+	private Point m_ptWinningMessage;
 	private Point m_ptMessages;
-	
-	private final Rect[] m_heldCardsBoundingRect;
-	private final Rect[] m_tableCardsBoundingRect;
+
+	private final Rect[] m_heldCardsBoundingRect  = new Rect[4];
+	private final Rect[] m_tableCardsBoundingRect = new Rect[4];
 	private Rect m_drawPileBoundingRect;
 	private Rect m_discardPileBoundingRect;
 
-    private int m_bottomMarginExternal = 0;
-	
-	private int m_cardSpacing = 0;
-	private int m_cardSpacingSouth = 0;
+	private int m_bottomMarginExternal = 0;
+	private int m_cardSpacing          = 0;
+	private int m_cardSpacingSouth     = 0;
+	private int m_cardWidth            = 0;
+	private int m_cardHeight           = 0;
+	private int m_emoticonWidth        = 0;
+	private int m_emoticonHeight       = 0;
 
-    // FIXME: make resolution independent (at least just query the bitmaps for their width and height)
-	/*  LDPI
-	private int m_cardWidth = 43;
-	private int m_cardHeight = 59;
-	*/
-	private int m_cardWidth = 0;
-	private int m_cardHeight = 0;
-	
-	private int m_emoticonWidth = 0;
-	private int m_emoticonHeight = 0;
-	
-	private Point m_ptTouchDown = null;
-	private boolean m_heldSteady = false;
+	// -------------------------------------------------------------------------
+	// Touch state
+	// -------------------------------------------------------------------------
+
+	private Point   m_ptTouchDown           = null;
+	private boolean m_heldSteady            = false;
 	private boolean m_waitingForTouchAndHold = false;
-	private boolean m_touchAndHold = false;
-	private boolean m_touchDrawPile = false;
-	private boolean m_touchDiscardPile = false;
-	private int m_touchHeldCardsSeat = 0;
-	private int m_touchTableCardsSeat = 0;
-	
-	private Integer[] m_cardIDs;
-	private HashMap<Integer, Card> m_cardLookup;
-	private HashMap<Integer, Integer> m_imageIDLookup;
-	private HashMap<Integer, Bitmap> m_imageLookup;
-	private HashMap<Integer, Integer> m_cardHelpLookup;
-	
+	private boolean m_touchAndHold          = false;
+	private boolean m_touchDrawPile         = false;
+	private boolean m_touchDiscardPile      = false;
+	private int     m_touchHeldCardsSeat    = 0;
+	private int     m_touchTableCardsSeat   = 0;
+
+	// -------------------------------------------------------------------------
+	// Bitmaps & Paint
+	// -------------------------------------------------------------------------
+
 	private Bitmap m_bmpCardBack;
 	private Bitmap m_bmpPointer;
 	private Bitmap m_bmpDirection;
 	private Bitmap m_bmpColorChooser;
-	
-//	private Bitmap m_bmpDirColorCCW, m_bmpDirColorCCWRed, m_bmpDirColorCCWGreen, m_bmpDirColorCCWBlue, m_bmpDirColorCCWYellow;
-//	private Bitmap m_bmpDirColorCW, m_bmpDirColorCWRed, m_bmpDirColorCWGreen, m_bmpDirColorCWBlue, m_bmpDirColorCWYellow;
-	private Bitmap m_bmpEmoticonAggressor, m_bmpEmoticonVictim;
-//	private final Bitmap[][] m_bmpPlayerIndicator;
-	private final Bitmap[] m_bmpWinningMessage;
+	private Bitmap m_bmpEmoticonAggressor;
+	private Bitmap m_bmpEmoticonVictim;
+	private final Bitmap[] m_bmpWinningMessage = new Bitmap[4];
 	private Bitmap m_bmpCardBadge;
 
-    private final Paint m_paintScoreText;
+	private final Paint m_paintScoreText;
 	private final Paint m_paintCardBadgeText;
 	private final Paint m_paintPointer;
 
-	private boolean m_readyToStartGame = false;
-	private boolean m_waitingToStartGame = false;
-	
-	private final Handler m_handler = new Handler();
-	
-	private Toast m_toast = null;
-	
-	private int m_helpCardID = -1;
-	
-	private Game m_game;
+	// -------------------------------------------------------------------------
+	// Game references
+	// -------------------------------------------------------------------------
+
+	private Game        m_game;
 	private GameOptions m_go;
 
-	private final AnimationManager animationManager;
+	private final AnimationManager m_animationManager;
 	private boolean m_discardPileOnTop = false;
-	private boolean m_waitingForColor;
+	private boolean m_waitingForColor  = false;
 
-	public void setHelpCardID (int id)
-	{
-		m_helpCardID = id;
-	}
+	private boolean m_readyToStartGame   = false;
+	private boolean m_waitingToStartGame = false;
 
-	public int getHelpCardID ()
-	{
-		return m_helpCardID;
-	}
-	
-	public Card getCardByID (int id)
-	{
-		return m_cardLookup.get(id);
-	}
-	
-	public int getCardImageID(int id)
-	{
-		return m_imageIDLookup.get(id);
-	}	
-	
-	public int getCardHelpText (int id)
-	{
-		return m_cardHelpLookup.get(id);
-	}
+	private int   m_helpCardID = -1;
+	private Toast m_toast      = null;
 
-	public Bitmap getCardBitmap (int id)
-	{
-		return m_imageLookup.get(id);
-	}
-	
-	public Integer[] getCardIDs()
-	{
-		return m_cardIDs;
-	}
+	private final Handler m_handler = new Handler();
 
-	
-	public GameTable(Context context, Game g, GameOptions go) 
-	{
+	// =========================================================================
+	// Constructor
+	// =========================================================================
+
+	public GameTable(Context context, Game g, GameOptions go) {
 		super(context);
 
-		this.animationManager = new AnimationManager(this);
-
-		this.setBackgroundResource(R.drawable.table_background);
-		
-		m_drawMatrix = new Matrix();
-		
+		m_animationManager = new AnimationManager(this);
+		setBackgroundResource(R.drawable.table_background);
 		setFocusable(true);
 		setFocusableInTouchMode(true);
-		setId(ID);
+		setId(VIEW_ID);
 
-		m_go = go;
+		m_go   = go;
 		m_game = g;
-		m_game.setGameTable (this);
-		
-		m_heldCardsOffset = new int[4];
-		m_tableCardsOffset = new int[4];
-		m_heldCardsDrag = new int[4];
-		m_tableCardsDrag = new int[4];
-		for (int i = 0; i < 4; i++)
-		{
-			m_heldCardsOffset[i] = 0;
-			m_tableCardsOffset[i] = 0;
-			m_heldCardsDrag[i] = 0;
-			m_tableCardsDrag[i] = 0;
-		}
+		m_game.setGameTable(this);
 
-		final float scale = getContext().getResources().getDisplayMetrics().density;
+		final float scale = context.getResources().getDisplayMetrics().density;
 
-        Paint paintTable = new Paint();
-		paintTable.setColor(getResources().getColor(
-				R.color.table_background));
-
-        Paint paintTableText = new Paint(Paint.ANTI_ALIAS_FLAG);
-		paintTableText.setColor(getResources().getColor(
-				R.color.table_text));
-		paintTableText.setTextAlign(Paint.Align.CENTER);
-		paintTableText.setTextSize(12 * scale);
-		paintTableText.setTypeface(Typeface.DEFAULT);
-        
-		m_paintScoreText = new Paint(Paint.ANTI_ALIAS_FLAG);
-		m_paintScoreText.setColor(getResources().getColor(
-				R.color.score_text));
-		m_paintScoreText.setTextSize(12 * scale);
-		m_paintScoreText.setTypeface(Typeface.DEFAULT_BOLD);
-		
-		m_paintCardBadgeText = new Paint(Paint.ANTI_ALIAS_FLAG);
-		m_paintCardBadgeText.setColor(getResources().getColor(
-				R.color.card_badge_text));
-		m_paintCardBadgeText.setTextAlign(Paint.Align.CENTER);
-		m_paintCardBadgeText.setTextSize(14 * scale);
-		m_paintCardBadgeText.setTypeface(Typeface.DEFAULT_BOLD);
-
+		m_paintScoreText = buildPaint(R.color.score_text, 12 * scale, Typeface.DEFAULT_BOLD, Paint.Align.CENTER);
+		m_paintCardBadgeText = buildPaint(R.color.card_badge_text, 14 * scale, Typeface.DEFAULT_BOLD, Paint.Align.CENTER);
 		m_paintPointer = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-		m_ptSeat = new Point[4];
-		m_ptEmoticon = new Point[4];
-		//m_ptPlayerIndicator = new Point[4];
-		m_ptHeldCardsOffsetBadge = new Point[4];
-		m_ptTableCardsOffsetBadge = new Point[4];
-		m_ptHeldCardsOverflowBadge = new Point[4];
-		m_ptTableCardsOverflowBadge = new Point[4];
-		m_ptScoreText = new Point[4];
-		
-		m_heldCardsBoundingRect = new Rect[4];
-		m_tableCardsBoundingRect = new Rect[4];
-
-//		m_bmpPlayerIndicator = new Bitmap[5][4];
-		m_bmpWinningMessage = new Bitmap[4];
-		
 		initCards();
-		
-		m_cardHeight = m_bmpCardBack.getHeight();
-		m_cardWidth = m_bmpCardBack.getWidth();
-		
+
+		m_cardHeight    = m_bmpCardBack.getHeight();
+		m_cardWidth     = m_bmpCardBack.getWidth();
 		m_emoticonHeight = m_bmpEmoticonAggressor.getHeight();
-		m_emoticonWidth = m_bmpEmoticonAggressor.getWidth();
-		
+		m_emoticonWidth  = m_bmpEmoticonAggressor.getWidth();
 	}
-	
-	public void shutdown ()
-	{
+
+	// =========================================================================
+	// Public accessors
+	// =========================================================================
+
+	public void setHelpCardID(int id)   { m_helpCardID = id; }
+	public int  getHelpCardID()         { return m_helpCardID; }
+
+	public Card    getCardByID(int id)  { CardInfo ci = m_cardInfo.get(id); return ci != null ? ci.card : null; }
+	public int     getCardImageID(int id) { CardInfo ci = m_cardInfo.get(id); return ci != null ? ci.imageResId : 0; }
+	public int     getCardHelpText(int id) { CardInfo ci = m_cardInfo.get(id); return ci != null ? ci.helpResId : 0; }
+	public Bitmap  getCardBitmap(int id) { CardInfo ci = m_cardInfo.get(id); return ci != null ? ci.bitmap : null; }
+	public Integer[] getCardIDs()       { return m_cardIDs; }
+
+	public void setBottomMargin(int m)  { m_bottomMarginExternal = m; }
+
+	public void shutdown() {
 		m_game = null;
-		m_go = null;
+		m_go   = null;
 	}
-	
-	
+
+	// =========================================================================
+	// Layout
+	// =========================================================================
+
 	@Override
-	protected void onSizeChanged(int w, int h, int oldw, int oldh) 
-	{
-        int leftMargin = m_cardWidth / 4;
-        int rightMargin = m_cardWidth / 4;
-        int topMargin = m_cardHeight / 3;
-        int bottomMargin = m_cardHeight / 3 + m_bottomMarginExternal;
-		
-		if (h < 4.5 * m_cardHeight)
-		{
-			// probably landscape on a small device...
-			topMargin = m_cardHeight / 4;
+	protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+		int leftMargin   = m_cardWidth  / 4;
+		int rightMargin  = m_cardWidth  / 4;
+		int topMargin    = m_cardHeight / 3;
+		int bottomMargin = m_cardHeight / 3 + m_bottomMarginExternal;
+
+		if (h < 4.5 * m_cardHeight) {
+			// Landscape on a small device
+			topMargin    = m_cardHeight / 4;
 			bottomMargin = m_cardHeight / 4 + m_bottomMarginExternal;
-//			m_ptDrawPile = new Point (w / 2 - 5 * m_cardWidth / 4, h / 2 - m_cardHeight / 2);
-//			m_ptDiscardPile = new Point (w / 2 + m_cardWidth / 4, h / 2 - m_cardHeight / 2);
-//			m_ptDirColor = new Point (m_ptDiscardPile.x + 2 * m_cardWidth + m_bmpDirColorCCW.getWidth() / 4 - m_bmpPlayerIndicator[0][0].getWidth(), h / 2 - m_bmpDirColorCCW.getWidth() / 2);
 		}
-//		else
-//		{
-//			// portrait
-//			m_ptDrawPile = new Point (w / 2 - 5 * m_cardWidth / 4, h / 2 - m_cardHeight);
-//			m_ptDiscardPile = new Point (w / 2 + m_cardWidth / 4, h / 2 - m_cardHeight);
-//			m_ptDirColor = new Point (w /2 - m_bmpDirColorCCW.getWidth() / 2, h / 2 + m_cardHeight / 4);
-//		}
 
-//		m_ptDiscardBadge = new Point (m_ptDiscardPile.x + m_cardWidth - m_bmpCardBadge.getWidth() / 2, m_ptDiscardPile.y + m_cardHeight - m_bmpCardBadge.getHeight() / 2);
-//
-//		m_ptPlayerIndicator[Game.SEAT_NORTH - 1] = new Point (m_ptDirColor.x + m_bmpDirColorCCW.getWidth() / 2 - m_bmpPlayerIndicator[0][0].getWidth() / 2, m_ptDirColor.y - m_bmpPlayerIndicator[0][0].getHeight());
-//		m_ptPlayerIndicator[Game.SEAT_EAST - 1] = new Point (m_ptDirColor.x + m_bmpDirColorCCW.getWidth(), m_ptDirColor.y + m_bmpDirColorCCW.getHeight() / 2 -  m_bmpPlayerIndicator[0][0].getHeight() / 2);
-//		m_ptPlayerIndicator[Game.SEAT_SOUTH - 1] = new Point (m_ptDirColor.x + m_bmpDirColorCCW.getWidth() / 2 - m_bmpPlayerIndicator[0][0].getWidth() / 2, m_ptDirColor.y + m_bmpDirColorCCW.getHeight());
-//		m_ptPlayerIndicator[Game.SEAT_WEST - 1] = new Point (m_ptDirColor.x - m_bmpPlayerIndicator[0][0].getWidth(), m_ptDirColor.y + m_bmpDirColorCCW.getHeight() / 2 -  m_bmpPlayerIndicator[0][0].getHeight() / 2);
-
-		String numstr = "0";
 		Rect textBounds = new Rect();
-		m_paintScoreText.getTextBounds(numstr, 0, numstr.length(), textBounds);
-		
-		m_cardSpacing = (int)(m_cardWidth / 2.0);
-		m_cardSpacingSouth = 2 * (int)(m_cardWidth / 3.0);
-		
-		// figure out what the maximum number of cards you can display will be
-		
-		// calculate max cards in layout 1 (N/S cards live between E/W cards)
-		
-		int humanPlayerArea = w - 2 * m_cardWidth - 2 * leftMargin - 2 * rightMargin;
-		int maxNumHumanCards = ((humanPlayerArea - m_cardWidth) / m_cardSpacingSouth) + 1;
+		m_paintScoreText.getTextBounds("0", 0, 1, textBounds);
 
-		int computerPlayerArea = h - topMargin - bottomMargin - (int)(textBounds.height() * 1.2);
-		int maxNumComputerCards = ((computerPlayerArea - m_cardHeight) / m_cardSpacing) + 1;
-		
-		int maxCardsLayout1 = Math.min(maxNumComputerCards, maxNumHumanCards);
+		m_cardSpacing      = m_cardWidth / 2;
+		m_cardSpacingSouth = 2 * m_cardWidth / 3;
 
-		// calculate max cards in layout 2 (E/W cards live between N/S cards)
-		
-		humanPlayerArea = w - leftMargin - rightMargin;
-		maxNumHumanCards = ((humanPlayerArea - m_cardWidth) / m_cardSpacingSouth) + 1;
+		// Max cards — layout 1: N/S cards live between E/W cards
+		int humanArea1     = w - 2 * m_cardWidth - 2 * leftMargin - 2 * rightMargin;
+		int maxHuman1      = ((humanArea1 - m_cardWidth) / m_cardSpacingSouth) + 1;
+		int computerArea1  = h - topMargin - bottomMargin - (int)(textBounds.height() * 1.2);
+		int maxComputer1   = ((computerArea1 - m_cardHeight) / m_cardSpacing) + 1;
 
-		computerPlayerArea = h - 2 * m_cardHeight - 2 * topMargin - 2 * bottomMargin;
-		maxNumComputerCards = ((computerPlayerArea - m_cardHeight) / m_cardSpacing) + 1;
-			
-		int maxCardsLayout2 = Math.min(maxNumComputerCards, maxNumHumanCards);
-		
-		m_maxCardsDisplay = Math.max(maxCardsLayout1, maxCardsLayout2);
+		// Max cards — layout 2: E/W cards live between N/S cards
+		int humanArea2     = w - leftMargin - rightMargin;
+		int maxHuman2      = ((humanArea2 - m_cardWidth) / m_cardSpacingSouth) + 1;
+		int computerArea2  = h - 2 * m_cardHeight - 2 * topMargin - 2 * bottomMargin;
+		int maxComputer2   = ((computerArea2 - m_cardHeight) / m_cardSpacing) + 1;
 
-		Log.d("HDU", "[onSizeChanged] maxCardsLayout1: " + maxCardsLayout1);
-		Log.d("HDU", "[onSizeChanged] maxCardsLayout2: " + maxCardsLayout2);
-		Log.d("HDU", "[onSizeChanged] m_maxCardsDisplay: " + m_maxCardsDisplay);
+		m_maxCardsDisplay = max(min(maxComputer1, maxHuman1), min(maxComputer2, maxHuman2));
 
+		Log.d(TAG, "[onSizeChanged] m_maxCardsDisplay: " + m_maxCardsDisplay);
 
-        int maxWidthHand = (m_maxCardsDisplay - 1) * m_cardSpacing + m_cardWidth;
-        int maxHeightHand = (m_maxCardsDisplay - 1) * m_cardSpacing + m_cardHeight;
+		int maxWidthHand      = (m_maxCardsDisplay - 1) * m_cardSpacing      + m_cardWidth;
+		int maxHeightHand     = (m_maxCardsDisplay - 1) * m_cardSpacing      + m_cardHeight;
+		int maxWidthHandHuman = (m_maxCardsDisplay - 1) * m_cardSpacingSouth + m_cardWidth;
 
-        int maxWidthHandHuman = (m_maxCardsDisplay - 1) * m_cardSpacingSouth + m_cardWidth;
-		
-		m_ptSeat[Game.SEAT_NORTH - 1] = new Point (w / 2, topMargin);
-		m_ptSeat[Game.SEAT_EAST - 1] = new Point (w - (m_cardWidth + rightMargin), (h - bottomMargin + topMargin) / 2);
-		m_ptSeat[Game.SEAT_SOUTH - 1] = new Point (w / 2, h - (m_cardHeight + bottomMargin));
-		m_ptSeat[Game.SEAT_WEST - 1] = new Point (leftMargin, (h - bottomMargin + topMargin) / 2);
+		int vertCentre = (h - bottomMargin + topMargin) / 2;
 
+		m_ptSeat[Game.SEAT_NORTH - 1] = new Point(w / 2,                         topMargin);
+		m_ptSeat[Game.SEAT_EAST  - 1] = new Point(w - (m_cardWidth + rightMargin), vertCentre);
+		m_ptSeat[Game.SEAT_SOUTH - 1] = new Point(w / 2,                         h - (m_cardHeight + bottomMargin));
+		m_ptSeat[Game.SEAT_WEST  - 1] = new Point(leftMargin,                     vertCentre);
+
+		// Pointer / direction / color-chooser bitmaps — recreated at the right size
 		int pointerSize = 4 * m_cardWidth;
-		Resources res = this.getContext().getResources();
-		Drawable drawable = res.getDrawable(R.drawable.pointer);
-		m_bmpPointer = Bitmap.createBitmap(pointerSize, pointerSize, Bitmap.Config.ARGB_8888);
-		Canvas canvas = new Canvas(m_bmpPointer);
-		drawable.setBounds(0, 0, pointerSize, pointerSize);
-		drawable.draw(canvas);
+		m_bmpPointer      = decodeSvgDrawable(R.drawable.pointer,       pointerSize);
+		m_bmpDirection    = decodeSvgDrawable(R.drawable.ring_segment,  pointerSize);
+		m_bmpColorChooser = decodeSvgDrawable(R.drawable.colorchooser,  pointerSize);
 
-		drawable = res.getDrawable(R.drawable.ring_segment);
-		m_bmpDirection = Bitmap.createBitmap(pointerSize, pointerSize, Bitmap.Config.ARGB_8888);
-		canvas = new Canvas(m_bmpDirection);
-		drawable.setBounds(0, 0, pointerSize, pointerSize);
-		drawable.draw(canvas);
+		m_ptPointer      = new Point(w / 2, vertCentre);
+		m_ptDrawPile     = new Point(w / 2 - m_cardWidth * 5 / 4, (vertCentre - m_cardHeight) / 2 + topMargin / 2);
+		m_ptDiscardPile  = new Point(w / 2 + m_cardWidth / 4,     m_ptDrawPile.y);
 
-		drawable = res.getDrawable(R.drawable.colorchooser);
-		m_bmpColorChooser = Bitmap.createBitmap(pointerSize, pointerSize, Bitmap.Config.ARGB_8888);
-		canvas = new Canvas(m_bmpColorChooser);
-		drawable.setBounds(0, 0, pointerSize, pointerSize);
-		drawable.draw(canvas);
+		// Recalculate draw/discard pile positions to match original formula
+		m_ptDrawPile    = new Point(w / 2 - m_cardWidth * 5 / 4, (h - bottomMargin + topMargin - m_cardHeight) / 2);
+		m_ptDiscardPile = new Point(w / 2 + m_cardWidth / 4,     m_ptDrawPile.y);
+		m_ptDiscardBadge = new Point(
+				m_ptDiscardPile.x + m_cardWidth  - m_bmpCardBadge.getWidth()  / 2,
+				m_ptDiscardPile.y + m_cardHeight - m_bmpCardBadge.getHeight() / 2);
 
-		m_ptPointer = new Point(w / 2, (h - bottomMargin + topMargin) / 2);
-		m_ptDrawPile = new Point(w / 2 - m_cardWidth * 5 / 4, (h - bottomMargin + topMargin - m_cardHeight) / 2);
-		m_ptDiscardPile = new Point(w / 2 + m_cardWidth / 4, (h - bottomMargin + topMargin - m_cardHeight) / 2);
-		m_ptDiscardBadge = new Point (m_ptDiscardPile.x + m_cardWidth - m_bmpCardBadge.getWidth() / 2, m_ptDiscardPile.y + m_cardHeight - m_bmpCardBadge.getHeight() / 2);
-		
-		m_ptWinningMessage = new Point (m_ptSeat[Game.SEAT_SOUTH - 1].x - m_bmpWinningMessage[0].getWidth() / 2, m_ptSeat[Game.SEAT_SOUTH - 1].y - m_cardHeight / 2 * 3 - m_bmpWinningMessage[0].getHeight() * 5 / 4);
-		
-		m_ptEmoticon[Game.SEAT_NORTH - 1] = new Point (m_ptSeat[Game.SEAT_NORTH - 1].x - m_emoticonWidth / 2, m_ptSeat[Game.SEAT_NORTH - 1].y + m_cardHeight * 11 / 10);
-		m_ptEmoticon[Game.SEAT_EAST - 1] = new Point (m_ptSeat[Game.SEAT_EAST - 1].x - m_emoticonWidth - m_cardWidth / 10, m_ptSeat[Game.SEAT_EAST - 1].y - m_emoticonHeight / 2);
-		m_ptEmoticon[Game.SEAT_SOUTH - 1] = new Point (m_ptSeat[Game.SEAT_SOUTH - 1].x - m_emoticonWidth / 2, m_ptSeat[Game.SEAT_SOUTH - 1].y - m_emoticonHeight - m_cardHeight / 10);
-		m_ptEmoticon[Game.SEAT_WEST - 1] = new Point (m_ptSeat[Game.SEAT_WEST - 1].x + m_cardWidth * 11 / 10, m_ptSeat[Game.SEAT_WEST - 1].y - m_emoticonHeight / 2);
+		Point ptSouth = m_ptSeat[Game.SEAT_SOUTH - 1];
+		m_ptWinningMessage = new Point(
+				ptSouth.x - m_bmpWinningMessage[0].getWidth() / 2,
+				ptSouth.y - m_cardHeight / 2 * 3 - m_bmpWinningMessage[0].getHeight() * 5 / 4);
 
-		int x = m_ptSeat[Game.SEAT_NORTH - 1].x - maxWidthHand / 2 - m_bmpCardBadge.getWidth() / 2;
-		int y = m_ptSeat[Game.SEAT_NORTH - 1].y - m_bmpCardBadge.getHeight()  / 2;
-		m_ptHeldCardsOffsetBadge[Game.SEAT_NORTH - 1] = new Point (x,y);
-		y += m_cardHeight * 3 / 2;
-		m_ptTableCardsOffsetBadge[Game.SEAT_NORTH - 1] = new Point (x, y);
+		layoutEmoticonPoints();
+		layoutBadgePoints(maxWidthHand, maxHeightHand, maxWidthHandHuman);
+		layoutScoreTextPoints(maxHeightHand, textBounds);
 
-		x = m_ptSeat[Game.SEAT_NORTH - 1].x + maxWidthHand / 2 - m_bmpCardBadge.getWidth() / 2;
-		y = m_ptSeat[Game.SEAT_NORTH - 1].y - m_bmpCardBadge.getHeight()  / 2;
-		m_ptHeldCardsOverflowBadge[Game.SEAT_NORTH - 1] = new Point (x,y);
-		y += m_cardHeight * 3 / 2;
-		m_ptTableCardsOverflowBadge[Game.SEAT_NORTH - 1] = new Point (x, y);
+		m_ptMessages = new Point(ptSouth.x, ptSouth.y - 3 * m_cardHeight / 4);
 
-		x = m_ptSeat[Game.SEAT_EAST - 1].x + m_cardWidth - m_bmpCardBadge.getWidth() / 2;
-		y = m_ptSeat[Game.SEAT_EAST - 1].y - maxHeightHand / 2 - m_bmpCardBadge.getHeight() / 2;
-		m_ptHeldCardsOffsetBadge[Game.SEAT_EAST - 1] = new Point (x, y);
-		x -= m_cardWidth * 3 / 2;
-		m_ptTableCardsOffsetBadge[Game.SEAT_EAST - 1] = new Point (x, y);
-
-		x = m_ptSeat[Game.SEAT_EAST - 1].x + m_cardWidth - m_bmpCardBadge.getWidth() / 2;
-		y = m_ptSeat[Game.SEAT_EAST - 1].y + maxHeightHand / 2 - m_bmpCardBadge.getHeight() / 2;
-		m_ptHeldCardsOverflowBadge[Game.SEAT_EAST - 1] = new Point (x, y);
-		x -= m_cardWidth * 3 / 2;
-		m_ptTableCardsOverflowBadge[Game.SEAT_EAST - 1] = new Point (x, y);
-
-		x = m_ptSeat[Game.SEAT_SOUTH - 1].x - maxWidthHandHuman / 2 - m_bmpCardBadge.getWidth() / 2;
-		y = m_ptSeat[Game.SEAT_SOUTH - 1].y + m_cardHeight - m_bmpCardBadge.getHeight() / 2;
-		m_ptHeldCardsOffsetBadge[Game.SEAT_SOUTH - 1] = new Point (x, y);
-		y -= m_cardHeight * 5 / 3;
-		m_ptTableCardsOffsetBadge[Game.SEAT_SOUTH - 1] = new Point (x, y);
-
-		x = m_ptSeat[Game.SEAT_SOUTH - 1].x + maxWidthHandHuman / 2 - m_bmpCardBadge.getWidth() / 2;
-		y = m_ptSeat[Game.SEAT_SOUTH - 1].y + m_cardHeight - m_bmpCardBadge.getHeight() / 2;
-		m_ptHeldCardsOverflowBadge[Game.SEAT_SOUTH - 1] = new Point (x, y);
-		y -= m_cardHeight * 5 / 3;
-		m_ptTableCardsOverflowBadge[Game.SEAT_SOUTH - 1] = new Point (x, y);
-
-		x = m_ptSeat[Game.SEAT_WEST - 1].x - m_bmpCardBadge.getWidth() / 2;
-		y = m_ptSeat[Game.SEAT_WEST - 1].y - maxHeightHand / 2 - m_bmpCardBadge.getHeight() / 2;
-		m_ptHeldCardsOffsetBadge[Game.SEAT_WEST - 1] = new Point (x, y);
-		x += m_cardWidth * 3 / 2;
-		m_ptTableCardsOffsetBadge[Game.SEAT_WEST - 1] = new Point (x, y);
-
-		x = m_ptSeat[Game.SEAT_WEST - 1].x - m_bmpCardBadge.getWidth() / 2;
-		y = m_ptSeat[Game.SEAT_WEST - 1].y + maxHeightHand / 2 - m_bmpCardBadge.getHeight() / 2;
-		m_ptHeldCardsOverflowBadge[Game.SEAT_WEST - 1] = new Point (x, y);
-		x += m_cardWidth * 3 / 2;
-		m_ptTableCardsOverflowBadge[Game.SEAT_WEST - 1] = new Point (x, y);
-
-		m_ptScoreText[Game.SEAT_NORTH - 1] = new Point (m_ptSeat[Game.SEAT_NORTH - 1].x,
-				m_ptSeat[Game.SEAT_NORTH - 1].y - (int)(textBounds.height() * 1.1));
-		m_ptScoreText[Game.SEAT_EAST - 1] = new Point (m_ptSeat[Game.SEAT_EAST - 1].x + m_cardWidth,
-			m_ptSeat[Game.SEAT_EAST - 1].y - maxHeightHand / 2 - (int)(textBounds.height() * 1.1));
-		m_ptScoreText[Game.SEAT_SOUTH - 1] = new Point (m_ptSeat[Game.SEAT_SOUTH - 1].x,
-				m_ptSeat[Game.SEAT_SOUTH - 1].y + m_cardHeight + (int)(textBounds.height() * 1.5));
-		m_ptScoreText[Game.SEAT_WEST - 1] = new Point (m_ptSeat[Game.SEAT_WEST - 1].x,
-				m_ptSeat[Game.SEAT_WEST - 1].y - maxHeightHand / 2 - (int)(textBounds.height() * 1.1));
-
-		m_ptMessages = new Point (m_ptSeat[Game.SEAT_SOUTH - 1].x, m_ptSeat[Game.SEAT_SOUTH - 1].y - 3 * m_cardHeight / 4);
-		
 		super.onSizeChanged(w, h, oldw, oldh);
-		
+
 		m_readyToStartGame = true;
-		if (m_waitingToStartGame)
-		{
+		if (m_waitingToStartGame) {
 			m_waitingToStartGame = false;
-			m_game.start ();
+			m_game.start();
 		}
 	}
 
-	public void setBottomMargin (int m) {
-		m_bottomMarginExternal = m;
+	/** Creates a Bitmap by drawing a VectorDrawable into a square canvas. */
+	private Bitmap decodeSvgDrawable(int resId, int size) {
+		Drawable d = getContext().getResources().getDrawable(resId);
+		Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+		d.setBounds(0, 0, size, size);
+		d.draw(new Canvas(bmp));
+		return bmp;
 	}
 
-	public void moveCardToPlayer(Card card, Player player, int speed)
-	{
+	private void layoutEmoticonPoints() {
+		m_ptEmoticon[Game.SEAT_NORTH - 1] = new Point(
+				m_ptSeat[Game.SEAT_NORTH - 1].x - m_emoticonWidth / 2,
+				m_ptSeat[Game.SEAT_NORTH - 1].y + m_cardHeight * 11 / 10);
+		m_ptEmoticon[Game.SEAT_EAST - 1] = new Point(
+				m_ptSeat[Game.SEAT_EAST - 1].x - m_emoticonWidth - m_cardWidth / 10,
+				m_ptSeat[Game.SEAT_EAST - 1].y - m_emoticonHeight / 2);
+		m_ptEmoticon[Game.SEAT_SOUTH - 1] = new Point(
+				m_ptSeat[Game.SEAT_SOUTH - 1].x - m_emoticonWidth / 2,
+				m_ptSeat[Game.SEAT_SOUTH - 1].y - m_emoticonHeight - m_cardHeight / 10);
+		m_ptEmoticon[Game.SEAT_WEST - 1] = new Point(
+				m_ptSeat[Game.SEAT_WEST - 1].x + m_cardWidth * 11 / 10,
+				m_ptSeat[Game.SEAT_WEST - 1].y - m_emoticonHeight / 2);
+	}
+
+	private void layoutBadgePoints(int maxWidthHand, int maxHeightHand, int maxWidthHandHuman) {
+		int bw = m_bmpCardBadge.getWidth();
+		int bh = m_bmpCardBadge.getHeight();
+
+		// NORTH
+		int x = m_ptSeat[Game.SEAT_NORTH - 1].x - maxWidthHand / 2 - bw / 2;
+		int y = m_ptSeat[Game.SEAT_NORTH - 1].y - bh / 2;
+		m_ptHeldCardsOffsetBadge[Game.SEAT_NORTH - 1]    = new Point(x, y);
+		m_ptTableCardsOffsetBadge[Game.SEAT_NORTH - 1]   = new Point(x, y + m_cardHeight * 3 / 2);
+		x = m_ptSeat[Game.SEAT_NORTH - 1].x + maxWidthHand / 2 - bw / 2;
+		m_ptHeldCardsOverflowBadge[Game.SEAT_NORTH - 1]  = new Point(x, y);
+		m_ptTableCardsOverflowBadge[Game.SEAT_NORTH - 1] = new Point(x, y + m_cardHeight * 3 / 2);
+
+		// EAST
+		x = m_ptSeat[Game.SEAT_EAST - 1].x + m_cardWidth - bw / 2;
+		y = m_ptSeat[Game.SEAT_EAST - 1].y - maxHeightHand / 2 - bh / 2;
+		m_ptHeldCardsOffsetBadge[Game.SEAT_EAST - 1]    = new Point(x, y);
+		m_ptTableCardsOffsetBadge[Game.SEAT_EAST - 1]   = new Point(x - m_cardWidth * 3 / 2, y);
+		y = m_ptSeat[Game.SEAT_EAST - 1].y + maxHeightHand / 2 - bh / 2;
+		m_ptHeldCardsOverflowBadge[Game.SEAT_EAST - 1]  = new Point(x, y);
+		m_ptTableCardsOverflowBadge[Game.SEAT_EAST - 1] = new Point(x - m_cardWidth * 3 / 2, y);
+
+		// SOUTH
+		x = m_ptSeat[Game.SEAT_SOUTH - 1].x - maxWidthHandHuman / 2 - bw / 2;
+		y = m_ptSeat[Game.SEAT_SOUTH - 1].y + m_cardHeight - bh / 2;
+		m_ptHeldCardsOffsetBadge[Game.SEAT_SOUTH - 1]    = new Point(x, y);
+		m_ptTableCardsOffsetBadge[Game.SEAT_SOUTH - 1]   = new Point(x, y - m_cardHeight * 5 / 3);
+		x = m_ptSeat[Game.SEAT_SOUTH - 1].x + maxWidthHandHuman / 2 - bw / 2;
+		m_ptHeldCardsOverflowBadge[Game.SEAT_SOUTH - 1]  = new Point(x, y);
+		m_ptTableCardsOverflowBadge[Game.SEAT_SOUTH - 1] = new Point(x, y - m_cardHeight * 5 / 3);
+
+		// WEST
+		x = m_ptSeat[Game.SEAT_WEST - 1].x - bw / 2;
+		y = m_ptSeat[Game.SEAT_WEST - 1].y - maxHeightHand / 2 - bh / 2;
+		m_ptHeldCardsOffsetBadge[Game.SEAT_WEST - 1]    = new Point(x, y);
+		m_ptTableCardsOffsetBadge[Game.SEAT_WEST - 1]   = new Point(x + m_cardWidth * 3 / 2, y);
+		y = m_ptSeat[Game.SEAT_WEST - 1].y + maxHeightHand / 2 - bh / 2;
+		m_ptHeldCardsOverflowBadge[Game.SEAT_WEST - 1]  = new Point(x, y);
+		m_ptTableCardsOverflowBadge[Game.SEAT_WEST - 1] = new Point(x + m_cardWidth * 3 / 2, y);
+	}
+
+	private void layoutScoreTextPoints(int maxHeightHand, Rect textBounds) {
+		int th = (int)(textBounds.height() * 1.1);
+		m_ptScoreText[Game.SEAT_NORTH - 1] = new Point(
+				m_ptSeat[Game.SEAT_NORTH - 1].x,
+				m_ptSeat[Game.SEAT_NORTH - 1].y - th);
+		m_ptScoreText[Game.SEAT_EAST - 1] = new Point(
+				m_ptSeat[Game.SEAT_EAST - 1].x + m_cardWidth,
+				m_ptSeat[Game.SEAT_EAST - 1].y - maxHeightHand / 2 - th);
+		m_ptScoreText[Game.SEAT_SOUTH - 1] = new Point(
+				m_ptSeat[Game.SEAT_SOUTH - 1].x,
+				m_ptSeat[Game.SEAT_SOUTH - 1].y + m_cardHeight + (int)(textBounds.height() * 1.5));
+		m_ptScoreText[Game.SEAT_WEST - 1] = new Point(
+				m_ptSeat[Game.SEAT_WEST - 1].x,
+				m_ptSeat[Game.SEAT_WEST - 1].y - maxHeightHand / 2 - th);
+	}
+
+	// =========================================================================
+	// Card animation helpers (unchanged logic, just cleaner delegation)
+	// =========================================================================
+
+	public void moveCardToPlayer(Card card, Player player, int speed) {
 		m_discardPileOnTop = false;
 		card.setX(m_ptDrawPile.x);
 		card.setY(m_ptDrawPile.y);
-		startCardAnimation(card, Card.CardState.HAND, m_ptSeat[player.getSeat() -1].x, m_ptSeat[player.getSeat() -1].y, 0, player.getHand().isFaceUp(), m_game.getDelay() / 4);
+		startCardAnimation(card, Card.CardState.HAND,
+				m_ptSeat[player.getSeat() - 1].x, m_ptSeat[player.getSeat() - 1].y,
+				0, player.getHand().isFaceUp(), m_game.getDelay() / 4);
 		m_game.waitABit(speed);
 	}
 
@@ -440,1921 +393,1009 @@ public class GameTable extends View
 		m_discardPileOnTop = false;
 		c1.setX(m_ptDrawPile.x);
 		c1.setY(m_ptDrawPile.y);
-		startCardAnimation(c1, Card.CardState.HAND, m_ptSeat[Game.SEAT_SOUTH - 1].x, m_ptSeat[Game.SEAT_SOUTH - 1].y, 0, true, m_game.getDelay() / 4);
-		startCardAnimation(c2, Card.CardState.DRAW_PILE, m_ptDrawPile.x, m_ptDrawPile.y, 0, m_go.getFaceUp(), m_game.getDelay() / 4);
+		startCardAnimation(c1, Card.CardState.HAND, m_ptSeat[Game.SEAT_SOUTH - 1].x, m_ptSeat[Game.SEAT_SOUTH - 1].y,
+				0, true, m_game.getDelay() / 4);
+		startCardAnimation(c2, Card.CardState.DRAW_PILE, m_ptDrawPile.x, m_ptDrawPile.y,
+				0, m_go.getFaceUp(), m_game.getDelay() / 4);
 		m_game.waitABit(speed);
 	}
 
-	public void dealCard(Card card, int dealer, Player player, int speed)
-	{
+	public void dealCard(Card card, int dealer, Player player, int speed) {
 		m_discardPileOnTop = false;
-		dealer -= 1;
-		card.setX(m_ptSeat[dealer].x - m_cardWidth / 2 * (1 - dealer % 2) + m_cardWidth * 2 * (dealer % 2 == 1 ? dealer - 2 : 0));
-		card.setY(m_ptSeat[dealer].y - m_cardHeight / 2 * (dealer % 2) + m_cardHeight * 2 * (dealer % 2 == 0 ? 1 - dealer : 0));
-		startCardAnimation(card, Card.CardState.HAND, m_ptSeat[player.getSeat() -1].x, m_ptSeat[player.getSeat() -1].y, 0, player.getHand().isFaceUp(), m_game.getDelay() / 4);
+		int d = dealer - 1;
+		card.setX(m_ptSeat[d].x - m_cardWidth  / 2 * (1 - d % 2) + m_cardWidth  * 2 * (d % 2 == 1 ? d - 2 : 0));
+		card.setY(m_ptSeat[d].y - m_cardHeight / 2 * (d % 2)      + m_cardHeight * 2 * (d % 2 == 0 ? 1 - d : 0));
+		startCardAnimation(card, Card.CardState.HAND,
+				m_ptSeat[player.getSeat() - 1].x, m_ptSeat[player.getSeat() - 1].y,
+				0, player.getHand().isFaceUp(), m_game.getDelay() / 4);
 		m_game.waitABit(speed);
 	}
 
-	public void moveCardToTable(Card card, int speed)
-	{
+	public void moveCardToTable(Card card, int speed) {
 		startCardAnimation(card, Card.CardState.HAND, card.getX(), card.getY(), 0, true, m_game.getDelay() / 4);
 		m_game.waitABit(speed);
 	}
 
-	public void moveCardToDiscardPile(Card card)
-	{
+	public void moveCardToDiscardPile(Card card) {
 		m_discardPileOnTop = true;
-		startCardAnimation(card, Card.CardState.DISCARD_PILE, m_ptDiscardPile.x, m_ptDiscardPile.y, 0, true, m_game.getDelay() / 4);
+		startCardAnimation(card, Card.CardState.DISCARD_PILE,
+				m_ptDiscardPile.x, m_ptDiscardPile.y, 0, true, m_game.getDelay() / 4);
 		m_game.waitABit(2);
 		startDirectionIndicatorAnimation(m_game.getDirection(), m_game.getCurrColor());
 	}
 
-	private void startCardAnimation(Card card, Card.CardState toState, float toX, float toY, float toRot, boolean faceUp, long duration) {
+	private void startCardAnimation(Card card, Card.CardState toState,
+									float toX, float toY, float toRot,
+									boolean faceUp, long duration) {
 		card.setState(Card.CardState.MOVING);
-		animationManager.startAnimation(card, new AnimationParams().setCardParams(toState, toX, toY, toRot, faceUp, 0, duration));
+		m_animationManager.startAnimation(card,
+				new AnimationParams().setCardParams(toState, toX, toY, toRot, faceUp, 0, duration));
 	}
 
-	public void startPointerAnimation(float toRot, int direction) 	{
-		animationManager.startAnimation(Pointer.getInstance(), new AnimationParams().setPointerParams(toRot, direction, 0, m_game.getDelay() / 4 ));
+	public void startPointerAnimation(float toRot, int direction) {
+		m_animationManager.startAnimation(Pointer.getInstance(),
+				new AnimationParams().setPointerParams(toRot, direction, 0, m_game.getDelay() / 4));
 		m_game.waitABit(2);
 	}
 
-	public void startDirectionIndicatorAnimation(int toDirection, int toColor) 	{
-		if (toDirection != DirectionIndicator.getInstance().getDirection() || getColorRgb(toColor) != DirectionIndicator.getInstance().getSegmentColor(0)) {
-			animationManager.startAnimation(DirectionIndicator.getInstance(), new AnimationParams().setDirectionIndicatorParams(toDirection, getColorRgb(toColor), 0, m_game.getDelay() / 4 ));
+	public void startDirectionIndicatorAnimation(int toDirection, int toColor) {
+		if (toDirection != DirectionIndicator.getInstance().getDirection()
+				|| getColorRgb(toColor) != DirectionIndicator.getInstance().getSegmentColor(0)) {
+			m_animationManager.startAnimation(DirectionIndicator.getInstance(),
+					new AnimationParams().setDirectionIndicatorParams(
+							toDirection, getColorRgb(toColor), 0, m_game.getDelay() / 4));
 			m_game.waitABit(2);
 		}
 	}
 
-	public void startColorChooserAnimation(int toDirection, boolean show) 	{
-		animationManager.startAnimation(ColorChooser.getInstance(), new AnimationParams().setColorChooserParams(toDirection, show, 0, m_game.getDelay() / 4 ));
+	public void startColorChooserAnimation(int toDirection, boolean show) {
+		m_animationManager.startAnimation(ColorChooser.getInstance(),
+				new AnimationParams().setColorChooserParams(toDirection, show, 0, m_game.getDelay() / 4));
 	}
 
-	public void startGameWhenReady ()
-	{
-		if (m_readyToStartGame)
-		{
-			m_game.start ();
-			return;
-		}
-		
-		m_waitingToStartGame = true;
-	}
+	// =========================================================================
+	// Game-flow helpers
+	// =========================================================================
 
-	public void showNextRoundButton (boolean show)
-	{
-		GameActivity a = (GameActivity)(getContext());
-		if (show)
-		{
-			a.getBtnNextRound().setVisibility(View.VISIBLE);
-		}
-		else
-		{
-			a.getBtnNextRound().setVisibility(View.INVISIBLE);
+	public void startGameWhenReady() {
+		if (m_readyToStartGame) {
+			m_game.start();
+		} else {
+			m_waitingToStartGame = true;
 		}
 	}
 
-	public void showFastForwardButton (boolean show)
-	{
-		GameActivity a = (GameActivity)(getContext());
-		if (show)
-		{
-			a.getBtnFastForward().setVisibility(View.VISIBLE);
-		}
-		else
-		{
-			a.getBtnFastForward().setVisibility(View.INVISIBLE);
-		}
+	public void showNextRoundButton(boolean show) {
+		setBtnVisibility(show, ((GameActivity) getContext()).getBtnNextRound());
 	}
 
-	public void showMenuButton (boolean show)
-	{
-		GameActivity a = (GameActivity)(getContext());
-		if (show)
-		{
-			a.showMenuButtons();
-		}
-		else
-		{
-			a.hideMenuButtons();
-		}
+	public void showFastForwardButton(boolean show) {
+		setBtnVisibility(show, ((GameActivity) getContext()).getBtnFastForward());
 	}
 
-	private final Runnable m_touchAndHoldTask = new Runnable()
-	{
-		public void run() {
+	private static void setBtnVisibility(boolean show, android.widget.Button btn) {
+		btn.setVisibility(show ? View.VISIBLE : View.INVISIBLE);
+	}
 
-			// if something cancelled the wait (like ACTION_UP, ACTION_CANCEL, or a 
-			// large enough ACTION_MOVE), we don't show card help
-			if (!m_waitingForTouchAndHold)
-			{
-				return;
-			}
-			
-			m_touchAndHold = true;
+	public void showMenuButton(boolean show) {
+		GameActivity a = (GameActivity) getContext();
+		if (show) a.showMenuButtons();
+		else      a.hideMenuButtons();
+	}
 
-			// only show card help while it's the human player's turn or the
-			// round is complete
-			Player p = m_game.getCurrPlayer();
-			if (!((p instanceof HumanPlayer)
-					|| (m_game.getRoundComplete())))
-			{
-				return;
-			}
+	public void RedrawTable() { invalidate(); }
 
-			// only show card help for face-up cards!
-			Card c = findTouchedCard (m_ptTouchDown);
-			if (c == null)
-			{
-				return;
-			}
-			if (!c.isFaceUp())
-			{
-				return;
-			}
+	// =========================================================================
+	// Touch handling
+	// =========================================================================
 
-			// TODO: Replace with VibrationEffect when minSdk >= 26
-			android.os.Vibrator v = (android.os.Vibrator) GameTable.this.getContext().getSystemService(Context.VIBRATOR_SERVICE);
-			if (v != null && v.hasVibrator()) {
-				v.vibrate(100); // Simple 100ms vibration, works on all APIs
-			}
+	private final Runnable m_touchAndHoldTask = () -> {
+		if (!m_waitingForTouchAndHold) return;
 
-			ShowCardHelp(c);
-		}
+		m_touchAndHold = true;
+
+		Player p = m_game.getCurrPlayer();
+		if (!(p instanceof HumanPlayer) && !m_game.getRoundComplete()) return;
+
+		Card c = findTouchedCard(m_ptTouchDown);
+		if (c == null || !c.isFaceUp()) return;
+
+		vibrateShort();
+		ShowCardHelp(c);
 	};
-		
-		
-	private boolean heldSteadyHand()
-	{
-		if (m_touchHeldCardsSeat == 0 && m_touchTableCardsSeat == 0)
-		{
-			return false;
-		}
-		
-		return m_heldSteady;
-	}
-	
-	private boolean heldSteadyDraw()
-	{
-		// check for draw (DOWN/UP in the draw pile)
-		if (!m_touchDrawPile)
-		{
-			return false;
-		}
-		
-		return m_heldSteady;
-	}
-	
-	private boolean heldSteadyDiscard()
-	{
-		// check for draw (DOWN/UP in the draw pile)
-		if (!m_touchDiscardPile)
-		{
-			return false;
-		}
-		
-		return m_heldSteady;
-	}
-	
+
 	@Override
-	public boolean onTouchEvent(MotionEvent event) 
-	{
-		if (event.getAction() == MotionEvent.ACTION_CANCEL)
-		{
-			m_handler.removeCallbacks(m_touchAndHoldTask);
-			m_waitingForTouchAndHold = false;
-			return true;
-		}
-		
-		if (event.getAction() == MotionEvent.ACTION_DOWN)
-		{
-			int x = (int)(event.getX());
-			int y = (int)(event.getY());
-
-			m_ptTouchDown = new Point (x, y);
-			m_touchAndHold = false;
-			m_heldSteady = true;
-
-			m_touchDiscardPile = false;
-			m_touchDrawPile = false;
-			m_touchHeldCardsSeat = 0;
-			m_touchTableCardsSeat = 0;
-			if (m_heldCardsBoundingRect[Game.SEAT_SOUTH - 1] != null
-					&& m_heldCardsBoundingRect[Game.SEAT_SOUTH - 1].contains(x, y))
-			{
-				m_touchHeldCardsSeat = Game.SEAT_SOUTH;
-			} else if (m_tableCardsBoundingRect[Game.SEAT_SOUTH - 1] != null
-					&& m_tableCardsBoundingRect[Game.SEAT_SOUTH - 1].contains(x, y))
-			{
-				m_touchTableCardsSeat = Game.SEAT_SOUTH;
-			} else if (m_heldCardsBoundingRect[Game.SEAT_WEST - 1] != null
-					&& m_heldCardsBoundingRect[Game.SEAT_WEST - 1].contains(x, y))
-			{
-				m_touchHeldCardsSeat = Game.SEAT_WEST;
-			} else if (m_tableCardsBoundingRect[Game.SEAT_WEST - 1] != null
-					&& m_tableCardsBoundingRect[Game.SEAT_WEST - 1].contains(x, y))
-			{
-				m_touchTableCardsSeat = Game.SEAT_WEST;
-			} else if (m_heldCardsBoundingRect[Game.SEAT_NORTH - 1] != null
-					&& m_heldCardsBoundingRect[Game.SEAT_NORTH - 1].contains(x, y))
-			{
-				m_touchHeldCardsSeat = Game.SEAT_NORTH;
-			} else if (m_tableCardsBoundingRect[Game.SEAT_NORTH - 1] != null
-					&& m_tableCardsBoundingRect[Game.SEAT_NORTH - 1].contains(x, y)) {
-				m_touchTableCardsSeat = Game.SEAT_NORTH;
-			} else if (m_heldCardsBoundingRect[Game.SEAT_EAST - 1] != null
-					&& m_heldCardsBoundingRect[Game.SEAT_EAST - 1].contains(x, y))
-			{
-				m_touchHeldCardsSeat = Game.SEAT_EAST;
-			} else if (m_tableCardsBoundingRect[Game.SEAT_EAST - 1] != null
-					&& m_tableCardsBoundingRect[Game.SEAT_EAST - 1].contains(x, y)) {
-				m_touchTableCardsSeat = Game.SEAT_EAST;
-			}
-
-			if (m_touchHeldCardsSeat != 0 || m_touchTableCardsSeat != 0)
-			{
-				m_waitingForTouchAndHold = true;
-				m_handler.postDelayed (m_touchAndHoldTask, 1000);
-
-//				m_ptTouchDown = new Point (x, y);
+	public boolean onTouchEvent(MotionEvent event) {
+		switch (event.getAction()) {
+			case MotionEvent.ACTION_CANCEL:
+				m_handler.removeCallbacks(m_touchAndHoldTask);
+				m_waitingForTouchAndHold = false;
 				return true;
-			}
 
-			if (m_waitingForColor && Math.pow(x - m_ptSeat[0].x, 2) + Math.pow(y - m_ptSeat[1].y, 2) <= Math.pow(1.5 * m_cardWidth, 2))
-			{
-				colorChooserTapped(m_ptTouchDown);
-			}
+			case MotionEvent.ACTION_DOWN:
+				return handleTouchDown(event);
 
-			if (m_drawPileBoundingRect != null && m_drawPileBoundingRect.contains (x, y))
-			{
-				m_waitingForTouchAndHold = true;
-				m_handler.postDelayed (m_touchAndHoldTask, 1000);
+			case MotionEvent.ACTION_UP:
+				return handleTouchUp(event);
 
-				m_touchDrawPile = true;
-			}
-			
-			if (m_discardPileBoundingRect != null && m_discardPileBoundingRect.contains (x, y))
-			{
-				m_waitingForTouchAndHold = true;
-				m_handler.postDelayed (m_touchAndHoldTask, 1000);
-
-				m_touchDiscardPile = true;
-			}
-						
-			return true;
-		}
-		else if (event.getAction() == MotionEvent.ACTION_UP)
-		{
-			if (m_touchAndHold)
-			{
-				return true;
-			}
-			
-			m_waitingForTouchAndHold = false;
-
-			// if we haven't moved from the card we originally touched down on, 
-			// we'll play that card.
-			if (this.heldSteadyHand())
-			{
-				handCardTapped (max(m_touchHeldCardsSeat, m_touchTableCardsSeat), m_ptTouchDown);
-				return true;
-			}
-
-			if (this.heldSteadyDraw())
-			{
-				drawPileTapped ();
-				return true;
-			}
-
-			if (this.heldSteadyDiscard())
-			{
-				discardPileTapped ();
-				return true;
-			}
-			
-			// if we're letting up on a drag, commit the drag value
-			if (m_touchHeldCardsSeat != 0 || m_touchTableCardsSeat != 0)
-			{
-				int idx = max(m_touchHeldCardsSeat, m_touchTableCardsSeat) - 1;
-				if (m_heldCardsDrag[idx] != 0)
-				{
-					m_heldCardsOffset[idx] += m_heldCardsDrag[idx];
-
-					// set bounds properly
-					Player p = m_game.getPlayer(idx);
-					int ncards = p.getHand().getHeldCards().size();
-					
-					if (m_heldCardsOffset[idx] >= ncards - m_maxCardsDisplay)
-					{
-						m_heldCardsOffset[idx] = ncards - m_maxCardsDisplay;
-					}
-					
-					if (m_heldCardsOffset[idx] < 0)
-					{
-						m_heldCardsOffset[idx] = 0;
-					}
-					
-					m_heldCardsDrag[idx] = 0;
-				}
-				if (m_tableCardsDrag[idx] != 0)
-				{
-					m_tableCardsOffset[idx] += m_tableCardsDrag[idx];
-
-					// set bounds properly
-					Player p = m_game.getPlayer(idx);
-					int ncards = p.getHand().getTableCards().size();
-
-					if (m_tableCardsOffset[idx] >= ncards - m_maxCardsDisplay)
-					{
-						m_tableCardsOffset[idx] = ncards - m_maxCardsDisplay;
-					}
-
-					if (m_tableCardsOffset[idx] < 0)
-					{
-						m_tableCardsOffset[idx] = 0;
-					}
-
-					m_tableCardsDrag[idx] = 0;
-				}
-				m_touchHeldCardsSeat = 0;
-				m_touchTableCardsSeat = 0;
-				return true;
-			}
-			
-			return true;
-		}
-		else if (event.getAction() == MotionEvent.ACTION_MOVE)
-		{
-			int seat = max(m_touchHeldCardsSeat, m_touchTableCardsSeat);
-			if (seat != 0)
-			{
-				int spacing = (seat == Game.SEAT_SOUTH) ? m_cardSpacingSouth : m_cardSpacing;
-				
-				int cardoffset;
-				
-				if (seat == Game.SEAT_NORTH || seat == Game.SEAT_SOUTH)
-				{
-					int distx = (int)(event.getX()) - m_ptTouchDown.x;
-					cardoffset = distx / (spacing / 2);
-				}
-				else
-				{
-					int disty = (int)(event.getY()) - m_ptTouchDown.y;
-					cardoffset = disty / spacing;
-				}
-				
-				if (cardoffset != 0)
-				{
-					if (m_heldSteady)
-					{
-						Log.d("HDU", "[ACTION_MOVE] cardoffset = " + cardoffset + ", m_heldSteady=false now");
-						m_waitingForTouchAndHold = false;
-						m_handler.removeCallbacks(m_touchAndHoldTask);
-						m_heldSteady = false;
-					}
-				}
-				
-				// invert the offset, as a slide to the left means increase the offset
-				if (m_touchHeldCardsSeat == seat)
-				{
-					m_heldCardsDrag[m_touchHeldCardsSeat - 1] = -cardoffset;
-				} else if (m_touchTableCardsSeat == seat) {
-					m_tableCardsDrag[m_touchTableCardsSeat - 1] = -cardoffset;
-				}
-				this.invalidate();
-				
-				return true;
-			}
+			case MotionEvent.ACTION_MOVE:
+				return handleTouchMove(event);
 		}
 		return super.onTouchEvent(event);
 	}
 
+	private boolean handleTouchDown(MotionEvent event) {
+		int x = (int) event.getX();
+		int y = (int) event.getY();
+		m_ptTouchDown    = new Point(x, y);
+		m_touchAndHold   = false;
+		m_heldSteady     = true;
+		m_touchDiscardPile = false;
+		m_touchDrawPile    = false;
+		m_touchHeldCardsSeat  = 0;
+		m_touchTableCardsSeat = 0;
+
+		// Identify which area was touched (priority order: South → West → North → East)
+		for (int seat : new int[]{Game.SEAT_SOUTH, Game.SEAT_WEST, Game.SEAT_NORTH, Game.SEAT_EAST}) {
+			int idx = seat - 1;
+			if (m_heldCardsBoundingRect[idx] != null && m_heldCardsBoundingRect[idx].contains(x, y)) {
+				m_touchHeldCardsSeat = seat; break;
+			}
+			if (m_tableCardsBoundingRect[idx] != null && m_tableCardsBoundingRect[idx].contains(x, y)) {
+				m_touchTableCardsSeat = seat; break;
+			}
+		}
+
+		if (m_touchHeldCardsSeat != 0 || m_touchTableCardsSeat != 0) {
+			scheduleHoldTask();
+			return true;
+		}
+
+		if (m_waitingForColor) {
+			Point ptCenter = m_ptSeat[0]; // NORTH x used as center-x
+			Point ptMid    = m_ptSeat[1]; // EAST  y used as center-y
+			double dist = Math.hypot(x - ptCenter.x, y - ptMid.y);
+			if (dist <= 1.5 * m_cardWidth) {
+				colorChooserTapped(m_ptTouchDown);
+			}
+		}
+
+		if (m_drawPileBoundingRect != null && m_drawPileBoundingRect.contains(x, y)) {
+			m_touchDrawPile = true;
+			scheduleHoldTask();
+		}
+		if (m_discardPileBoundingRect != null && m_discardPileBoundingRect.contains(x, y)) {
+			m_touchDiscardPile = true;
+			scheduleHoldTask();
+		}
+		return true;
+	}
+
+	private boolean handleTouchUp(MotionEvent event) {
+		if (m_touchAndHold) return true;
+
+		m_waitingForTouchAndHold = false;
+
+		if (heldSteadyHand()) {
+			handCardTapped(max(m_touchHeldCardsSeat, m_touchTableCardsSeat), m_ptTouchDown);
+			return true;
+		}
+		if (heldSteadyDraw()) {
+			drawPileTapped();
+			return true;
+		}
+		if (heldSteadyDiscard()) {
+			discardPileTapped();
+			return true;
+		}
+
+		// Commit a pending drag
+		int seat = max(m_touchHeldCardsSeat, m_touchTableCardsSeat);
+		if (seat != 0) {
+			int idx = seat - 1;
+			commitDrag(idx, m_heldCardsDrag,  m_heldCardsOffset,
+					m_game.getPlayer(idx).getHand().getHeldCards().size());
+			commitDrag(idx, m_tableCardsDrag, m_tableCardsOffset,
+					m_game.getPlayer(idx).getHand().getTableCards().size());
+			m_touchHeldCardsSeat  = 0;
+			m_touchTableCardsSeat = 0;
+		}
+		return true;
+	}
+
+	private void commitDrag(int idx, int[] drag, int[] offset, int cardCount) {
+		if (drag[idx] != 0) {
+			offset[idx] = clamp(offset[idx] + drag[idx], 0, cardCount - m_maxCardsDisplay);
+			drag[idx] = 0;
+		}
+	}
+
+	/** Clamps value to [lo, hi]. */
+	private static int clamp(int v, int lo, int hi) { return max(lo, min(v, hi)); }
+
+	private boolean handleTouchMove(MotionEvent event) {
+		int seat = max(m_touchHeldCardsSeat, m_touchTableCardsSeat);
+		if (seat == 0) return false;
+
+		int spacing = (seat == Game.SEAT_SOUTH) ? m_cardSpacingSouth : m_cardSpacing;
+		int cardOffset;
+		if (seat == Game.SEAT_NORTH || seat == Game.SEAT_SOUTH) {
+			cardOffset = ((int) event.getX() - m_ptTouchDown.x) / (spacing / 2);
+		} else {
+			cardOffset = ((int) event.getY() - m_ptTouchDown.y) / spacing;
+		}
+
+		if (cardOffset != 0 && m_heldSteady) {
+			m_waitingForTouchAndHold = false;
+			m_handler.removeCallbacks(m_touchAndHoldTask);
+			m_heldSteady = false;
+		}
+
+		if (m_touchHeldCardsSeat == seat) {
+			m_heldCardsDrag[seat - 1]  = -cardOffset;
+		} else if (m_touchTableCardsSeat == seat) {
+			m_tableCardsDrag[seat - 1] = -cardOffset;
+		}
+		invalidate();
+		return true;
+	}
+
+	private void scheduleHoldTask() {
+		m_waitingForTouchAndHold = true;
+		m_handler.postDelayed(m_touchAndHoldTask, 1000);
+	}
+
+	private boolean heldSteadyHand()    { return (m_touchHeldCardsSeat != 0 || m_touchTableCardsSeat != 0) && m_heldSteady; }
+	private boolean heldSteadyDraw()    { return m_touchDrawPile    && m_heldSteady; }
+	private boolean heldSteadyDiscard() { return m_touchDiscardPile && m_heldSteady; }
+
 	private void colorChooserTapped(Point pt) {
 		int color;
 		if (pt.y < m_ptSeat[1].y) {
-			if  (pt.x < m_ptSeat[0].x) {
-				color = 1;
-			}
-			else {
-				color = 2;
-			}
+			color = (pt.x < m_ptSeat[0].x) ? 1 : 2;
 		} else {
-			if (pt.x > m_ptSeat[0].x) {
-				color = 3;
-			} else {
-				color = 4;
-			}
+			color = (pt.x > m_ptSeat[0].x) ? 3 : 4;
 		}
 		((HumanPlayer) m_game.getCurrPlayer()).setColor(color);
 		m_waitingForColor = false;
 		startColorChooserAnimation(m_game.getDirection(), false);
 	}
 
-	private void drawPileTapped ()
-	{
-		m_game.drawPileTapped();
+	private void drawPileTapped()    { m_game.drawPileTapped(); }
+	private void discardPileTapped() { m_game.discardPileTapped(); }
+
+	private void handCardTapped(int seat, Point pt) {
+		if (!m_game.roundIsActive()) return;
+		Player p = m_game.getPlayer(seat - 1);
+		if (p instanceof HumanPlayer) {
+			Card c = findTouchedCardHand(seat, pt);
+			if (c != null) ((HumanPlayer) p).turnDecisionPlayCard(c);
+		}
 	}
-	
-	private void discardPileTapped ()
-	{
-		m_game.discardPileTapped();
+
+	// =========================================================================
+	// Card finding
+	// =========================================================================
+
+	private Card findTouchedCard(Point pt) {
+		if (m_touchDiscardPile) return findTouchedCardDiscardPile(pt);
+		if (m_touchDrawPile)    return findTouchedCardDrawPile(pt);
+		int seat = max(m_touchHeldCardsSeat, m_touchTableCardsSeat);
+		if (seat != 0)          return findTouchedCardHand(seat, pt);
+		return null;
 	}
-	
-	private Card findTouchedCardHand (int seat, Point pt)
-	{
+
+	private Card findTouchedCardHand(int seat, Point pt) {
 		int spacing = (seat == Game.SEAT_SOUTH) ? m_cardSpacingSouth : m_cardSpacing;
+		Hand h = m_game.getPlayer(seat - 1).getHand();
 
-		Player p = m_game.getPlayer(seat - 1);
-		Hand h = p.getHand();
+		Rect heldRect  = m_heldCardsBoundingRect[seat - 1];
+		Rect tableRect = m_tableCardsBoundingRect[seat - 1];
 
-		Rect ru = m_heldCardsBoundingRect[seat - 1];
-		Rect rr = m_tableCardsBoundingRect[seat - 1];
-
-		int idx = 0;
-
-		if (ru != null && ru.contains(pt.x, pt.y))
-		{
-			switch (seat) {
-				case Game.SEAT_NORTH:
-				case Game.SEAT_SOUTH:
-					idx = (pt.x - ru.left) / spacing;
-					break;
-
-				case Game.SEAT_WEST:
-				case Game.SEAT_EAST:
-					idx = (pt.y - ru.top) / spacing;
-					break;
-			}
-
-			int numcardsshowing = h.getHeldCards().size() - m_heldCardsOffset[seat - 1];
-			numcardsshowing = Math.min(numcardsshowing, m_maxCardsDisplay);
-
-			if (idx >= numcardsshowing) {
-				idx = numcardsshowing - 1;
-			}
-			idx += m_heldCardsOffset[seat - 1];
-            return h.getHeldCards().get(idx);
-
-		} else if (rr != null && rr.contains(pt.x, pt.y))
-		{
-			switch (seat) {
-				case Game.SEAT_NORTH:
-				case Game.SEAT_SOUTH:
-					idx = (pt.x - rr.left) / spacing;
-					break;
-
-				case Game.SEAT_WEST:
-				case Game.SEAT_EAST:
-					idx = (pt.y - rr.top) / spacing;
-					break;
-			}
-
-			int numcardsshowing = h.getTableCards().size() - m_tableCardsOffset[seat - 1];
-			numcardsshowing = Math.min(numcardsshowing, m_maxCardsDisplay);
-
-			if (idx >= numcardsshowing) {
-				idx = numcardsshowing - 1;
-			}
-			idx += m_tableCardsOffset[seat - 1];
-			return h.getTableCards().get(idx);
+		if (heldRect != null && heldRect.contains(pt.x, pt.y)) {
+			int idx = cardIndexFromPoint(pt, heldRect, seat, spacing);
+			idx = clamp(idx, 0, h.getHeldCards().size() - m_heldCardsOffset[seat - 1] - 1);
+			return h.getHeldCards().get(idx + m_heldCardsOffset[seat - 1]);
+		}
+		if (tableRect != null && tableRect.contains(pt.x, pt.y)) {
+			int idx = cardIndexFromPoint(pt, tableRect, seat, spacing);
+			idx = clamp(idx, 0, h.getTableCards().size() - m_tableCardsOffset[seat - 1] - 1);
+			return h.getTableCards().get(idx + m_tableCardsOffset[seat - 1]);
 		}
 		return null;
 	}
-	
-	private Card findTouchedCardDiscardPile (Point pt)
-	{
-		if (m_discardPileBoundingRect.contains(pt.x, pt.y))
-		{
-			int numcards = m_game.getDiscardPile().getNumCards();
-			if (numcards > 0)
-			{
-				return m_game.getDiscardPile().getCard(numcards - 1);
-			}
-		}
-		
-		return null;
-	}
 
-	private Card findTouchedCardDrawPile (Point pt)
-	{
-		if (m_drawPileBoundingRect.contains(pt.x, pt.y))
-		{
-			int numcards = m_game.getDrawPile().getNumCards();
-			if (numcards > 0)
-			{
-				return m_game.getDrawPile().getCard(numcards - 1);
-			}
-		}
-
-		return null;
-	}
-	
-	private Card findTouchedCard (Point pt)
-	{
-		if (m_touchDiscardPile)
-		{
-			return findTouchedCardDiscardPile (pt);
-		}
-		if (m_touchDrawPile)
-		{
-			return findTouchedCardDrawPile (pt);
-		}
-		if (max(m_touchHeldCardsSeat, m_touchTableCardsSeat) != 0)
-		{
-			return findTouchedCardHand (max(m_touchHeldCardsSeat, m_touchTableCardsSeat), pt);
-		}
-		
-		return null;
-	}
-	
-	private void handCardTapped (int seat, Point pt)
-	{
-		if (!m_game.roundIsActive())
-		{
-			return;
-		}
-		
-		Player p = m_game.getPlayer(seat - 1);
-		if (p instanceof HumanPlayer)
-		{
-			Card c = findTouchedCardHand (seat, pt);
-			
-			if (c != null)
-			{
-				((HumanPlayer)p).turnDecisionPlayCard (c);
-			}
+	/** Converts a touch point into a card-list index within a bounding rect. */
+	private static int cardIndexFromPoint(Point pt, Rect rect, int seat, int spacing) {
+		if (seat == Game.SEAT_NORTH || seat == Game.SEAT_SOUTH) {
+			return (pt.x - rect.left) / spacing;
+		} else {
+			return (pt.y - rect.top) / spacing;
 		}
 	}
 
-	
-	public void RedrawTable ()
-	{
-		this.invalidate();
+	private Card findTouchedCardDiscardPile(Point pt) {
+		if (m_discardPileBoundingRect.contains(pt.x, pt.y)) {
+			int n = m_game.getDiscardPile().getNumCards();
+			if (n > 0) return m_game.getDiscardPile().getCard(n - 1);
+		}
+		return null;
 	}
-	
+
+	private Card findTouchedCardDrawPile(Point pt) {
+		if (m_drawPileBoundingRect.contains(pt.x, pt.y)) {
+			int n = m_game.getDrawPile().getNumCards();
+			if (n > 0) return m_game.getDrawPile().getCard(n - 1);
+		}
+		return null;
+	}
+
+	// =========================================================================
+	// Drawing
+	// =========================================================================
+
 	@Override
-	protected void onDraw(Canvas canvas)
-	{	
-		int i;
+	protected void onDraw(Canvas canvas) {
+		displayScore(canvas);
 
-		displayScore (canvas);
-				
-		int x = 0;
-		int y = 0;
-
-		Player p = m_game.getCurrPlayer();
-		if (p != null && !m_game.getRoundComplete())
-		{
-
-//			//Point pt = m_ptPlayerIndicator[p.getSeat() - 1];
-//			if (DirectionIndicator.getInstance().getDirection() == Game.DIR_CCLOCKWISE)
-			for (i = 1; i <= DirectionIndicator.numSegments; i++) {
-
-				m_drawMatrix.setTranslate(-m_bmpPointer.getWidth() / 2f, -m_bmpPointer.getHeight() / 2f);
-				m_drawMatrix.postRotate((p.getSeat() -1) * 90);
-				if (DirectionIndicator.getInstance().getDirection() == Game.DIR_CCLOCKWISE)
-				{
-					if (p.getSeat() % 2 == 0) {
-						m_drawMatrix.postScale(1, -1);
-					}
-					else {
-						m_drawMatrix.postScale(-1, 1);
-					}
-				}
-				m_drawMatrix.postRotate((i - 1) * (360f / DirectionIndicator.numSegments) * (DirectionIndicator.getInstance().getDirection() == Game.DIR_CLOCKWISE?1:-1));
-				m_drawMatrix.postTranslate(m_ptPointer.x, m_ptPointer.y);
-				m_paintPointer.setColorFilter(new PorterDuffColorFilter(DirectionIndicator.getInstance().getSegmentColor(i-1), PorterDuff.Mode.MULTIPLY));
-				canvas.drawBitmap(m_bmpDirection, m_drawMatrix, m_paintPointer);;
-			}
-
-			int color = getColorRgb(Card.COLOR_WILD);
-			m_drawMatrix.reset();
-			m_drawMatrix.postTranslate(-m_bmpPointer.getWidth() / 2f, -m_bmpPointer.getHeight() / 2f);
-			m_drawMatrix.postRotate(Pointer.getInstance().getRot());
-			m_drawMatrix.postScale(Pointer.getInstance().getScale(), Pointer.getInstance().getScale());
-			m_paintPointer.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.MULTIPLY));
-			m_drawMatrix.postTranslate(m_ptPointer.x, m_ptPointer.y);
-			canvas.drawBitmap(m_bmpPointer, m_drawMatrix, m_paintPointer);
-
-
-//			canvas.drawBitmap(m_bmpPlayerIndicator[curr_color - 1][p.getSeat() - 1], m_drawMatrix, null);
+		Player currPlayer = m_game.getCurrPlayer();
+		if (currPlayer != null && !m_game.getRoundComplete()) {
+			drawDirectionIndicator(canvas, currPlayer);
 		}
 
-		if (m_game.getCurrPlayer() == null || m_game.getFastForward())
-		{
-			return;
-		}
-
-		// draw the draw pile
+		if (currPlayer == null || m_game.getFastForward()) return;
 
 		m_drawPileBoundingRect = drawPile(m_game.getDrawPile(), canvas, m_ptDrawPile);
 
-		// draw the discard pile
-
-		if (!m_discardPileOnTop)
-		{
+		if (!m_discardPileOnTop) {
 			m_discardPileBoundingRect = drawPile(m_game.getDiscardPile(), canvas, m_ptDiscardPile);
 		}
 
-		// draw the hands
-		int seat = m_game.getCurrPlayer().getSeat()-1;
-
-		for (i = seat; i < seat + 4; i++)
-		{
-			p = m_game.getPlayer(i % 4);
-
-
-			// don't draw ejected players' cards
-
-			if (p.getActive())
-			{
-				RedrawHand (canvas, i % 4 + 1);
-			}
+		int startSeat = currPlayer.getSeat() - 1;
+		for (int i = startSeat; i < startSeat + 4; i++) {
+			Player p = m_game.getPlayer(i % 4);
+			if (p.getActive()) RedrawHand(canvas, i % 4 + 1);
 		}
 
-		if (m_discardPileOnTop)
-		{
-			m_discardPileBoundingRect = drawPile(m_game.getDiscardPile(), canvas,m_ptDiscardPile);
+		if (m_discardPileOnTop) {
+			m_discardPileBoundingRect = drawPile(m_game.getDiscardPile(), canvas, m_ptDiscardPile);
 		}
 
-		for (i = 1; i <= ColorChooser.numSegments; i++) {
+		drawColorChooser(canvas);
 
-			m_drawMatrix.setTranslate(-m_bmpPointer.getWidth() / 2f, -m_bmpPointer.getHeight() / 2f);
-			m_drawMatrix.postRotate((i - 1) * (360f / ColorChooser.numSegments));
-			m_drawMatrix.postScale(ColorChooser.getInstance().getSegmentScale(i-1), ColorChooser.getInstance().getSegmentScale(i-1));
-			m_drawMatrix.postTranslate(m_ptPointer.x, m_ptPointer.y);
-			m_paintPointer.setColorFilter(new PorterDuffColorFilter(ColorChooser.getInstance().getSegmentColor(i-1), PorterDuff.Mode.MULTIPLY));
-			canvas.drawBitmap(m_bmpColorChooser, m_drawMatrix, m_paintPointer);;
-		}
-
-
-		if (m_game.getWinner() != 0)
-		{
+		if (m_game.getWinner() != 0) {
 			m_drawMatrix.reset();
-			m_drawMatrix.setScale(1, 1);
 			m_drawMatrix.setTranslate(m_ptWinningMessage.x, m_ptWinningMessage.y);
-
 			canvas.drawBitmap(m_bmpWinningMessage[m_game.getWinner() - 1], m_drawMatrix, null);
 		}
 
 		drawPenalty(canvas);
 	}
 
-	private Rect drawPile(CardPile pile, Canvas canvas, Point pt)
-	{
-		if (pile != null)
-		{
-			Card c;
-			CardDeck deck = m_game.getDeck();
-
-			int skip = 16;
-			if (deck != null)
-			{
-				if (deck.getNumCards () > 108)
-				{
-					skip = 32;
-				}
+	private void drawDirectionIndicator(Canvas canvas, Player currPlayer) {
+		for (int i = 1; i <= DirectionIndicator.numSegments; i++) {
+			m_drawMatrix.setTranslate(-m_bmpPointer.getWidth() / 2f, -m_bmpPointer.getHeight() / 2f);
+			m_drawMatrix.postRotate((currPlayer.getSeat() - 1) * 90f);
+			if (DirectionIndicator.getInstance().getDirection() == Game.DIR_CCLOCKWISE) {
+				if (currPlayer.getSeat() % 2 == 0) m_drawMatrix.postScale(1, -1);
+				else                                m_drawMatrix.postScale(-1, 1);
 			}
-
-			int x = pt.x;
-			int y = pt.y;
-			int numCardsInPile = pile.getNumCards();
-
-			for (int i = 0; i < numCardsInPile; i++)
-			{
-				c = pile.getCard(i);
-				if (c != null) {
-					if (c.isAnimating()) {
-						this.drawCard(canvas, c);
-					}
-					else if (i % skip == 0 || i >= numCardsInPile - 2 ) {
-						// FIXME -- make resolution independent
-						x = pt.x + (int)((float)i / (float)skip) * 2;
-						y = pt.y + (int)((float)i / (float)skip) * 2;
-						this.drawCard (canvas, c, x, y);
-					}
-				}
-			}
-			return new Rect(pt.x, pt.y, x + m_cardWidth, y + m_cardHeight);
+			float segAngle = (i - 1) * (360f / DirectionIndicator.numSegments)
+					* (DirectionIndicator.getInstance().getDirection() == Game.DIR_CLOCKWISE ? 1 : -1);
+			m_drawMatrix.postRotate(segAngle);
+			m_drawMatrix.postTranslate(m_ptPointer.x, m_ptPointer.y);
+			m_paintPointer.setColorFilter(new PorterDuffColorFilter(
+					DirectionIndicator.getInstance().getSegmentColor(i - 1), PorterDuff.Mode.MULTIPLY));
+			canvas.drawBitmap(m_bmpDirection, m_drawMatrix, m_paintPointer);
 		}
-		return new Rect();
+
+		m_drawMatrix.reset();
+		m_drawMatrix.postTranslate(-m_bmpPointer.getWidth() / 2f, -m_bmpPointer.getHeight() / 2f);
+		m_drawMatrix.postRotate(Pointer.getInstance().getRot());
+		m_drawMatrix.postScale(Pointer.getInstance().getScale(), Pointer.getInstance().getScale());
+		m_paintPointer.setColorFilter(new PorterDuffColorFilter(getColorRgb(Card.COLOR_WILD), PorterDuff.Mode.MULTIPLY));
+		m_drawMatrix.postTranslate(m_ptPointer.x, m_ptPointer.y);
+		canvas.drawBitmap(m_bmpPointer, m_drawMatrix, m_paintPointer);
 	}
-	
-	private void RedrawHand (Canvas cv, int seat)
-	{
-		Hand h = m_game.getPlayer(seat - 1).getHand();
-		if (h == null)
-		{
-			return;
+
+	private void drawColorChooser(Canvas canvas) {
+		for (int i = 1; i <= ColorChooser.numSegments; i++) {
+			float scale = ColorChooser.getInstance().getSegmentScale(i - 1);
+			m_drawMatrix.setTranslate(-m_bmpPointer.getWidth() / 2f, -m_bmpPointer.getHeight() / 2f);
+			m_drawMatrix.postRotate((i - 1) * (360f / ColorChooser.numSegments));
+			m_drawMatrix.postScale(scale, scale);
+			m_drawMatrix.postTranslate(m_ptPointer.x, m_ptPointer.y);
+			m_paintPointer.setColorFilter(new PorterDuffColorFilter(
+					ColorChooser.getInstance().getSegmentColor(i - 1), PorterDuff.Mode.MULTIPLY));
+			canvas.drawBitmap(m_bmpColorChooser, m_drawMatrix, m_paintPointer);
 		}
+	}
+
+	private Rect drawPile(CardPile pile, Canvas canvas, Point pt) {
+		if (pile == null) return new Rect();
+
+		int numCards = pile.getNumCards();
+		if (numCards == 0) return new Rect(pt.x, pt.y, pt.x + m_cardWidth, pt.y + m_cardHeight);
+
+		CardDeck deck = m_game.getDeck();
+		int skip = (deck != null && deck.getNumCards() > 108) ? 32 : 16;
+
+		int x = pt.x, y = pt.y;
+		for (int i = 0; i < numCards; i++) {
+			Card c = pile.getCard(i);
+			if (c != null) {
+                if (c.isAnimating()) {
+                    this.drawCard(canvas, c);
+                }
+                else if (i % skip == 0 || i >= numCards - 2 ) {
+                    // FIXME -- make resolution independent
+                    x = pt.x + (int)((float)i / (float)skip) * 2;
+                    y = pt.y + (int)((float)i / (float)skip) * 2;
+                    this.drawCard (canvas, c, x, y);
+                }
+			}
+		}
+		return new Rect(pt.x, pt.y, x + m_cardWidth, y + m_cardHeight);
+	}
+
+	private void RedrawHand(Canvas cv, int seat) {
+		Hand h = m_game.getPlayer(seat - 1).getHand();
+		if (h == null) return;
 
 		List<Card> tableCards = h.getTableCards();
-		List<Card> heldCards = h.getHeldCards();
+		List<Card> heldCards  = h.getHeldCards();
+		int numTable = tableCards.size();
+		int numHeld  = heldCards.size();
 
-		int x = 0;
-		int y = 0;
-		int dx = 0;
-		int dy = 0;
-		int numTableCards = tableCards.size();
-		int numHeldCards = heldCards.size();
+		// Clamp offsets
+		m_heldCardsOffset[seat-1]  = clamp(m_heldCardsOffset[seat-1],  0, numHeld  - m_maxCardsDisplay);
+		m_tableCardsOffset[seat-1] = clamp(m_tableCardsOffset[seat-1], 0, numTable - m_maxCardsDisplay);
 
-		// keep the offsets sane
-		m_heldCardsOffset[seat-1] = max(0, min(m_heldCardsOffset[seat-1], numHeldCards - m_maxCardsDisplay));
-		m_tableCardsOffset[seat-1] = max(0, min(m_tableCardsOffset[seat-1], numTableCards - m_maxCardsDisplay));
+		int heldOffset  = clamp(m_heldCardsOffset[seat-1]  + m_heldCardsDrag[seat-1],  0, numHeld  - m_maxCardsDisplay);
+		int tableOffset = clamp(m_tableCardsOffset[seat-1] + m_tableCardsDrag[seat-1], 0, numTable - m_maxCardsDisplay);
 
-		// apply the current drag
-		int heldCardsOffset = m_heldCardsOffset[seat - 1] + m_heldCardsDrag[seat - 1];
-		int tableCardsOffset = m_tableCardsOffset[seat - 1] + m_tableCardsDrag[seat - 1];
-		heldCardsOffset = max(0, min(heldCardsOffset, numHeldCards - m_maxCardsDisplay));
-		tableCardsOffset = max(0, min(tableCardsOffset, numTableCards - m_maxCardsDisplay));
-
-		int numHeldCardsShowing = min(numHeldCards - m_heldCardsOffset[seat - 1], m_maxCardsDisplay);
-		int numTableCardsShowing = min(numTableCards - m_tableCardsOffset[seat - 1], m_maxCardsDisplay);
-
-		int heldCardsWidth;
-		int heldCardsHeight;
-		int tableCardsWidth;
-		int tableCardsHeight;
-
+		int numHeldShowing  = min(numHeld  - m_heldCardsOffset[seat-1],  m_maxCardsDisplay);
+		int numTableShowing = min(numTable - m_tableCardsOffset[seat-1], m_maxCardsDisplay);
 
 		int spacing = (seat == Game.SEAT_SOUTH) ? m_cardSpacingSouth : m_cardSpacing;
-		
-		switch (seat) {
-		case Game.SEAT_SOUTH:
-			dx = spacing;
-			dy = 0;
-			tableCardsWidth = (numTableCardsShowing - 1) * spacing + m_cardWidth;
-			x = m_ptSeat[Game.SEAT_SOUTH - 1].x - tableCardsWidth / 2;
-			y = m_ptSeat[Game.SEAT_SOUTH - 1].y - m_cardHeight * 2 / 3;
-			m_tableCardsBoundingRect[Game.SEAT_SOUTH - 1] = new Rect(x, y, x + tableCardsWidth, y + m_cardHeight);
-			break;
-		case Game.SEAT_WEST:
-			dx = 0;
-			dy = spacing;
-			tableCardsHeight = (numTableCardsShowing - 1) * spacing + m_cardHeight;
-			x = m_ptSeat[Game.SEAT_WEST - 1].x + m_cardWidth / 2;
-			y = m_ptSeat[Game.SEAT_WEST - 1].y - tableCardsHeight / 2;
-			m_tableCardsBoundingRect[Game.SEAT_WEST - 1] = new Rect(x, y, x + m_cardWidth, y + tableCardsHeight);
-			break;
-		case Game.SEAT_NORTH:
-			dx = spacing;
-			dy = 0;
-			tableCardsWidth = (numTableCardsShowing - 1) * spacing + m_cardWidth;
-			x = m_ptSeat[Game.SEAT_NORTH - 1].x - tableCardsWidth / 2;
-			y = m_ptSeat[Game.SEAT_NORTH - 1].y + m_cardHeight / 2;
-			m_tableCardsBoundingRect[Game.SEAT_NORTH - 1] = new Rect(x, y, x + tableCardsWidth, y + m_cardHeight);
-			break;
-		case Game.SEAT_EAST:
-			dx = 0;
-			dy = spacing;
-			tableCardsHeight = (numTableCardsShowing - 1) * spacing + m_cardHeight;
-			x = m_ptSeat[Game.SEAT_EAST - 1].x - m_cardWidth / 2;
-			y = m_ptSeat[Game.SEAT_EAST - 1].y - tableCardsHeight / 2;
-			m_tableCardsBoundingRect[Game.SEAT_EAST - 1] = new Rect(x, y, x + m_cardWidth, y + tableCardsHeight);
-			break;
-		}
 
-		// draw the cards that are on the table
+		// --- Table cards ---
+		HandLayout tableLayout = buildHandLayout(seat, true, numTableShowing, spacing);
+		m_tableCardsBoundingRect[seat - 1] = tableLayout.boundingRect;
+		drawCards(cv, tableCards, tableOffset, tableLayout, spacing, seat);
 
-        int stop = Math.min(tableCardsOffset + m_maxCardsDisplay, numTableCards);
+		// --- Held cards ---
+		HandLayout heldLayout = buildHandLayout(seat, false, numHeldShowing, spacing);
+		m_heldCardsBoundingRect[seat - 1] = heldLayout.boundingRect;
+		drawCards(cv, heldCards, heldOffset, heldLayout, spacing, seat);
 
-		int j;
-		for (j = 0; j < numTableCards; j++)
-		{
-			Card c = tableCards.get(j);
-			if (c == null) 
-			{
-				continue;
-			}
+		// --- Overflow / offset badges ---
+		drawBadgeIfNeeded(cv, tableOffset,                              m_ptTableCardsOffsetBadge[seat-1]);
+		drawBadgeIfNeeded(cv, heldOffset,                               m_ptHeldCardsOffsetBadge[seat-1]);
+		drawBadgeIfNeeded(cv, numTable - tableOffset - m_maxCardsDisplay, m_ptTableCardsOverflowBadge[seat-1]);
+		drawBadgeIfNeeded(cv, numHeld  - heldOffset  - m_maxCardsDisplay, m_ptHeldCardsOverflowBadge[seat-1]);
+	}
 
-			if (c.getState() != Card.CardState.HAND) {
-				c.setTargetX(x);
-				c.setTargetY(y);
-			} else {
-				c.setX(x);
-				c.setY(y);
-			}
-			if (tableCardsOffset <= j && j < stop) {
-				this.drawCard(cv, c);
-				x += dx;
-				y += dy;
-			}
-		}
+	/** Simple value object returned by buildHandLayout(). */
+	private static final class HandLayout {
+		int x, y, dx, dy;
+		Rect boundingRect;
+	}
+
+	/**
+	 * Calculates the starting position, step direction, and bounding rect for
+	 * a player's hand.  Replaces the duplicated switch blocks that appeared
+	 * twice in the original RedrawHand().
+	 */
+	private HandLayout buildHandLayout(int seat, boolean tableCards, int numShowing, int spacing) {
+		HandLayout l = new HandLayout();
+		int numCards = (numShowing < 1) ? 1 : numShowing; // avoid negative-size rects
 
 		switch (seat) {
 			case Game.SEAT_SOUTH:
-				dx = spacing;
-				dy = 0;
-				if (numHeldCardsShowing == 0)
-				{
-					heldCardsWidth = 0;
-				} else {
-					heldCardsWidth = (numHeldCardsShowing - 1) * spacing + m_cardWidth;
-				}
-				x = m_ptSeat[Game.SEAT_SOUTH - 1].x - heldCardsWidth / 2;
-				y = m_ptSeat[Game.SEAT_SOUTH - 1].y;
-				m_heldCardsBoundingRect[Game.SEAT_SOUTH - 1] = new Rect(x, y, x + heldCardsWidth, y + m_cardHeight);
+				l.dx = spacing; l.dy = 0;
+				int wSouth = (numCards - 1) * spacing + m_cardWidth;
+				l.x = m_ptSeat[Game.SEAT_SOUTH - 1].x - wSouth / 2;
+				l.y = tableCards
+						? m_ptSeat[Game.SEAT_SOUTH - 1].y - m_cardHeight * 2 / 3
+						: m_ptSeat[Game.SEAT_SOUTH - 1].y;
+				l.boundingRect = new Rect(l.x, l.y, l.x + wSouth, l.y + m_cardHeight);
 				break;
 			case Game.SEAT_WEST:
-				dx = 0;
-				dy = spacing;
-				heldCardsHeight = (numHeldCardsShowing - 1) * spacing + m_cardHeight;
-				x = m_ptSeat[Game.SEAT_WEST - 1].x;
-				y = m_ptSeat[Game.SEAT_WEST - 1].y - heldCardsHeight / 2;
-				m_heldCardsBoundingRect[Game.SEAT_WEST - 1] = new Rect(x, y, x + m_cardWidth, y + heldCardsHeight);
+				l.dx = 0; l.dy = spacing;
+				int hWest = (numCards - 1) * spacing + m_cardHeight;
+				l.x = tableCards
+						? m_ptSeat[Game.SEAT_WEST - 1].x + m_cardWidth / 2
+						: m_ptSeat[Game.SEAT_WEST - 1].x;
+				l.y = m_ptSeat[Game.SEAT_WEST - 1].y - hWest / 2;
+				l.boundingRect = new Rect(l.x, l.y, l.x + m_cardWidth, l.y + hWest);
 				break;
 			case Game.SEAT_NORTH:
-				dx = spacing;
-				dy = 0;
-				heldCardsWidth = (numHeldCardsShowing - 1) * spacing + m_cardWidth;
-				x = m_ptSeat[Game.SEAT_NORTH - 1].x - heldCardsWidth / 2;
-				y = m_ptSeat[Game.SEAT_NORTH - 1].y;
-				m_heldCardsBoundingRect[Game.SEAT_NORTH - 1] = new Rect(x, y, x + heldCardsWidth, y + m_cardHeight);
+				l.dx = spacing; l.dy = 0;
+				int wNorth = (numCards - 1) * spacing + m_cardWidth;
+				l.x = m_ptSeat[Game.SEAT_NORTH - 1].x - wNorth / 2;
+				l.y = tableCards
+						? m_ptSeat[Game.SEAT_NORTH - 1].y + m_cardHeight / 2
+						: m_ptSeat[Game.SEAT_NORTH - 1].y;
+				l.boundingRect = new Rect(l.x, l.y, l.x + wNorth, l.y + m_cardHeight);
 				break;
 			case Game.SEAT_EAST:
-				dx = 0;
-				dy = spacing;
-				heldCardsHeight = (numHeldCardsShowing - 1) * spacing + m_cardHeight;
-				x = m_ptSeat[Game.SEAT_EAST - 1].x;
-				y = m_ptSeat[Game.SEAT_EAST - 1].y - heldCardsHeight / 2;
-				m_heldCardsBoundingRect[Game.SEAT_EAST - 1] = new Rect(x, y, x + m_cardWidth, y + heldCardsHeight);
+			default:
+				l.dx = 0; l.dy = spacing;
+				int hEast = (numCards - 1) * spacing + m_cardHeight;
+				l.x = tableCards
+						? m_ptSeat[Game.SEAT_EAST - 1].x - m_cardWidth / 2
+						: m_ptSeat[Game.SEAT_EAST - 1].x;
+				l.y = m_ptSeat[Game.SEAT_EAST - 1].y - hEast / 2;
+				l.boundingRect = new Rect(l.x, l.y, l.x + m_cardWidth, l.y + hEast);
 				break;
 		}
+		return l;
+	}
 
-		// draw the cards that are in the Hand
-
-		stop = Math.min(heldCardsOffset + m_maxCardsDisplay, numHeldCards);
-
-		for (j = 0; j < numHeldCards; j++)
-		{
-			Card c = heldCards.get(j);
-			if (c == null)
-			{
-				continue;
+	private void drawCards(Canvas cv, List<Card> cards, int offset, HandLayout layout, int spacing, int seat) {
+		int x = layout.x, y = layout.y;
+		int stop = min(offset + m_maxCardsDisplay, cards.size());
+		for (int j = 0; j < cards.size(); j++) {
+			Card c = cards.get(j);
+			if (c == null) continue;
+			if (c.getState() != Card.CardState.HAND) {
+				c.setTargetX(x); c.setTargetY(y);
+			} else {
+				c.setX(x); c.setY(y);
 			}
-
-            if (c.getState() != Card.CardState.HAND) {
-                c.setTargetX(x);
-                c.setTargetY(y);
-            } else {
-                c.setX(x);
-                c.setY(y);
-            }
-            if (heldCardsOffset <= j && j < stop || c.getState() != Card.CardState.HAND) {
-				this.drawCard(cv, c);
-				if (heldCardsOffset <= j && j < stop)
-				{
-					x += dx;
-					y += dy;
-				}
+			boolean inView = offset <= j && j < stop;
+			if (inView || c.getState() != Card.CardState.HAND) {
+				drawCard(cv, c);
+				if (inView) { x += layout.dx; y += layout.dy; }
 			}
 		}
-
-		// draw the badges if necessary
-		if (tableCardsOffset > 0)
-		{
-			Point pt = m_ptTableCardsOffsetBadge[seat - 1];
-
-			m_drawMatrix.reset();
-			m_drawMatrix.setScale(1, 1);
-			m_drawMatrix.setTranslate(pt.x, pt.y);
-
-			cv.drawBitmap(m_bmpCardBadge, m_drawMatrix, null);
-
-			float fx = (float)(pt.x + m_bmpCardBadge.getWidth() / 2);
-			Rect textBounds = new Rect();
-			String numstr = "" + tableCardsOffset;
-
-			m_paintCardBadgeText.getTextBounds(numstr, 0, numstr.length(), textBounds);
-			float fy = (float)(pt.y + m_bmpCardBadge.getHeight() / 2 + (textBounds.height() / 2));
-
-			cv.drawText(numstr, fx, fy, m_paintCardBadgeText);
-		}
-
-		if (heldCardsOffset > 0)
-		{
-			Point pt = m_ptHeldCardsOffsetBadge[seat - 1];
-
-			m_drawMatrix.reset();
-			m_drawMatrix.setScale(1, 1);
-			m_drawMatrix.setTranslate(pt.x, pt.y);
-
-			cv.drawBitmap(m_bmpCardBadge, m_drawMatrix, null);
-
-			float fx = (float)(pt.x + m_bmpCardBadge.getWidth() / 2);
-			Rect textBounds = new Rect();
-			String numstr = "" + heldCardsOffset;
-
-			m_paintCardBadgeText.getTextBounds(numstr, 0, numstr.length(), textBounds);
-			float fy = (float)(pt.y + m_bmpCardBadge.getHeight() / 2 + (textBounds.height() / 2));
-
-			cv.drawText(numstr, fx, fy, m_paintCardBadgeText);
-		}
-
-		if (numTableCards > m_maxCardsDisplay + tableCardsOffset)
-		{
-			Point pt = m_ptTableCardsOverflowBadge[seat - 1];
-
-			m_drawMatrix.reset();
-			m_drawMatrix.setScale(1, 1);
-			m_drawMatrix.setTranslate(pt.x, pt.y);
-
-			cv.drawBitmap(m_bmpCardBadge, m_drawMatrix, null);
-
-			float fx = (float)(pt.x + m_bmpCardBadge.getWidth() / 2);
-			Rect textBounds = new Rect();
-			String numstr = "" + (numTableCards - tableCardsOffset - m_maxCardsDisplay);
-
-			m_paintCardBadgeText.getTextBounds(numstr, 0, numstr.length(), textBounds);
-			float fy = (float)(pt.y + m_bmpCardBadge.getHeight() / 2 + (textBounds.height() / 2));
-
-			cv.drawText(numstr, fx, fy, m_paintCardBadgeText);
-		}
-
-		if (numHeldCards > m_maxCardsDisplay + heldCardsOffset)
-		{
-			Point pt = m_ptHeldCardsOverflowBadge[seat - 1];
-
-			m_drawMatrix.reset();
-			m_drawMatrix.setScale(1, 1);
-			m_drawMatrix.setTranslate(pt.x, pt.y);
-
-			cv.drawBitmap(m_bmpCardBadge, m_drawMatrix, null);
-
-			float fx = (float)(pt.x + m_bmpCardBadge.getWidth() / 2);
-			Rect textBounds = new Rect();
-			String numstr = "" + (numHeldCards - heldCardsOffset - m_maxCardsDisplay);
-
-			m_paintCardBadgeText.getTextBounds(numstr, 0, numstr.length(), textBounds);
-			float fy = (float)(pt.y + m_bmpCardBadge.getHeight() / 2 + (textBounds.height() / 2));
-
-			cv.drawText(numstr, fx, fy, m_paintCardBadgeText);
-		}
 	}
-	
-	private void initCards ()
-	{
-		/*
-		 * I admit -- this code is nasty; it started with a simple lookup HashMap,
-		 * and gradually grew into 4 separate ones.  This could be a LOT cleaner.
-		 * I also don't like that I have to create all these card objects when there
-		 * are already card objects in the card deck.  But this was more convenient,
-		 * and it's hard to imagine that these objects are really taking up a lot of
-		 * RAM in the grand scheme of things.
-		 */
-		m_cardLookup = new HashMap<>();
-		m_imageIDLookup = new HashMap<>();
-		m_imageLookup = new HashMap<>();
-		m_cardHelpLookup = new HashMap<>();
-		m_cardIDs = new Integer[81];
-		
-	    Resources res = this.getContext().getResources ();
 
-	    BitmapFactory.Options opt = new BitmapFactory.Options();
-	    //opt.inScaled = false;
+	private void drawBadgeIfNeeded(Canvas cv, int count, Point pt) {
+		if (count <= 0 || pt == null) return;
+		m_drawMatrix.reset();
+		m_drawMatrix.setTranslate(pt.x, pt.y);
+		cv.drawBitmap(m_bmpCardBadge, m_drawMatrix, null);
 
-		m_bmpCardBack = BitmapFactory.decodeResource(res, R.drawable.card_back, opt);
-
-		m_imageIDLookup.put (Card.ID_RED_0, R.drawable.card_red_0);
-		m_imageLookup.put (Card.ID_RED_0, BitmapFactory.decodeResource(res, R.drawable.card_red_0, opt));
-		m_cardHelpLookup.put (Card.ID_RED_0, R.string.cardhelp_0);
-		m_cardLookup.put (Card.ID_RED_0, new Card(-1, Card.COLOR_RED, 0, Card.ID_RED_0_HD, 0));
-
-		m_imageIDLookup.put (Card.ID_RED_1, R.drawable.card_red_1);
-		m_imageLookup.put (Card.ID_RED_1, BitmapFactory.decodeResource(res, R.drawable.card_red_1, opt));
-		m_cardHelpLookup.put (Card.ID_RED_1, R.string.cardhelp_1);
-		m_cardLookup.put (Card.ID_RED_1, new Card(-1, Card.COLOR_RED, 1, Card.ID_RED_1, 1));
-
-		m_imageIDLookup.put (Card.ID_RED_2, R.drawable.card_red_2);
-		m_imageLookup.put (Card.ID_RED_2, BitmapFactory.decodeResource(res, R.drawable.card_red_2, opt));
-		m_cardHelpLookup.put (Card.ID_RED_2, R.string.cardhelp_2);
-		m_cardLookup.put (Card.ID_RED_2, new Card(-1, Card.COLOR_RED, 2, Card.ID_RED_2, 2));
-
-		m_imageIDLookup.put (Card.ID_RED_3, R.drawable.card_red_3);
-		m_imageLookup.put (Card.ID_RED_3, BitmapFactory.decodeResource(res, R.drawable.card_red_3, opt));
-		m_cardHelpLookup.put (Card.ID_RED_3, R.string.cardhelp_3);
-        m_cardLookup.put (Card.ID_RED_3, new Card(-1, Card.COLOR_RED, 3, Card.ID_RED_3, 3));
-		
-		m_imageIDLookup.put (Card.ID_RED_4, R.drawable.card_red_4);
-		m_imageLookup.put (Card.ID_RED_4, BitmapFactory.decodeResource(res, R.drawable.card_red_4, opt));
-		m_cardHelpLookup.put (Card.ID_RED_4, R.string.cardhelp_4);
-        m_cardLookup.put (Card.ID_RED_4, new Card(-1, Card.COLOR_RED, 4, Card.ID_RED_4, 4));
-		
-		m_imageIDLookup.put (Card.ID_RED_5, R.drawable.card_red_5);
-		m_imageLookup.put (Card.ID_RED_5, BitmapFactory.decodeResource(res, R.drawable.card_red_5, opt));
-		m_cardHelpLookup.put (Card.ID_RED_5, R.string.cardhelp_5);
-        m_cardLookup.put (Card.ID_RED_5, new Card(-1, Card.COLOR_RED, 5, Card.ID_RED_5, 5));
-		
-		m_imageIDLookup.put (Card.ID_RED_6, R.drawable.card_red_6);
-		m_imageLookup.put (Card.ID_RED_6, BitmapFactory.decodeResource(res, R.drawable.card_red_6, opt));
-		m_cardHelpLookup.put (Card.ID_RED_6, R.string.cardhelp_6);
-        m_cardLookup.put (Card.ID_RED_6, new Card(-1, Card.COLOR_RED, 6, Card.ID_RED_6, 6));
-		
-		m_imageIDLookup.put (Card.ID_RED_7, R.drawable.card_red_7);
-		m_imageLookup.put (Card.ID_RED_7, BitmapFactory.decodeResource(res, R.drawable.card_red_7, opt));
-		m_cardHelpLookup.put (Card.ID_RED_7, R.string.cardhelp_7);
-        m_cardLookup.put (Card.ID_RED_7, new Card(-1, Card.COLOR_RED, 7, Card.ID_RED_7, 7));
-		
-		m_imageIDLookup.put (Card.ID_RED_8, R.drawable.card_red_8);
-		m_imageLookup.put (Card.ID_RED_8, BitmapFactory.decodeResource(res, R.drawable.card_red_8, opt));
-		m_cardHelpLookup.put (Card.ID_RED_8, R.string.cardhelp_8);
-        m_cardLookup.put (Card.ID_RED_8, new Card(-1, Card.COLOR_RED, 8, Card.ID_RED_8, 8));
-		
-		m_imageIDLookup.put (Card.ID_RED_9, R.drawable.card_red_9);
-		m_imageLookup.put (Card.ID_RED_9, BitmapFactory.decodeResource(res, R.drawable.card_red_9, opt));
-		m_cardHelpLookup.put (Card.ID_RED_9, R.string.cardhelp_9);
-        m_cardLookup.put (Card.ID_RED_9, new Card(-1, Card.COLOR_RED, 9, Card.ID_RED_9, 9));
-		
-		m_imageIDLookup.put (Card.ID_RED_D, R.drawable.card_red_d);
-		m_imageLookup.put (Card.ID_RED_D, BitmapFactory.decodeResource(res, R.drawable.card_red_d, opt));
-		m_cardHelpLookup.put (Card.ID_RED_D, R.string.cardhelp_d);
-        m_cardLookup.put (Card.ID_RED_D, new Card(-1, Card.COLOR_RED, Card.VAL_D, Card.ID_RED_D, 20));
-
-		m_imageIDLookup.put (Card.ID_RED_S, R.drawable.card_red_s);
-		m_imageLookup.put (Card.ID_RED_S, BitmapFactory.decodeResource(res, R.drawable.card_red_s, opt));
-		m_cardHelpLookup.put (Card.ID_RED_S, R.string.cardhelp_s);
-        m_cardLookup.put (Card.ID_RED_S, new Card(-1, Card.COLOR_RED, Card.VAL_S, Card.ID_RED_S, 20));
-
-		m_imageIDLookup.put (Card.ID_RED_R, R.drawable.card_red_r);
-		m_imageLookup.put (Card.ID_RED_R, BitmapFactory.decodeResource(res, R.drawable.card_red_r, opt));
-		m_cardHelpLookup.put (Card.ID_RED_R, R.string.cardhelp_r);
-        m_cardLookup.put (Card.ID_RED_R, new Card(-1, Card.COLOR_RED, Card.VAL_R, Card.ID_RED_R, 20));
-
-		m_imageIDLookup.put (Card.ID_GREEN_0, R.drawable.card_green_0);
-		m_imageLookup.put (Card.ID_GREEN_0, BitmapFactory.decodeResource(res, R.drawable.card_green_0, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_0, R.string.cardhelp_0);
-        m_cardLookup.put (Card.ID_GREEN_0, new Card(-1, Card.COLOR_GREEN, 0, Card.ID_GREEN_0_QUITTER, 0));
-		
-		m_imageIDLookup.put (Card.ID_GREEN_1, R.drawable.card_green_1);
-		m_imageLookup.put (Card.ID_GREEN_1, BitmapFactory.decodeResource(res, R.drawable.card_green_1, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_1, R.string.cardhelp_1);
-        m_cardLookup.put (Card.ID_GREEN_1, new Card(-1, Card.COLOR_GREEN, 1, Card.ID_GREEN_1, 1));
-
-		m_imageIDLookup.put (Card.ID_GREEN_2, R.drawable.card_green_2);
-		m_imageLookup.put (Card.ID_GREEN_2, BitmapFactory.decodeResource(res, R.drawable.card_green_2, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_2, R.string.cardhelp_2);
-        m_cardLookup.put (Card.ID_GREEN_2, new Card(-1, Card.COLOR_GREEN, 2, Card.ID_GREEN_2, 2));
-		
-		m_imageIDLookup.put (Card.ID_GREEN_3, R.drawable.card_green_3);
-		m_imageLookup.put (Card.ID_GREEN_3, BitmapFactory.decodeResource(res, R.drawable.card_green_3, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_3, R.string.cardhelp_3);
-        m_cardLookup.put (Card.ID_GREEN_3, new Card(-1, Card.COLOR_GREEN, 3, Card.ID_GREEN_3, 3));
-		
-		m_imageIDLookup.put (Card.ID_GREEN_4, R.drawable.card_green_4);
-		m_imageLookup.put (Card.ID_GREEN_4, BitmapFactory.decodeResource(res, R.drawable.card_green_4, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_4, R.string.cardhelp_4);
-        m_cardLookup.put (Card.ID_GREEN_4, new Card(-1, Card.COLOR_GREEN, 4, Card.ID_GREEN_4, 4));
-
-		m_imageIDLookup.put (Card.ID_GREEN_5, R.drawable.card_green_5);
-		m_imageLookup.put (Card.ID_GREEN_5, BitmapFactory.decodeResource(res, R.drawable.card_green_5, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_5, R.string.cardhelp_5);
-        m_cardLookup.put (Card.ID_GREEN_5, new Card(-1, Card.COLOR_GREEN, 5, Card.ID_GREEN_5, 5));
-		
-		m_imageIDLookup.put (Card.ID_GREEN_6, R.drawable.card_green_6);
-		m_imageLookup.put (Card.ID_GREEN_6, BitmapFactory.decodeResource(res, R.drawable.card_green_6, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_6, R.string.cardhelp_6);
-        m_cardLookup.put (Card.ID_GREEN_6, new Card(-1, Card.COLOR_GREEN, 6, Card.ID_GREEN_6, 6));
-		
-		m_imageIDLookup.put (Card.ID_GREEN_7, R.drawable.card_green_7);
-		m_imageLookup.put (Card.ID_GREEN_7, BitmapFactory.decodeResource(res, R.drawable.card_green_7, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_7, R.string.cardhelp_7);
-        m_cardLookup.put (Card.ID_GREEN_7, new Card(-1, Card.COLOR_GREEN, 7, Card.ID_GREEN_7, 7));
-		
-		m_imageIDLookup.put (Card.ID_GREEN_8, R.drawable.card_green_8);
-		m_imageLookup.put (Card.ID_GREEN_8, BitmapFactory.decodeResource(res, R.drawable.card_green_8, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_8, R.string.cardhelp_8);
-        m_cardLookup.put (Card.ID_GREEN_8, new Card(-1, Card.COLOR_GREEN, 8, Card.ID_GREEN_8, 8));
-		
-		m_imageIDLookup.put (Card.ID_GREEN_9, R.drawable.card_green_9);
-		m_imageLookup.put (Card.ID_GREEN_9, BitmapFactory.decodeResource(res, R.drawable.card_green_9, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_9, R.string.cardhelp_9);
-        m_cardLookup.put (Card.ID_GREEN_9, new Card(-1, Card.COLOR_GREEN, 9, Card.ID_GREEN_9, 9));
-		
-		m_imageIDLookup.put (Card.ID_GREEN_D, R.drawable.card_green_d);
-		m_imageLookup.put (Card.ID_GREEN_D, BitmapFactory.decodeResource(res, R.drawable.card_green_d, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_D, R.string.cardhelp_d);
-        m_cardLookup.put (Card.ID_GREEN_D, new Card(-1, Card.COLOR_GREEN, Card.VAL_D, Card.ID_GREEN_D, 20));
-
-		m_imageIDLookup.put (Card.ID_GREEN_S, R.drawable.card_green_s);
-		m_imageLookup.put (Card.ID_GREEN_S, BitmapFactory.decodeResource(res, R.drawable.card_green_s, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_S, R.string.cardhelp_s);
-        m_cardLookup.put (Card.ID_GREEN_S, new Card(-1, Card.COLOR_GREEN, Card.VAL_S, Card.ID_GREEN_S, 20));
-
-		m_imageIDLookup.put (Card.ID_GREEN_R, R.drawable.card_green_r);
-		m_imageLookup.put (Card.ID_GREEN_R, BitmapFactory.decodeResource(res, R.drawable.card_green_r, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_R, R.string.cardhelp_r);
-        m_cardLookup.put (Card.ID_GREEN_R, new Card(-1, Card.COLOR_GREEN, Card.VAL_R, Card.ID_GREEN_R, 20));
-				
-		m_imageIDLookup.put (Card.ID_BLUE_0, R.drawable.card_blue_0);
-		m_imageLookup.put (Card.ID_BLUE_0, BitmapFactory.decodeResource(res, R.drawable.card_blue_0, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_0, R.string.cardhelp_0);
-        m_cardLookup.put (Card.ID_BLUE_0, new Card(-1, Card.COLOR_BLUE, 0, Card.ID_BLUE_0, 0));
-		
-		m_imageIDLookup.put (Card.ID_BLUE_1, R.drawable.card_blue_1);
-		m_imageLookup.put (Card.ID_BLUE_1, BitmapFactory.decodeResource(res, R.drawable.card_blue_1, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_1, R.string.cardhelp_1);
-        m_cardLookup.put (Card.ID_BLUE_1, new Card(-1, Card.COLOR_BLUE, 1, Card.ID_BLUE_1, 1));
-
-		m_imageIDLookup.put (Card.ID_BLUE_2, R.drawable.card_blue_2);
-		m_imageLookup.put (Card.ID_BLUE_2, BitmapFactory.decodeResource(res, R.drawable.card_blue_2, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_2, R.string.cardhelp_2);
-        m_cardLookup.put (Card.ID_BLUE_2, new Card(-1, Card.COLOR_BLUE, 2, Card.ID_BLUE_2, 2));
-		
-		m_imageIDLookup.put (Card.ID_BLUE_3, R.drawable.card_blue_3);
-		m_imageLookup.put (Card.ID_BLUE_3, BitmapFactory.decodeResource(res, R.drawable.card_blue_3, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_3, R.string.cardhelp_3);
-        m_cardLookup.put (Card.ID_BLUE_3, new Card(-1, Card.COLOR_BLUE, 3, Card.ID_BLUE_3, 3));
-		
-		m_imageIDLookup.put (Card.ID_BLUE_4, R.drawable.card_blue_4);
-		m_imageLookup.put (Card.ID_BLUE_4, BitmapFactory.decodeResource(res, R.drawable.card_blue_4, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_4, R.string.cardhelp_4);
-        m_cardLookup.put (Card.ID_BLUE_4, new Card(-1, Card.COLOR_BLUE, 4, Card.ID_BLUE_4, 4));
-		
-		m_imageIDLookup.put (Card.ID_BLUE_5, R.drawable.card_blue_5);
-		m_imageLookup.put (Card.ID_BLUE_5, BitmapFactory.decodeResource(res, R.drawable.card_blue_5, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_5, R.string.cardhelp_5);
-        m_cardLookup.put (Card.ID_BLUE_5, new Card(-1, Card.COLOR_BLUE, 5, Card.ID_BLUE_5, 5));
-		
-		m_imageIDLookup.put (Card.ID_BLUE_6, R.drawable.card_blue_6);
-		m_imageLookup.put (Card.ID_BLUE_6, BitmapFactory.decodeResource(res, R.drawable.card_blue_6, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_6, R.string.cardhelp_6);
-        m_cardLookup.put (Card.ID_BLUE_6, new Card(-1, Card.COLOR_BLUE, 6, Card.ID_BLUE_6, 6));
-		
-		m_imageIDLookup.put (Card.ID_BLUE_7, R.drawable.card_blue_7);
-		m_imageLookup.put (Card.ID_BLUE_7, BitmapFactory.decodeResource(res, R.drawable.card_blue_7, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_7, R.string.cardhelp_7);
-        m_cardLookup.put (Card.ID_BLUE_7, new Card(-1, Card.COLOR_BLUE, 7, Card.ID_BLUE_7, 7));
-		
-		m_imageIDLookup.put (Card.ID_BLUE_8, R.drawable.card_blue_8);
-		m_imageLookup.put (Card.ID_BLUE_8, BitmapFactory.decodeResource(res, R.drawable.card_blue_8, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_8, R.string.cardhelp_8);
-        m_cardLookup.put (Card.ID_BLUE_8, new Card(-1, Card.COLOR_BLUE, 8, Card.ID_BLUE_8, 8));
-		
-		m_imageIDLookup.put (Card.ID_BLUE_9, R.drawable.card_blue_9);
-		m_imageLookup.put (Card.ID_BLUE_9, BitmapFactory.decodeResource(res, R.drawable.card_blue_9, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_9, R.string.cardhelp_9);
-        m_cardLookup.put (Card.ID_BLUE_9, new Card(-1, Card.COLOR_BLUE, 9, Card.ID_BLUE_9, 9));
-		
-		m_imageIDLookup.put (Card.ID_BLUE_D, R.drawable.card_blue_d);
-		m_imageLookup.put (Card.ID_BLUE_D, BitmapFactory.decodeResource(res, R.drawable.card_blue_d, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_D, R.string.cardhelp_d);
-        m_cardLookup.put (Card.ID_BLUE_D, new Card(-1, Card.COLOR_BLUE, Card.VAL_D, Card.ID_BLUE_D, 20));
-
-		m_imageIDLookup.put (Card.ID_BLUE_S, R.drawable.card_blue_s);
-		m_imageLookup.put (Card.ID_BLUE_S, BitmapFactory.decodeResource(res, R.drawable.card_blue_s, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_S, R.string.cardhelp_s);
-        m_cardLookup.put (Card.ID_BLUE_S, new Card(-1, Card.COLOR_BLUE, Card.VAL_S, Card.ID_BLUE_S, 20));
-
-		m_imageIDLookup.put (Card.ID_BLUE_R, R.drawable.card_blue_r);
-		m_imageLookup.put (Card.ID_BLUE_R, BitmapFactory.decodeResource(res, R.drawable.card_blue_r, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_R, R.string.cardhelp_r);
-        m_cardLookup.put (Card.ID_BLUE_R, new Card(-1, Card.COLOR_BLUE, Card.VAL_R, Card.ID_BLUE_R, 20));
-				
-		m_imageIDLookup.put (Card.ID_YELLOW_0, R.drawable.card_yellow_0);
-		m_imageLookup.put (Card.ID_YELLOW_0, BitmapFactory.decodeResource(res, R.drawable.card_yellow_0, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_0, R.string.cardhelp_0);
-        m_cardLookup.put (Card.ID_YELLOW_0, new Card(-1, Card.COLOR_YELLOW, 0, Card.ID_YELLOW_0, 0));
-
-		m_imageIDLookup.put (Card.ID_YELLOW_1, R.drawable.card_yellow_1);
-		m_imageLookup.put (Card.ID_YELLOW_1, BitmapFactory.decodeResource(res, R.drawable.card_yellow_1, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_1, R.string.cardhelp_1);
-        m_cardLookup.put (Card.ID_YELLOW_1, new Card(-1, Card.COLOR_YELLOW, 1, Card.ID_YELLOW_1, 1));
-		
-		m_imageIDLookup.put (Card.ID_YELLOW_2, R.drawable.card_yellow_2);
-		m_imageLookup.put (Card.ID_YELLOW_2, BitmapFactory.decodeResource(res, R.drawable.card_yellow_2, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_2, R.string.cardhelp_2);
-        m_cardLookup.put (Card.ID_YELLOW_2, new Card(-1, Card.COLOR_YELLOW, 2, Card.ID_YELLOW_2, 2));
-
-		m_imageIDLookup.put (Card.ID_YELLOW_3, R.drawable.card_yellow_3);
-		m_imageLookup.put (Card.ID_YELLOW_3, BitmapFactory.decodeResource(res, R.drawable.card_yellow_3, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_3, R.string.cardhelp_3);
-        m_cardLookup.put (Card.ID_YELLOW_3, new Card(-1, Card.COLOR_YELLOW, 3, Card.ID_YELLOW_3, 3));
-		
-		m_imageIDLookup.put (Card.ID_YELLOW_4, R.drawable.card_yellow_4);
-		m_imageLookup.put (Card.ID_YELLOW_4, BitmapFactory.decodeResource(res, R.drawable.card_yellow_4, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_4, R.string.cardhelp_4);
-        m_cardLookup.put (Card.ID_YELLOW_4, new Card(-1, Card.COLOR_YELLOW, 4, Card.ID_YELLOW_4, 4));
-		
-		m_imageIDLookup.put (Card.ID_YELLOW_5, R.drawable.card_yellow_5);
-		m_imageLookup.put (Card.ID_YELLOW_5, BitmapFactory.decodeResource(res, R.drawable.card_yellow_5, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_5, R.string.cardhelp_5);
-        m_cardLookup.put (Card.ID_YELLOW_5, new Card(-1, Card.COLOR_YELLOW, 5, Card.ID_YELLOW_5, 5));
-		
-		m_imageIDLookup.put (Card.ID_YELLOW_6, R.drawable.card_yellow_6);
-		m_imageLookup.put (Card.ID_YELLOW_6, BitmapFactory.decodeResource(res, R.drawable.card_yellow_6, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_6, R.string.cardhelp_6);
-        m_cardLookup.put (Card.ID_YELLOW_6, new Card(-1, Card.COLOR_YELLOW, 6, Card.ID_YELLOW_6, 6));
-		
-		m_imageIDLookup.put (Card.ID_YELLOW_7, R.drawable.card_yellow_7);
-		m_imageLookup.put (Card.ID_YELLOW_7, BitmapFactory.decodeResource(res, R.drawable.card_yellow_7, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_7, R.string.cardhelp_7);
-        m_cardLookup.put (Card.ID_YELLOW_7, new Card(-1, Card.COLOR_YELLOW, 7, Card.ID_YELLOW_7, 7));
-
-		m_imageIDLookup.put (Card.ID_YELLOW_8, R.drawable.card_yellow_8);
-		m_imageLookup.put (Card.ID_YELLOW_8, BitmapFactory.decodeResource(res, R.drawable.card_yellow_8, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_8, R.string.cardhelp_8);
-        m_cardLookup.put (Card.ID_YELLOW_8, new Card(-1, Card.COLOR_YELLOW, 8, Card.ID_YELLOW_8, 8));
-		
-		m_imageIDLookup.put (Card.ID_YELLOW_9, R.drawable.card_yellow_9);
-		m_imageLookup.put (Card.ID_YELLOW_9, BitmapFactory.decodeResource(res, R.drawable.card_yellow_9, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_9, R.string.cardhelp_9);
-        m_cardLookup.put (Card.ID_YELLOW_9, new Card(-1, Card.COLOR_YELLOW, 9, Card.ID_YELLOW_9, 9));
-		
-		m_imageIDLookup.put (Card.ID_YELLOW_D, R.drawable.card_yellow_d);
-		m_imageLookup.put (Card.ID_YELLOW_D, BitmapFactory.decodeResource(res, R.drawable.card_yellow_d, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_D, R.string.cardhelp_d);
-        m_cardLookup.put (Card.ID_YELLOW_D, new Card(-1, Card.COLOR_YELLOW, Card.VAL_D, Card.ID_YELLOW_D, 20));
-
-		m_imageIDLookup.put (Card.ID_YELLOW_S, R.drawable.card_yellow_s);
-		m_imageLookup.put (Card.ID_YELLOW_S, BitmapFactory.decodeResource(res, R.drawable.card_yellow_s, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_S, R.string.cardhelp_s);
-        m_cardLookup.put (Card.ID_YELLOW_S, new Card(-1, Card.COLOR_YELLOW, Card.VAL_S, Card.ID_YELLOW_S, 20));
-
-		m_imageIDLookup.put (Card.ID_YELLOW_R, R.drawable.card_yellow_r);
-		m_imageLookup.put (Card.ID_YELLOW_R, BitmapFactory.decodeResource(res, R.drawable.card_yellow_r, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_R, R.string.cardhelp_r);
-        m_cardLookup.put (Card.ID_YELLOW_R, new Card(-1, Card.COLOR_YELLOW, Card.VAL_R, Card.ID_YELLOW_R, 20));
-		
-		
-		m_imageIDLookup.put (Card.ID_WILD, R.drawable.card_wild);
-		m_imageLookup.put (Card.ID_WILD, BitmapFactory.decodeResource(res, R.drawable.card_wild, opt));
-		m_cardHelpLookup.put (Card.ID_WILD, R.string.cardhelp_wild);
-        m_cardLookup.put (Card.ID_WILD, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD, Card.ID_WILD, 50));
-		
-		m_imageIDLookup.put (Card.ID_WILD_DRAW_FOUR, R.drawable.card_wild_drawfour);
-		m_imageLookup.put (Card.ID_WILD_DRAW_FOUR, BitmapFactory.decodeResource(res, R.drawable.card_wild_drawfour, opt));
-		m_cardHelpLookup.put (Card.ID_WILD_DRAW_FOUR, R.string.cardhelp_wild_drawfour);
-        m_cardLookup.put (Card.ID_WILD_DRAW_FOUR, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DRAW_FOUR, 50));
-		
-		m_imageIDLookup.put (Card.ID_WILD_HOS, R.drawable.card_wild_hos);
-		m_imageLookup.put (Card.ID_WILD_HOS, BitmapFactory.decodeResource(res, R.drawable.card_wild_hos, opt));
-		m_cardHelpLookup.put (Card.ID_WILD_HOS, R.string.cardhelp_wild_hos);
-        m_cardLookup.put (Card.ID_WILD_HOS, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_HOS, 0));
-		
-		m_imageIDLookup.put (Card.ID_WILD_HD, R.drawable.card_wild_hd);
-		m_imageLookup.put (Card.ID_WILD_HD, BitmapFactory.decodeResource(res, R.drawable.card_wild_hd, opt));
-		m_cardHelpLookup.put (Card.ID_WILD_HD, R.string.cardhelp_wild_hd);
-        m_cardLookup.put (Card.ID_WILD_HD, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_HD, 100));
-		
-		m_imageIDLookup.put (Card.ID_WILD_MYSTERY, R.drawable.card_wild_mystery);
-		m_imageLookup.put (Card.ID_WILD_MYSTERY, BitmapFactory.decodeResource(res, R.drawable.card_wild_mystery, opt));
-		m_cardHelpLookup.put (Card.ID_WILD_MYSTERY, R.string.cardhelp_wild_mystery);
-        m_cardLookup.put (Card.ID_WILD_MYSTERY, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_MYSTERY, 0));
-		
-		m_imageIDLookup.put (Card.ID_WILD_DB, R.drawable.card_wild_db);
-		m_imageLookup.put (Card.ID_WILD_DB, BitmapFactory.decodeResource(res, R.drawable.card_wild_db, opt));
-		m_cardHelpLookup.put (Card.ID_WILD_DB, R.string.cardhelp_wild_db);
-        m_cardLookup.put (Card.ID_WILD_DB, new Card(-1, Card.COLOR_WILD, Card.VAL_WILD_DRAW, Card.ID_WILD_DB, 100));
-		
-		m_imageIDLookup.put (Card.ID_RED_0_HD, R.drawable.card_red_0_hd);
-		m_imageLookup.put (Card.ID_RED_0_HD, BitmapFactory.decodeResource(res, R.drawable.card_red_0_hd, opt));
-        if (m_go.getFamilyFriendly())
-		{
-			m_cardHelpLookup.put (Card.ID_RED_0_HD, R.string.cardhelp_red_0_hd_ff);
-		}
-		else
-		{
-			m_cardHelpLookup.put (Card.ID_RED_0_HD, R.string.cardhelp_red_0_hd);
-		}
-        m_cardLookup.put (Card.ID_RED_0_HD, new Card(-1, Card.COLOR_RED, 0, Card.ID_RED_0_HD, 0));
-
-		m_imageIDLookup.put (Card.ID_RED_2_GLASNOST, R.drawable.card_red_2_glasnost);
-		m_imageLookup.put (Card.ID_RED_2_GLASNOST, BitmapFactory.decodeResource(res, R.drawable.card_red_2_glasnost, opt));
-		m_cardHelpLookup.put (Card.ID_RED_2_GLASNOST, R.string.cardhelp_red_2_glasnost);
-        m_cardLookup.put (Card.ID_RED_2_GLASNOST, new Card(-1, Card.COLOR_RED, 2, Card.ID_RED_2_GLASNOST, 75));
-		
-		m_imageIDLookup.put (Card.ID_RED_5_MAGIC, R.drawable.card_red_5_magic);
-		m_imageLookup.put (Card.ID_RED_5_MAGIC, BitmapFactory.decodeResource(res, R.drawable.card_red_5_magic, opt));
-		m_cardHelpLookup.put (Card.ID_RED_5_MAGIC, R.string.cardhelp_red_5_magic);
-        m_cardLookup.put (Card.ID_RED_5_MAGIC, new Card(-1, Card.COLOR_RED, 5, Card.ID_RED_5_MAGIC, -5));
-		
-		m_imageIDLookup.put (Card.ID_RED_D_SPREADER, R.drawable.card_red_d_spreader);
-		m_imageLookup.put (Card.ID_RED_D_SPREADER, BitmapFactory.decodeResource(res, R.drawable.card_red_d_spreader, opt));
-		m_cardHelpLookup.put (Card.ID_RED_D_SPREADER, R.string.cardhelp_d_spread);
-        m_cardLookup.put (Card.ID_RED_D_SPREADER, new Card(-1, Card.COLOR_RED, Card.VAL_D_SPREAD, Card.ID_RED_D_SPREADER, 60));
-
-		m_imageIDLookup.put (Card.ID_RED_S_DOUBLE, R.drawable.card_red_s_double);
-		m_imageLookup.put (Card.ID_RED_S_DOUBLE, BitmapFactory.decodeResource(res, R.drawable.card_red_s_double, opt));
-		m_cardHelpLookup.put (Card.ID_RED_S_DOUBLE, R.string.cardhelp_s_double);
-        m_cardLookup.put (Card.ID_RED_S_DOUBLE, new Card(-1, Card.COLOR_RED, Card.VAL_S_DOUBLE, Card.ID_RED_S_DOUBLE, 40));
-		
-		m_imageIDLookup.put (Card.ID_RED_R_SKIP, R.drawable.card_red_r_skip);
-		m_imageLookup.put (Card.ID_RED_R_SKIP, BitmapFactory.decodeResource(res, R.drawable.card_red_r_skip, opt));
-		m_cardHelpLookup.put (Card.ID_RED_R_SKIP, R.string.cardhelp_r_skip);
-        m_cardLookup.put (Card.ID_RED_R_SKIP, new Card(-1, Card.COLOR_RED, Card.VAL_R_SKIP, Card.ID_RED_R_SKIP, 40));
-		
-		m_imageIDLookup.put (Card.ID_GREEN_0_QUITTER, R.drawable.card_green_0_quitter);
-		m_imageLookup.put (Card.ID_GREEN_0_QUITTER, BitmapFactory.decodeResource(res, R.drawable.card_green_0_quitter, opt));
-		if (m_go.getFamilyFriendly())
-		{
-			m_cardHelpLookup.put (Card.ID_GREEN_0_QUITTER, R.string.cardhelp_green_0_quitter_ff);
-		}
-		else
-		{
-			m_cardHelpLookup.put (Card.ID_GREEN_0_QUITTER, R.string.cardhelp_green_0_quitter);			
-		}
-        m_cardLookup.put (Card.ID_GREEN_0_QUITTER, new Card(-1, Card.COLOR_GREEN, 0, Card.ID_GREEN_0_QUITTER, 100));
-		
-        if (m_go.getFamilyFriendly())
-		{
-			m_imageIDLookup.put (Card.ID_GREEN_3_AIDS, R.drawable.card_green_3_aids_ff);
-			m_imageLookup.put (Card.ID_GREEN_3_AIDS, BitmapFactory.decodeResource(res, R.drawable.card_green_3_aids_ff, opt));
-			m_cardHelpLookup.put (Card.ID_GREEN_3_AIDS, R.string.cardhelp_green_3_aids_ff);
-		}
-		else
-		{
-			m_imageIDLookup.put (Card.ID_GREEN_3_AIDS, R.drawable.card_green_3_aids);
-			m_imageLookup.put (Card.ID_GREEN_3_AIDS, BitmapFactory.decodeResource(res, R.drawable.card_green_3_aids, opt));
-			m_cardHelpLookup.put (Card.ID_GREEN_3_AIDS, R.string.cardhelp_green_3_aids);
-		}
-        m_cardLookup.put (Card.ID_GREEN_3_AIDS, new Card(-1, Card.COLOR_GREEN, 3, Card.ID_GREEN_3_AIDS, 3));
-		
-		m_imageIDLookup.put (Card.ID_GREEN_4_IRISH, R.drawable.card_green_4_irish);
-		m_imageLookup.put (Card.ID_GREEN_4_IRISH, BitmapFactory.decodeResource(res, R.drawable.card_green_4_irish, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_4_IRISH, R.string.cardhelp_green_4_irish);
-        m_cardLookup.put (Card.ID_GREEN_4_IRISH, new Card(-1, Card.COLOR_GREEN, 4, Card.ID_GREEN_4_IRISH, 75));
-		
-		m_imageIDLookup.put (Card.ID_GREEN_D_SPREADER, R.drawable.card_green_d_spreader);
-		m_imageLookup.put (Card.ID_GREEN_D_SPREADER, BitmapFactory.decodeResource(res, R.drawable.card_green_d_spreader, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_D_SPREADER, R.string.cardhelp_d_spread);
-        m_cardLookup.put (Card.ID_GREEN_D_SPREADER, new Card(-1, Card.COLOR_GREEN, Card.VAL_D_SPREAD, Card.ID_GREEN_D_SPREADER, 60));
-		
-		m_imageIDLookup.put (Card.ID_GREEN_S_DOUBLE, R.drawable.card_green_s_double);
-		m_imageLookup.put (Card.ID_GREEN_S_DOUBLE, BitmapFactory.decodeResource(res, R.drawable.card_green_s_double, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_S_DOUBLE, R.string.cardhelp_s_double);
-        m_cardLookup.put (Card.ID_GREEN_S_DOUBLE, new Card(-1, Card.COLOR_GREEN, Card.VAL_S_DOUBLE, Card.ID_GREEN_S_DOUBLE, 40));
-		
-		m_imageIDLookup.put (Card.ID_GREEN_R_SKIP, R.drawable.card_green_r_skip);
-		m_imageLookup.put (Card.ID_GREEN_R_SKIP, BitmapFactory.decodeResource(res, R.drawable.card_green_r_skip, opt));
-		m_cardHelpLookup.put (Card.ID_GREEN_R_SKIP, R.string.cardhelp_r_skip);
-        m_cardLookup.put (Card.ID_GREEN_R_SKIP, new Card(-1, Card.COLOR_GREEN, Card.VAL_R_SKIP, Card.ID_GREEN_R_SKIP, 40));		
-		
-        if (m_go.getFamilyFriendly())
-		{
-			m_imageIDLookup.put (Card.ID_BLUE_0_FUCK_YOU, R.drawable.card_blue_0_fuckyou_ff);
-			m_imageLookup.put (Card.ID_BLUE_0_FUCK_YOU, BitmapFactory.decodeResource(res, R.drawable.card_blue_0_fuckyou_ff, opt));
-			m_cardHelpLookup.put (Card.ID_BLUE_0_FUCK_YOU, R.string.cardhelp_blue_0_fuck_you_ff);
-		}
-		else
-		{
-			m_imageIDLookup.put (Card.ID_BLUE_0_FUCK_YOU, R.drawable.card_blue_0_fuckyou);
-			m_imageLookup.put (Card.ID_BLUE_0_FUCK_YOU, BitmapFactory.decodeResource(res, R.drawable.card_blue_0_fuckyou, opt));
-			m_cardHelpLookup.put (Card.ID_BLUE_0_FUCK_YOU, R.string.cardhelp_blue_0_fuck_you);
-		}
-        m_cardLookup.put (Card.ID_BLUE_0_FUCK_YOU, new Card(-1, Card.COLOR_BLUE, 0, Card.ID_BLUE_0_FUCK_YOU, 0));
-		
-		m_imageIDLookup.put (Card.ID_BLUE_2_SHIELD, R.drawable.card_blue_2_shield);
-		m_imageLookup.put (Card.ID_BLUE_2_SHIELD, BitmapFactory.decodeResource(res, R.drawable.card_blue_2_shield, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_2_SHIELD, R.string.cardhelp_blue_2_shield);
-        m_cardLookup.put (Card.ID_BLUE_2_SHIELD, new Card(-1, Card.COLOR_BLUE, 2, Card.ID_BLUE_2_SHIELD, 0));
-		
-		m_imageIDLookup.put (Card.ID_BLUE_D_SPREADER, R.drawable.card_blue_d_spreader);
-		m_imageLookup.put (Card.ID_BLUE_D_SPREADER, BitmapFactory.decodeResource(res, R.drawable.card_blue_d_spreader, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_D_SPREADER, R.string.cardhelp_d_spread);
-        m_cardLookup.put (Card.ID_BLUE_D_SPREADER, new Card(-1, Card.COLOR_BLUE, Card.VAL_D_SPREAD, Card.ID_BLUE_D_SPREADER, 60));
-
-		m_imageIDLookup.put (Card.ID_BLUE_S_DOUBLE, R.drawable.card_blue_s_double);
-		m_imageLookup.put (Card.ID_BLUE_S_DOUBLE, BitmapFactory.decodeResource(res, R.drawable.card_blue_s_double, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_S_DOUBLE, R.string.cardhelp_s_double);
-        m_cardLookup.put (Card.ID_BLUE_S_DOUBLE, new Card(-1, Card.COLOR_BLUE, Card.VAL_S_DOUBLE, Card.ID_BLUE_S_DOUBLE, 40));
-
-		m_imageIDLookup.put (Card.ID_BLUE_R_SKIP, R.drawable.card_blue_r_skip);
-		m_imageLookup.put (Card.ID_BLUE_R_SKIP, BitmapFactory.decodeResource(res, R.drawable.card_blue_r_skip, opt));
-		m_cardHelpLookup.put (Card.ID_BLUE_R_SKIP, R.string.cardhelp_r_skip);
-        m_cardLookup.put (Card.ID_BLUE_R_SKIP, new Card(-1, Card.COLOR_BLUE, Card.VAL_R_SKIP, Card.ID_BLUE_R_SKIP, 40));		
-		
-        if (m_go.getFamilyFriendly())
-		{
-			m_imageIDLookup.put (Card.ID_YELLOW_0_SHITTER, R.drawable.card_yellow_0_shitter_ff);
-			m_imageLookup.put (Card.ID_YELLOW_0_SHITTER, BitmapFactory.decodeResource(res, R.drawable.card_yellow_0_shitter_ff, opt));
-			m_cardHelpLookup.put (Card.ID_YELLOW_0_SHITTER, R.string.cardhelp_yellow_0_shitter_ff);
-		}
-		else
-		{
-			m_imageIDLookup.put (Card.ID_YELLOW_0_SHITTER, R.drawable.card_yellow_0_shitter);
-			m_imageLookup.put (Card.ID_YELLOW_0_SHITTER, BitmapFactory.decodeResource(res, R.drawable.card_yellow_0_shitter, opt));
-			m_cardHelpLookup.put (Card.ID_YELLOW_0_SHITTER, R.string.cardhelp_yellow_0_shitter);
-		}
-        m_cardLookup.put (Card.ID_YELLOW_0_SHITTER, new Card(-1, Card.COLOR_YELLOW, 0, Card.ID_YELLOW_0_SHITTER, 0));
-
-		m_imageIDLookup.put (Card.ID_YELLOW_1_MAD, R.drawable.card_yellow_1_mad);
-		m_imageLookup.put (Card.ID_YELLOW_1_MAD, BitmapFactory.decodeResource(res, R.drawable.card_yellow_1_mad, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_1_MAD, R.string.cardhelp_yellow_1_mad);
-        m_cardLookup.put (Card.ID_YELLOW_1_MAD, new Card(-1, Card.COLOR_YELLOW, 1, Card.ID_YELLOW_1_MAD, 100));
-
-		m_imageIDLookup.put (Card.ID_YELLOW_69, R.drawable.card_yellow_69);
-		m_imageLookup.put (Card.ID_YELLOW_69, BitmapFactory.decodeResource(res, R.drawable.card_yellow_69, opt));
-		if (m_go.getFamilyFriendly())
-		{
-			m_cardHelpLookup.put (Card.ID_YELLOW_69, R.string.cardhelp_yellow_69_ff);
-		}
-		else
-		{
-			m_cardHelpLookup.put (Card.ID_YELLOW_69, R.string.cardhelp_yellow_69);	
-		}
-        m_cardLookup.put (Card.ID_YELLOW_69, new Card(-1, Card.COLOR_YELLOW, 6, Card.ID_YELLOW_69, 6));
-
-		m_imageIDLookup.put (Card.ID_YELLOW_D_SPREADER, R.drawable.card_yellow_d_spreader);
-		m_imageLookup.put (Card.ID_YELLOW_D_SPREADER, BitmapFactory.decodeResource(res, R.drawable.card_yellow_d_spreader, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_D_SPREADER, R.string.cardhelp_d_spread);
-        m_cardLookup.put (Card.ID_YELLOW_D_SPREADER, new Card(-1, Card.COLOR_YELLOW, Card.VAL_D_SPREAD, Card.ID_YELLOW_D_SPREADER, 60));
-
-		m_imageIDLookup.put (Card.ID_YELLOW_S_DOUBLE, R.drawable.card_yellow_s_double);
-		m_imageLookup.put (Card.ID_YELLOW_S_DOUBLE, BitmapFactory.decodeResource(res, R.drawable.card_yellow_s_double, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_S_DOUBLE, R.string.cardhelp_s_double);
-        m_cardLookup.put (Card.ID_YELLOW_S_DOUBLE, new Card(-1, Card.COLOR_YELLOW, Card.VAL_S_DOUBLE, Card.ID_YELLOW_S_DOUBLE, 40));
-
-		m_imageIDLookup.put (Card.ID_YELLOW_R_SKIP, R.drawable.card_yellow_r_skip);
-		m_imageLookup.put (Card.ID_YELLOW_R_SKIP, BitmapFactory.decodeResource(res, R.drawable.card_yellow_r_skip, opt));
-		m_cardHelpLookup.put (Card.ID_YELLOW_R_SKIP, R.string.cardhelp_r_skip);
-        m_cardLookup.put (Card.ID_YELLOW_R_SKIP, new Card(-1, Card.COLOR_YELLOW, Card.VAL_R_SKIP, Card.ID_YELLOW_R_SKIP, 40));		
-
-//		m_bmpDirColorCCW = BitmapFactory.decodeResource(res, R.drawable.ccw, opt);
-//		m_bmpDirColorCCWRed = BitmapFactory.decodeResource(res, R.drawable.ccw_red, opt);
-//		m_bmpDirColorCCWBlue = BitmapFactory.decodeResource(res, R.drawable.ccw_blue, opt);
-//		m_bmpDirColorCCWGreen = BitmapFactory.decodeResource(res, R.drawable.ccw_green, opt);
-//		m_bmpDirColorCCWYellow = BitmapFactory.decodeResource(res, R.drawable.ccw_yellow, opt);
-//
-//		m_bmpDirColorCW = BitmapFactory.decodeResource(res, R.drawable.cw, opt);
-//		m_bmpDirColorCWRed = BitmapFactory.decodeResource(res, R.drawable.cw_red, opt);
-//		m_bmpDirColorCWBlue = BitmapFactory.decodeResource(res, R.drawable.cw_blue, opt);
-//		m_bmpDirColorCWGreen = BitmapFactory.decodeResource(res, R.drawable.cw_green, opt);
-//		m_bmpDirColorCWYellow = BitmapFactory.decodeResource(res, R.drawable.cw_yellow, opt);
-//
-//		m_bmpPlayerIndicator[Card.COLOR_RED - 1][Game.SEAT_SOUTH - 1] = BitmapFactory.decodeResource(res, R.drawable.player_red_south, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_GREEN - 1][Game.SEAT_SOUTH - 1] = BitmapFactory.decodeResource(res, R.drawable.player_green_south, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_BLUE - 1][Game.SEAT_SOUTH - 1] = BitmapFactory.decodeResource(res, R.drawable.player_blue_south, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_YELLOW - 1][Game.SEAT_SOUTH - 1] = BitmapFactory.decodeResource(res, R.drawable.player_yellow_south, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_WILD - 1][Game.SEAT_SOUTH - 1] = BitmapFactory.decodeResource(res, R.drawable.player_south, opt);
-//
-//		m_bmpPlayerIndicator[Card.COLOR_RED - 1][Game.SEAT_WEST - 1] = BitmapFactory.decodeResource(res, R.drawable.player_red_west, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_GREEN - 1][Game.SEAT_WEST - 1] = BitmapFactory.decodeResource(res, R.drawable.player_green_west, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_BLUE - 1][Game.SEAT_WEST - 1] = BitmapFactory.decodeResource(res, R.drawable.player_blue_west, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_YELLOW - 1][Game.SEAT_WEST - 1] = BitmapFactory.decodeResource(res, R.drawable.player_yellow_west, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_WILD - 1][Game.SEAT_WEST - 1] = BitmapFactory.decodeResource(res, R.drawable.player_west, opt);
-//
-//		m_bmpPlayerIndicator[Card.COLOR_RED - 1][Game.SEAT_NORTH - 1] = BitmapFactory.decodeResource(res, R.drawable.player_red_north, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_GREEN - 1][Game.SEAT_NORTH - 1] = BitmapFactory.decodeResource(res, R.drawable.player_green_north, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_BLUE - 1][Game.SEAT_NORTH - 1] = BitmapFactory.decodeResource(res, R.drawable.player_blue_north, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_YELLOW - 1][Game.SEAT_NORTH - 1] = BitmapFactory.decodeResource(res, R.drawable.player_yellow_north, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_WILD - 1][Game.SEAT_NORTH - 1] = BitmapFactory.decodeResource(res, R.drawable.player_north, opt);
-//
-//		m_bmpPlayerIndicator[Card.COLOR_RED - 1][Game.SEAT_EAST - 1] = BitmapFactory.decodeResource(res, R.drawable.player_red_east, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_GREEN - 1][Game.SEAT_EAST - 1] = BitmapFactory.decodeResource(res, R.drawable.player_green_east, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_BLUE - 1][Game.SEAT_EAST - 1] = BitmapFactory.decodeResource(res, R.drawable.player_blue_east, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_YELLOW - 1][Game.SEAT_EAST - 1] = BitmapFactory.decodeResource(res, R.drawable.player_yellow_east, opt);
-//		m_bmpPlayerIndicator[Card.COLOR_WILD - 1][Game.SEAT_EAST - 1] = BitmapFactory.decodeResource(res, R.drawable.player_east, opt);
-		
-		m_bmpWinningMessage[Game.SEAT_SOUTH - 1] = BitmapFactory.decodeResource(res, R.drawable.winner_south, opt);
-		m_bmpWinningMessage[Game.SEAT_WEST - 1] = BitmapFactory.decodeResource(res, R.drawable.winner_west, opt);
-		m_bmpWinningMessage[Game.SEAT_NORTH - 1] = BitmapFactory.decodeResource(res, R.drawable.winner_north, opt);
-		m_bmpWinningMessage[Game.SEAT_EAST - 1] = BitmapFactory.decodeResource(res, R.drawable.winner_east, opt);
-		
-
-		m_bmpCardBadge = BitmapFactory.decodeResource(res, R.drawable.card_badge, opt);
-		
-		m_bmpEmoticonAggressor = BitmapFactory.decodeResource(res, R.drawable.emoticon_aggressor, opt);
-		m_bmpEmoticonVictim = BitmapFactory.decodeResource(res, R.drawable.emoticon_victim, opt);
-		
-		int i = 0;
-		
-	    m_cardIDs[i++] = Card.ID_RED_0;
-	    m_cardIDs[i++] = Card.ID_RED_0_HD;		
-	    m_cardIDs[i++] = Card.ID_RED_1;
-	    m_cardIDs[i++] = Card.ID_RED_2;
-	    m_cardIDs[i++] = Card.ID_RED_2_GLASNOST;		
-	    m_cardIDs[i++] = Card.ID_RED_3;
-	    m_cardIDs[i++] = Card.ID_RED_4;
-	    m_cardIDs[i++] = Card.ID_RED_5;
-	    m_cardIDs[i++] = Card.ID_RED_5_MAGIC;		
-	    m_cardIDs[i++] = Card.ID_RED_6;
-	    m_cardIDs[i++] = Card.ID_RED_7;
-	    m_cardIDs[i++] = Card.ID_RED_8;
-	    m_cardIDs[i++] = Card.ID_RED_9;
-	    m_cardIDs[i++] = Card.ID_RED_D;
-	    m_cardIDs[i++] = Card.ID_RED_D_SPREADER;		
-	    m_cardIDs[i++] = Card.ID_RED_S;
-	    m_cardIDs[i++] = Card.ID_RED_S_DOUBLE;		
-	    m_cardIDs[i++] = Card.ID_RED_R;		
-	    m_cardIDs[i++] = Card.ID_RED_R_SKIP;
-	    	    
-	    m_cardIDs[i++] = Card.ID_GREEN_0;
-	    m_cardIDs[i++] = Card.ID_GREEN_0_QUITTER;		
-	    m_cardIDs[i++] = Card.ID_GREEN_1;
-	    m_cardIDs[i++] = Card.ID_GREEN_2;
-	    m_cardIDs[i++] = Card.ID_GREEN_3;
-	    m_cardIDs[i++] = Card.ID_GREEN_3_AIDS;		
-	    m_cardIDs[i++] = Card.ID_GREEN_4;
-	    m_cardIDs[i++] = Card.ID_GREEN_4_IRISH;
-	    m_cardIDs[i++] = Card.ID_GREEN_5;
-	    m_cardIDs[i++] = Card.ID_GREEN_6;
-	    m_cardIDs[i++] = Card.ID_GREEN_7;
-	    m_cardIDs[i++] = Card.ID_GREEN_8;
-	    m_cardIDs[i++] = Card.ID_GREEN_9;
-	    m_cardIDs[i++] = Card.ID_GREEN_D;
-	    m_cardIDs[i++] = Card.ID_GREEN_D_SPREADER;
-	    m_cardIDs[i++] = Card.ID_GREEN_S;
-	    m_cardIDs[i++] = Card.ID_GREEN_S_DOUBLE;
-	    m_cardIDs[i++] = Card.ID_GREEN_R;
-	    m_cardIDs[i++] = Card.ID_GREEN_R_SKIP;
-	    	    
-	    m_cardIDs[i++] = Card.ID_BLUE_0;
-	    m_cardIDs[i++] = Card.ID_BLUE_0_FUCK_YOU;
-	    m_cardIDs[i++] = Card.ID_BLUE_1;
-	    m_cardIDs[i++] = Card.ID_BLUE_2;
-	    m_cardIDs[i++] = Card.ID_BLUE_2_SHIELD;
-	    m_cardIDs[i++] = Card.ID_BLUE_3;
-	    m_cardIDs[i++] = Card.ID_BLUE_4;
-	    m_cardIDs[i++] = Card.ID_BLUE_5;
-	    m_cardIDs[i++] = Card.ID_BLUE_6;
-	    m_cardIDs[i++] = Card.ID_BLUE_7;
-	    m_cardIDs[i++] = Card.ID_BLUE_8;
-	    m_cardIDs[i++] = Card.ID_BLUE_9;
-	    m_cardIDs[i++] = Card.ID_BLUE_D;
-	    m_cardIDs[i++] = Card.ID_BLUE_D_SPREADER;
-	    m_cardIDs[i++] = Card.ID_BLUE_S;
-	    m_cardIDs[i++] = Card.ID_BLUE_S_DOUBLE;
-	    m_cardIDs[i++] = Card.ID_BLUE_R;
-	    m_cardIDs[i++] = Card.ID_BLUE_R_SKIP;		
-
-	    m_cardIDs[i++] = Card.ID_YELLOW_0;
-	    m_cardIDs[i++] = Card.ID_YELLOW_0_SHITTER;		
-	    m_cardIDs[i++] = Card.ID_YELLOW_1;
-	    m_cardIDs[i++] = Card.ID_YELLOW_1_MAD;
-	    m_cardIDs[i++] = Card.ID_YELLOW_2;
-	    m_cardIDs[i++] = Card.ID_YELLOW_3;
-	    m_cardIDs[i++] = Card.ID_YELLOW_4;
-	    m_cardIDs[i++] = Card.ID_YELLOW_5;
-	    m_cardIDs[i++] = Card.ID_YELLOW_6;
-	    m_cardIDs[i++] = Card.ID_YELLOW_69;
-	    m_cardIDs[i++] = Card.ID_YELLOW_7;
-	    m_cardIDs[i++] = Card.ID_YELLOW_8;
-	    m_cardIDs[i++] = Card.ID_YELLOW_9;
-	    m_cardIDs[i++] = Card.ID_YELLOW_D;
-	    m_cardIDs[i++] = Card.ID_YELLOW_D_SPREADER;
-	    m_cardIDs[i++] = Card.ID_YELLOW_S;
-	    m_cardIDs[i++] = Card.ID_YELLOW_S_DOUBLE;
-	    m_cardIDs[i++] = Card.ID_YELLOW_R;	
-	    m_cardIDs[i++] = Card.ID_YELLOW_R_SKIP;
-	    	    
-	    m_cardIDs[i++] = Card.ID_WILD;
-	    m_cardIDs[i++] = Card.ID_WILD_DRAW_FOUR;
-	    m_cardIDs[i++] = Card.ID_WILD_HOS;
-	    m_cardIDs[i++] = Card.ID_WILD_HD;
-	    m_cardIDs[i++] = Card.ID_WILD_MYSTERY;
-	    m_cardIDs[i] = Card.ID_WILD_DB;
+		String text = String.valueOf(count);
+		Rect bounds = new Rect();
+		m_paintCardBadgeText.getTextBounds(text, 0, text.length(), bounds);
+		float fx = pt.x + m_bmpCardBadge.getWidth()  / 2f;
+		float fy = pt.y + m_bmpCardBadge.getHeight() / 2f + bounds.height() / 2f;
+		cv.drawText(text, fx, fy, m_paintCardBadgeText);
 	}
-	
-	private void drawCard (Canvas cv, Card c)
-	{
+
+	// -------------------------------------------------------------------------
+	// Card drawing
+	// -------------------------------------------------------------------------
+
+	private void drawCard(Canvas cv, Card c) {
 		drawCard(cv, c, (int) c.getX(), (int) c.getY(), c.getFlip());
 	}
 
-	private void drawCard (Canvas cv, Card c, int x, int y)
-	{
+	private void drawCard(Canvas cv, Card c, int x, int y) {
 		drawCard(cv, c, x, y, c.getFlip());
 	}
 
-	private void drawCard (Canvas cv, Card c, int x, int y, float flip)
-	{
+	private void drawCard(Canvas cv, Card c, int x, int y, float flip) {
 		Camera camera = new Camera();
 		m_drawMatrix.reset();
 		camera.save();
 		camera.rotateY(flip);
 		camera.getMatrix(m_drawMatrix);
 		camera.restore();
-		m_drawMatrix.preTranslate( - m_cardWidth / 2, - m_cardHeight / 2);
-		m_drawMatrix.postTranslate(x + m_cardWidth / 2, y + m_cardHeight / 2);
+		m_drawMatrix.preTranslate(-m_cardWidth / 2f, -m_cardHeight / 2f);
+		m_drawMatrix.postTranslate(x + m_cardWidth / 2f, y + m_cardHeight / 2f);
 
-		Bitmap b;
-		if (c.isFaceUp())
-		{
-			b = m_imageLookup.get(c.getID());
-		}
-		else 
-		{
-			b = m_bmpCardBack;
-			/*
-			 * show some cards upside down -- this doesn't look as good as I thought it would
-			 */
-			/*
-			Random rgen = new Random();
-			int orientation = rgen.nextInt(100);
-			if (orientation < 25)
-			{
-				m_drawMatrix.postRotate(180, x + b.getWidth() / 2, y + b.getHeight() / 2); 
-			}
-			*/
-		}
-
-		
+		CardInfo info = m_cardInfo.get(c.getID());
+		Bitmap b = (c.isFaceUp() && info != null) ? info.bitmap : m_bmpCardBack;
 		cv.drawBitmap(b, m_drawMatrix, null);
 	}
-	
-	
-	private void drawPenalty(Canvas cv)
-	{
-	    // draw penalty!
-	    Penalty p = m_game.getPenalty();
-	    
-	    if (p == null || p.getType() == Penalty.PENTYPE_NONE)
-	    {
-	    	return;
-	    }
 
-        if (p.getType() == Penalty.PENTYPE_CARD)
-        {
-			m_drawMatrix.reset();
-			m_drawMatrix.setScale(1, 1);
-			m_drawMatrix.setTranslate(m_ptDiscardBadge.x, m_ptDiscardBadge.y);
+	// -------------------------------------------------------------------------
+	// Penalty drawing
+	// -------------------------------------------------------------------------
 
-			cv.drawBitmap(m_bmpCardBadge, m_drawMatrix, null);
+	private void drawPenalty(Canvas cv) {
+		Penalty p = m_game.getPenalty();
+		if (p == null || p.getType() == Penalty.PENTYPE_NONE) return;
 
-			float fx = (float)(m_ptDiscardBadge.x + m_bmpCardBadge.getWidth() / 2);
-			Rect textBounds = new Rect();
-			String numCards = "+" + p.getNumCards();
-
-			m_paintCardBadgeText.getTextBounds(numCards, 0, numCards.length(), textBounds);
-			float fy = (float)(m_ptDiscardBadge.y + m_bmpCardBadge.getHeight() / 2 + (textBounds.height() / 2));
-
-			cv.drawText(numCards, fx, fy, m_paintCardBadgeText);
-        }
-		else if (p.getOrigCard().getID() != m_game.getLastPlayedCard().getID())
-		{
-			Bitmap b = m_imageLookup.get(p.getOrigCard().getID());
-			float scale = (float) m_bmpCardBadge.getWidth() / (float)b.getWidth();
-			m_drawMatrix.reset();
-			m_drawMatrix.postScale(scale, scale);
-			m_drawMatrix.postTranslate(m_ptDiscardBadge.x, m_ptDiscardBadge.y);
-			cv.drawBitmap(b, m_drawMatrix, null);
+		if (p.getType() == Penalty.PENTYPE_CARD) {
+			drawBadgeWithText(cv, m_ptDiscardBadge, "+" + p.getNumCards());
+		} else if (p.getOrigCard().getID() != m_game.getLastPlayedCard().getID()) {
+			Bitmap b = getCardBitmap(p.getOrigCard().getID());
+			if (b != null) {
+				float scale = (float) m_bmpCardBadge.getWidth() / b.getWidth();
+				m_drawMatrix.reset();
+				m_drawMatrix.postScale(scale, scale);
+				m_drawMatrix.postTranslate(m_ptDiscardBadge.x, m_ptDiscardBadge.y);
+				cv.drawBitmap(b, m_drawMatrix, null);
+			}
 		}
 
-        Point pt;
-        
-        Player pv = p.getVictim();
-        if (pv != null) 
-        {
-			pt = m_ptEmoticon[pv.getSeat() - 1];
-
-			int dx = 0;
-			int dy = 0;
-
-			// adjust emoticon position for table cards offset
-			if (!pv.getHand().getTableCards().isEmpty())
-			{
-				switch (pv.getSeat()) {
-					case Game.SEAT_SOUTH:
-						dy -= m_cardHeight * 2 / 3;
-						break;
-					case Game.SEAT_WEST:
-						dx += m_cardWidth / 2;
-						break;
-					case Game.SEAT_NORTH:
-						dy += m_cardHeight / 2;
-						break;
-					case Game.SEAT_EAST:
-						dx -= m_cardWidth / 2;
-						break;
-				}
-			}
-
-			m_drawMatrix.reset();
-			m_drawMatrix.setScale(1, 1);
-    		m_drawMatrix.setTranslate(pt.x + dx, pt.y + dy);
-    		
-            cv.drawBitmap(m_bmpEmoticonVictim, m_drawMatrix, null);
-        }
-
-        Player pa = p.getGeneratingPlayer();
-        if (pa != null) 
-        {
-			pt = m_ptEmoticon[pa.getSeat() - 1];
-
-			int dx = 0;
-			int dy = 0;
-
-			// adjust emoticon position for table cards offset
-			if (!pa.getHand().getTableCards().isEmpty())
-			{
-				switch (pa.getSeat()) {
-					case Game.SEAT_SOUTH:
-						dy -= m_cardHeight * 2 / 3;
-						break;
-					case Game.SEAT_WEST:
-						dx += m_cardWidth / 2;
-						break;
-					case Game.SEAT_NORTH:
-						dy += m_cardHeight / 2;
-						break;
-					case Game.SEAT_EAST:
-						dx -= m_cardWidth / 2;
-						break;
-				}
-			}
-
-			m_drawMatrix.reset();
-			m_drawMatrix.setScale(1, 1);
-			m_drawMatrix.setTranslate(pt.x + dx, pt.y + dy);
-    		
-            cv.drawBitmap(m_bmpEmoticonAggressor, m_drawMatrix, null);
-        }
-
-
-
+		drawEmoticon(cv, p.getVictim(),           m_bmpEmoticonVictim);
+		drawEmoticon(cv, p.getGeneratingPlayer(), m_bmpEmoticonAggressor);
 	}
 
-	public static int getColorRgb(int gameColor)
-	{
-		switch (gameColor)
-		{
-			case Card.COLOR_RED: return Color.rgb(203, 13, 40);
-			case Card.COLOR_GREEN: return Color.rgb(4,133,64);
-			case Card.COLOR_BLUE: return Color.rgb(4, 86, 165);
-			case Card.COLOR_YELLOW: return Color.rgb(233, 146, 6);
-			case Card.COLOR_WILD: return Color.rgb(221,220,215);
+	private void drawBadgeWithText(Canvas cv, Point pt, String text) {
+		m_drawMatrix.reset();
+		m_drawMatrix.setTranslate(pt.x, pt.y);
+		cv.drawBitmap(m_bmpCardBadge, m_drawMatrix, null);
+
+		Rect bounds = new Rect();
+		m_paintCardBadgeText.getTextBounds(text, 0, text.length(), bounds);
+		float fx = pt.x + m_bmpCardBadge.getWidth()  / 2f;
+		float fy = pt.y + m_bmpCardBadge.getHeight() / 2f + bounds.height() / 2f;
+		cv.drawText(text, fx, fy, m_paintCardBadgeText);
+	}
+
+	private void drawEmoticon(Canvas cv, Player player, Bitmap emoticon) {
+		if (player == null) return;
+		Point pt = m_ptEmoticon[player.getSeat() - 1];
+		int dx = 0, dy = 0;
+		if (!player.getHand().getTableCards().isEmpty()) {
+			switch (player.getSeat()) {
+				case Game.SEAT_SOUTH: dy -= m_cardHeight * 2 / 3; break;
+				case Game.SEAT_WEST:  dx += m_cardWidth  / 2;     break;
+				case Game.SEAT_NORTH: dy += m_cardHeight / 2;     break;
+				case Game.SEAT_EAST:  dx -= m_cardWidth  / 2;     break;
+			}
 		}
-		return Color.TRANSPARENT;
+		m_drawMatrix.reset();
+		m_drawMatrix.setTranslate(pt.x + dx, pt.y + dy);
+		cv.drawBitmap(emoticon, m_drawMatrix, null);
 	}
-	
-	public void ShowCardHelp (Card c)
-	{
+
+	// =========================================================================
+	// Scores
+	// =========================================================================
+
+	public void displayScore(Canvas canvas) {
+		for (int i = 0; i < 4; i++) {
+			Paint.Align align;
+			if (i == Game.SEAT_SOUTH - 1 || i == Game.SEAT_NORTH - 1) align = Paint.Align.CENTER;
+			else if (i == Game.SEAT_WEST - 1)                          align = Paint.Align.LEFT;
+			else                                                        align = Paint.Align.RIGHT;
+			m_paintScoreText.setTextAlign(align);
+
+			String msg = buildScoreMessage(i);
+			canvas.drawText(msg, m_ptScoreText[i].x, m_ptScoreText[i].y, m_paintScoreText);
+		}
+	}
+
+	private String buildScoreMessage(int playerIndex) {
+		if (!m_game.getRoundComplete()) {
+			return String.valueOf(m_game.getPlayer(playerIndex).getTotalScore());
+		}
+		Player p = m_game.getPlayer(playerIndex);
+		int lastScore    = p.getLastScore();
+		int virusPenalty = p.getLastVirusPenalty();
+		int totalScore   = p.getTotalScore();
+		int baseScore    = totalScore - lastScore - virusPenalty;
+		int templateId   = (lastScore < 0) ? R.string.msg_round_score_negative : R.string.msg_round_score_positive;
+		return String.format(m_game.getString(templateId), baseScore, Math.abs(lastScore), virusPenalty, totalScore);
+	}
+
+	// =========================================================================
+	// Dialogs / Prompts
+	// =========================================================================
+
+	public void ShowCardHelp(Card c) {
 		m_helpCardID = c.getID();
-
-		GameActivity a = (GameActivity)(getContext());
-		//a.showDialog(GameActivity.DIALOG_CARD_HELP);
-		a.showCardHelp();
+		((GameActivity) getContext()).showCardHelp();
 	}
-	
-	public void Toast (String msg)
-	{
-		// not sure exactly how long it takes to fade out a Toast, but we're going to
-		// show the toast for a duration that's a little lower than the game delay
-		// to accommodate some fade out time.
-		if (m_toast == null)
-		{
-			m_toast = Toast.makeText(this.getContext(), msg, m_game.getDelay() - 500);
+
+	public void Toast(String msg) {
+		if (m_toast == null) {
+			m_toast = android.widget.Toast.makeText(getContext(), msg, (int)(m_game.getDelay() - 500));
 			m_toast.setGravity(Gravity.TOP | Gravity.CENTER, 0, m_ptMessages.y);
-		}
-		else
-		{
+		} else {
 			m_toast.setText(msg);
 		}
-		
 		m_toast.show();
 	}
-	
-	public void displayScore (Canvas canvas)
-	{
-		int i;
 
-		for (i = 0; i < 4; i++)
-		{
-			if ((i == Game.SEAT_SOUTH - 1) || (i == Game.SEAT_NORTH - 1))
-			{
-				m_paintScoreText.setTextAlign(Paint.Align.CENTER);
-			}
-			else if (i == Game.SEAT_WEST - 1)
-			{
-				m_paintScoreText.setTextAlign(Paint.Align.LEFT);
-			}
-			else if (i == Game.SEAT_EAST - 1)
-			{
-				m_paintScoreText.setTextAlign(Paint.Align.RIGHT);
-			}
-
-			String msg;
-			if (!m_game.getRoundComplete())
-			{
-				msg = "" + m_game.getPlayer(i).getTotalScore();
-			}
-			else
-			{
-				Player p = m_game.getPlayer(i);
-
-				int lastScore = p.getLastScore();
-				int virusPenalty = p.getLastVirusPenalty();
-				int totalScore = p.getTotalScore();
-
-				if (lastScore < 0) 
-				{
-					msg = String.format (m_game.getString(R.string.msg_round_score_negative), totalScore - lastScore - virusPenalty, -lastScore, virusPenalty, totalScore);
-				}
-				else 
-				{
-					msg = String.format (m_game.getString(R.string.msg_round_score_positive), totalScore - lastScore - virusPenalty, lastScore, virusPenalty, totalScore);
-				}
-			}
-			canvas.drawText(msg, 
-				(float)(m_ptScoreText[i].x), (float)(m_ptScoreText[i].y),
-				m_paintScoreText);
-		}
-	}
-	
-	public void PromptForVictim ()
-	{
+	public void PromptForVictim() {
+		// Build the list of active opponents only
+		int[] activeSeats = {Game.SEAT_WEST, Game.SEAT_NORTH, Game.SEAT_EAST};
 		int count = 0;
-		if (m_game.getPlayer(Game.SEAT_WEST - 1).getActive())
-		{
-			count++;
+		for (int seat : activeSeats) {
+			if (m_game.getPlayer(seat - 1).getActive()) count++;
 		}
-		if (m_game.getPlayer(Game.SEAT_NORTH - 1).getActive())
-		{
-			count++;
-		}
-		if (m_game.getPlayer(Game.SEAT_EAST - 1).getActive())
-		{
-			count++;
-		}
-		
+
 		CharSequence[] items = new CharSequence[count];
+		int[] seatMap = new int[count]; // maps item index → seat number
 		count = 0;
-		if (m_game.getPlayer(Game.SEAT_WEST - 1).getActive())
-		{
-			items[count] = m_game.getString(R.string.seat_west);
-			count++;
+		int[] labelIds = {R.string.seat_west, R.string.seat_north, R.string.seat_east};
+		for (int k = 0; k < activeSeats.length; k++) {
+			if (m_game.getPlayer(activeSeats[k] - 1).getActive()) {
+				items[count]   = m_game.getString(labelIds[k]);
+				seatMap[count] = activeSeats[k];
+				count++;
+			}
 		}
-		if (m_game.getPlayer(Game.SEAT_NORTH - 1).getActive())
-		{
-			items[count] = m_game.getString(R.string.seat_north);
-			count++;
-		}
-		if (m_game.getPlayer(Game.SEAT_EAST - 1).getActive())
-		{
-			items[count] = m_game.getString(R.string.seat_east);
-		}
-		
-		new AlertDialog.Builder(this.getContext())
-		.setCancelable(false)
-		.setTitle(R.string.prompt_victim)
-		.setItems(items,
-                (dialoginterface, i) -> {
-                    Player p = m_game.getCurrPlayer();
-                    if (p instanceof HumanPlayer)
-                    {
-                        if (m_game.getPlayer(Game.SEAT_WEST - 1).getActive())
-                        {
-                            if (i == 0)
-                            {
-                                ((HumanPlayer)p).setVictim(Game.SEAT_WEST);
-                                return;
-                            }
-                            i--;
-                        }
-                        if (m_game.getPlayer(Game.SEAT_NORTH - 1).getActive())
-                        {
-                            if (i == 0)
-                            {
-                                ((HumanPlayer)p).setVictim(Game.SEAT_NORTH);
-                                return;
-                            }
-                            i--;
-                        }
-                        if (m_game.getPlayer(Game.SEAT_EAST - 1).getActive())
-                        {
-                            if (i == 0)
-                            {
-                                ((HumanPlayer)p).setVictim(Game.SEAT_EAST);
-                                return;
-                            }
-                            i--;
-                        }
-                    }
-                })
-			.show();
-	}
-	
-	public void PromptForNumCardsToDeal ()
-	{
-		new AlertDialog.Builder(this.getContext())
-			.setCancelable(false)
-			.setTitle(R.string.prompt_deal)
-			.setItems(R.array.deal_values,
-                    (dialoginterface, i) -> {
-                        Player p = m_game.getDealer();
-                        if (p instanceof HumanPlayer)
-                        {
-                            ((HumanPlayer)p).setNumCardsToDeal(i + 5);
-                        }
-                    })
+
+		new AlertDialog.Builder(getContext())
+				.setCancelable(false)
+				.setTitle(R.string.prompt_victim)
+				.setItems(items, (dialog, i) -> {
+					Player p = m_game.getCurrPlayer();
+					if (p instanceof HumanPlayer) {
+						((HumanPlayer) p).setVictim(seatMap[i]);
+					}
+				})
 				.show();
 	}
-	
-	public void PromptForColor ()
-	{
+
+	public void PromptForNumCardsToDeal() {
+		new AlertDialog.Builder(getContext())
+				.setCancelable(false)
+				.setTitle(R.string.prompt_deal)
+				.setItems(R.array.deal_values, (dialog, i) -> {
+					Player p = m_game.getDealer();
+					if (p instanceof HumanPlayer) {
+						((HumanPlayer) p).setNumCardsToDeal(i + 5);
+					}
+				})
+				.show();
+	}
+
+	public void PromptForColor() {
 		m_waitingForColor = true;
 		startColorChooserAnimation(m_game.getDirection(), true);
-//		new AlertDialog.Builder(this.getContext())
-//			.setCancelable(false)
-//			.setTitle(R.string.prompt_color)
-//			.setItems(R.array.colors,
-//                    (dialoginterface, i) -> {
-//                       Player p = m_game.getCurrPlayer();
-//                        if (p instanceof HumanPlayer)
-//                        {
-//                            ((HumanPlayer)p).setColor((int) (round(random() * 3) + 1));
-//                        }
-//                    })
-//				.show();
-//		startColorChooserAnimation(m_game.getDirection(), false);
+	}
+
+	// =========================================================================
+	// Colour utilities
+	// =========================================================================
+
+	public static int getColorRgb(int gameColor) {
+		switch (gameColor) {
+			case Card.COLOR_RED:    return Color.rgb(203,  13,  40);
+			case Card.COLOR_GREEN:  return Color.rgb(  4, 133,  64);
+			case Card.COLOR_BLUE:   return Color.rgb(  4,  86, 165);
+			case Card.COLOR_YELLOW: return Color.rgb(233, 146,   6);
+			case Card.COLOR_WILD:   return Color.rgb(221, 220, 215);
+			default:                return Color.TRANSPARENT;
+		}
+	}
+
+	// =========================================================================
+	// Paint factory
+	// =========================================================================
+
+	private Paint buildPaint(int colorRes, float textSize, Typeface typeface, Paint.Align align) {
+		Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+		p.setColor(getResources().getColor(colorRes));
+		p.setTextSize(textSize);
+		p.setTypeface(typeface);
+		p.setTextAlign(align);
+		return p;
+	}
+
+	// =========================================================================
+	// Vibration helper (API-level aware)
+	// =========================================================================
+
+	private void vibrateShort() {
+		Vibrator v = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
+		if (v == null || !v.hasVibrator()) return;
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+			v.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE));
+		} else {
+			//noinspection deprecation
+			v.vibrate(100);
+		}
+	}
+
+	// =========================================================================
+	// initCards() — formerly ~600 lines; now driven by a data table
+	// =========================================================================
+
+	/**
+	 * Registers a card into m_cardInfo.  The "family-friendly" variant (if any)
+	 * is handled by the caller passing the correct resId/helpId.
+	 */
+	private void registerCard(int id, int imageResId, int helpResId,
+							  int color, int value, int specialId, int score) {
+		BitmapFactory.Options opt = new BitmapFactory.Options();
+		Bitmap bmp = BitmapFactory.decodeResource(getContext().getResources(), imageResId, opt);
+		Card card  = new Card(-1, color, value, specialId, score);
+		m_cardInfo.put(id, new CardInfo(card, imageResId, bmp, helpResId));
+	}
+
+	private void initCards() {
+		boolean ff = m_go.getFamilyFriendly();
+
+		// ----- Standard numeric & action cards (4 colors × 13 cards = 52) -----
+		// Each colour block: 0-9, Draw (D), Skip (S), Reverse (R)
+		int[][] colourBlocks = {
+				// { colorConst, id_0, id_0_hd, id_1..id_9 (sequential), id_D, id_S, id_R,
+				//   img_0, img_0hd, img_1..img_9, img_D, img_S, img_R }
+				// We use registerStandardColorBlock() below instead of inlining here
+		};
+		// Standard colors handled by helper to avoid repeating the same pattern 4×
+		registerStandardColorBlock(
+				Card.COLOR_RED,
+				new int[]{Card.ID_RED_0, Card.ID_RED_1, Card.ID_RED_2, Card.ID_RED_3, Card.ID_RED_4,
+						Card.ID_RED_5, Card.ID_RED_6, Card.ID_RED_7, Card.ID_RED_8, Card.ID_RED_9,
+						Card.ID_RED_D, Card.ID_RED_S, Card.ID_RED_R},
+				new int[]{R.drawable.card_red_0, R.drawable.card_red_1, R.drawable.card_red_2,
+						R.drawable.card_red_3, R.drawable.card_red_4, R.drawable.card_red_5,
+						R.drawable.card_red_6, R.drawable.card_red_7, R.drawable.card_red_8,
+						R.drawable.card_red_9, R.drawable.card_red_d, R.drawable.card_red_s,
+						R.drawable.card_red_r});
+
+		registerStandardColorBlock(
+				Card.COLOR_GREEN,
+				new int[]{Card.ID_GREEN_0, Card.ID_GREEN_1, Card.ID_GREEN_2, Card.ID_GREEN_3, Card.ID_GREEN_4,
+						Card.ID_GREEN_5, Card.ID_GREEN_6, Card.ID_GREEN_7, Card.ID_GREEN_8, Card.ID_GREEN_9,
+						Card.ID_GREEN_D, Card.ID_GREEN_S, Card.ID_GREEN_R},
+				new int[]{R.drawable.card_green_0, R.drawable.card_green_1, R.drawable.card_green_2,
+						R.drawable.card_green_3, R.drawable.card_green_4, R.drawable.card_green_5,
+						R.drawable.card_green_6, R.drawable.card_green_7, R.drawable.card_green_8,
+						R.drawable.card_green_9, R.drawable.card_green_d, R.drawable.card_green_s,
+						R.drawable.card_green_r});
+
+		registerStandardColorBlock(
+				Card.COLOR_BLUE,
+				new int[]{Card.ID_BLUE_0, Card.ID_BLUE_1, Card.ID_BLUE_2, Card.ID_BLUE_3, Card.ID_BLUE_4,
+						Card.ID_BLUE_5, Card.ID_BLUE_6, Card.ID_BLUE_7, Card.ID_BLUE_8, Card.ID_BLUE_9,
+						Card.ID_BLUE_D, Card.ID_BLUE_S, Card.ID_BLUE_R},
+				new int[]{R.drawable.card_blue_0, R.drawable.card_blue_1, R.drawable.card_blue_2,
+						R.drawable.card_blue_3, R.drawable.card_blue_4, R.drawable.card_blue_5,
+						R.drawable.card_blue_6, R.drawable.card_blue_7, R.drawable.card_blue_8,
+						R.drawable.card_blue_9, R.drawable.card_blue_d, R.drawable.card_blue_s,
+						R.drawable.card_blue_r});
+
+		registerStandardColorBlock(
+				Card.COLOR_YELLOW,
+				new int[]{Card.ID_YELLOW_0, Card.ID_YELLOW_1, Card.ID_YELLOW_2, Card.ID_YELLOW_3, Card.ID_YELLOW_4,
+						Card.ID_YELLOW_5, Card.ID_YELLOW_6, Card.ID_YELLOW_7, Card.ID_YELLOW_8, Card.ID_YELLOW_9,
+						Card.ID_YELLOW_D, Card.ID_YELLOW_S, Card.ID_YELLOW_R},
+				new int[]{R.drawable.card_yellow_0, R.drawable.card_yellow_1, R.drawable.card_yellow_2,
+						R.drawable.card_yellow_3, R.drawable.card_yellow_4, R.drawable.card_yellow_5,
+						R.drawable.card_yellow_6, R.drawable.card_yellow_7, R.drawable.card_yellow_8,
+						R.drawable.card_yellow_9, R.drawable.card_yellow_d, R.drawable.card_yellow_s,
+						R.drawable.card_yellow_r});
+
+		// ----- Wild cards -----
+		registerCard(Card.ID_WILD,           R.drawable.card_wild,            R.string.cardhelp_wild,           Card.COLOR_WILD, Card.VAL_WILD,      Card.ID_WILD,           50);
+		registerCard(Card.ID_WILD_DRAW_FOUR, R.drawable.card_wild_drawfour,   R.string.cardhelp_wild_drawfour,  Card.COLOR_WILD, Card.VAL_WILD_DRAW,  Card.ID_WILD_DRAW_FOUR, 50);
+		registerCard(Card.ID_WILD_HOS,       R.drawable.card_wild_hos,        R.string.cardhelp_wild_hos,       Card.COLOR_WILD, Card.VAL_WILD_DRAW,  Card.ID_WILD_HOS,       0);
+		registerCard(Card.ID_WILD_HD,        R.drawable.card_wild_hd,         R.string.cardhelp_wild_hd,        Card.COLOR_WILD, Card.VAL_WILD_DRAW,  Card.ID_WILD_HD,        100);
+		registerCard(Card.ID_WILD_MYSTERY,   R.drawable.card_wild_mystery,    R.string.cardhelp_wild_mystery,   Card.COLOR_WILD, Card.VAL_WILD_DRAW,  Card.ID_WILD_MYSTERY,   0);
+		registerCard(Card.ID_WILD_DB,        R.drawable.card_wild_db,         R.string.cardhelp_wild_db,        Card.COLOR_WILD, Card.VAL_WILD_DRAW,  Card.ID_WILD_DB,        100);
+
+		// ----- Special / variant cards -----
+		registerCard(Card.ID_RED_0_HD,        R.drawable.card_red_0_hd,
+				ff ? R.string.cardhelp_red_0_hd_ff : R.string.cardhelp_red_0_hd,
+				Card.COLOR_RED, 0, Card.ID_RED_0_HD, 0);
+		registerCard(Card.ID_RED_2_GLASNOST,  R.drawable.card_red_2_glasnost,  R.string.cardhelp_red_2_glasnost, Card.COLOR_RED, 2, Card.ID_RED_2_GLASNOST, 75);
+		registerCard(Card.ID_RED_5_MAGIC,     R.drawable.card_red_5_magic,     R.string.cardhelp_red_5_magic,    Card.COLOR_RED, 5, Card.ID_RED_5_MAGIC,    -5);
+		registerCard(Card.ID_RED_D_SPREADER,  R.drawable.card_red_d_spreader,  R.string.cardhelp_d_spread,       Card.COLOR_RED, Card.VAL_D_SPREAD, Card.ID_RED_D_SPREADER,  60);
+		registerCard(Card.ID_RED_S_DOUBLE,    R.drawable.card_red_s_double,    R.string.cardhelp_s_double,       Card.COLOR_RED, Card.VAL_S_DOUBLE, Card.ID_RED_S_DOUBLE,    40);
+		registerCard(Card.ID_RED_R_SKIP,      R.drawable.card_red_r_skip,      R.string.cardhelp_r_skip,         Card.COLOR_RED, Card.VAL_R_SKIP,   Card.ID_RED_R_SKIP,      40);
+
+		registerCard(Card.ID_GREEN_0_QUITTER, R.drawable.card_green_0_quitter,
+				ff ? R.string.cardhelp_green_0_quitter_ff : R.string.cardhelp_green_0_quitter,
+				Card.COLOR_GREEN, 0, Card.ID_GREEN_0_QUITTER, 100);
+		registerCard(Card.ID_GREEN_3_AIDS,
+				ff ? R.drawable.card_green_3_aids_ff : R.drawable.card_green_3_aids,
+				ff ? R.string.cardhelp_green_3_aids_ff : R.string.cardhelp_green_3_aids,
+				Card.COLOR_GREEN, 3, Card.ID_GREEN_3_AIDS, 3);
+		registerCard(Card.ID_GREEN_4_IRISH,   R.drawable.card_green_4_irish,   R.string.cardhelp_green_4_irish,  Card.COLOR_GREEN, 4, Card.ID_GREEN_4_IRISH,    75);
+		registerCard(Card.ID_GREEN_D_SPREADER,R.drawable.card_green_d_spreader,R.string.cardhelp_d_spread,       Card.COLOR_GREEN, Card.VAL_D_SPREAD, Card.ID_GREEN_D_SPREADER, 60);
+		registerCard(Card.ID_GREEN_S_DOUBLE,  R.drawable.card_green_s_double,  R.string.cardhelp_s_double,       Card.COLOR_GREEN, Card.VAL_S_DOUBLE, Card.ID_GREEN_S_DOUBLE,   40);
+		registerCard(Card.ID_GREEN_R_SKIP,    R.drawable.card_green_r_skip,    R.string.cardhelp_r_skip,         Card.COLOR_GREEN, Card.VAL_R_SKIP,   Card.ID_GREEN_R_SKIP,     40);
+
+		registerCard(Card.ID_BLUE_0_FUCK_YOU,
+				ff ? R.drawable.card_blue_0_fuckyou_ff : R.drawable.card_blue_0_fuckyou,
+				ff ? R.string.cardhelp_blue_0_fuck_you_ff : R.string.cardhelp_blue_0_fuck_you,
+				Card.COLOR_BLUE, 0, Card.ID_BLUE_0_FUCK_YOU, 0);
+		registerCard(Card.ID_BLUE_2_SHIELD,   R.drawable.card_blue_2_shield,   R.string.cardhelp_blue_2_shield,  Card.COLOR_BLUE, 2, Card.ID_BLUE_2_SHIELD,    0);
+		registerCard(Card.ID_BLUE_D_SPREADER, R.drawable.card_blue_d_spreader, R.string.cardhelp_d_spread,       Card.COLOR_BLUE, Card.VAL_D_SPREAD, Card.ID_BLUE_D_SPREADER, 60);
+		registerCard(Card.ID_BLUE_S_DOUBLE,   R.drawable.card_blue_s_double,   R.string.cardhelp_s_double,       Card.COLOR_BLUE, Card.VAL_S_DOUBLE, Card.ID_BLUE_S_DOUBLE,   40);
+		registerCard(Card.ID_BLUE_R_SKIP,     R.drawable.card_blue_r_skip,     R.string.cardhelp_r_skip,         Card.COLOR_BLUE, Card.VAL_R_SKIP,   Card.ID_BLUE_R_SKIP,     40);
+
+		registerCard(Card.ID_YELLOW_0_SHITTER,
+				ff ? R.drawable.card_yellow_0_shitter_ff : R.drawable.card_yellow_0_shitter,
+				ff ? R.string.cardhelp_yellow_0_shitter_ff : R.string.cardhelp_yellow_0_shitter,
+				Card.COLOR_YELLOW, 0, Card.ID_YELLOW_0_SHITTER, 0);
+		registerCard(Card.ID_YELLOW_1_MAD,    R.drawable.card_yellow_1_mad,    R.string.cardhelp_yellow_1_mad,   Card.COLOR_YELLOW, 1, Card.ID_YELLOW_1_MAD,     100);
+		registerCard(Card.ID_YELLOW_69,       R.drawable.card_yellow_69,
+				ff ? R.string.cardhelp_yellow_69_ff : R.string.cardhelp_yellow_69,
+				Card.COLOR_YELLOW, 6, Card.ID_YELLOW_69, 6);
+		registerCard(Card.ID_YELLOW_D_SPREADER,R.drawable.card_yellow_d_spreader,R.string.cardhelp_d_spread,     Card.COLOR_YELLOW, Card.VAL_D_SPREAD, Card.ID_YELLOW_D_SPREADER, 60);
+		registerCard(Card.ID_YELLOW_S_DOUBLE, R.drawable.card_yellow_s_double, R.string.cardhelp_s_double,       Card.COLOR_YELLOW, Card.VAL_S_DOUBLE, Card.ID_YELLOW_S_DOUBLE,   40);
+		registerCard(Card.ID_YELLOW_R_SKIP,   R.drawable.card_yellow_r_skip,   R.string.cardhelp_r_skip,         Card.COLOR_YELLOW, Card.VAL_R_SKIP,   Card.ID_YELLOW_R_SKIP,     40);
+
+		// ----- v3 new cards -----
+		/*
+		// Backstab (one per colour — Reverse variant, ×4 in deck)
+		registerCard(Card.ID_RED_R_BACKSTAB,    R.drawable.card_red_r_backstab,    R.string.cardhelp_backstab, Card.COLOR_RED,    Card.VAL_R_BACKSTAB, Card.ID_RED_R_BACKSTAB,    20);
+		registerCard(Card.ID_GREEN_R_BACKSTAB,  R.drawable.card_green_r_backstab,  R.string.cardhelp_backstab, Card.COLOR_GREEN,  Card.VAL_R_BACKSTAB, Card.ID_GREEN_R_BACKSTAB,  20);
+		registerCard(Card.ID_BLUE_R_BACKSTAB,   R.drawable.card_blue_r_backstab,   R.string.cardhelp_backstab, Card.COLOR_BLUE,   Card.VAL_R_BACKSTAB, Card.ID_BLUE_R_BACKSTAB,   20);
+		registerCard(Card.ID_YELLOW_R_BACKSTAB, R.drawable.card_yellow_r_backstab, R.string.cardhelp_backstab, Card.COLOR_YELLOW, Card.VAL_R_BACKSTAB, Card.ID_YELLOW_R_BACKSTAB, 20);
+
+		// Dodge (one per colour — 8 variant, ×4 in deck)
+		registerCard(Card.ID_RED_8_DODGE,    R.drawable.card_red_8_dodge,    R.string.cardhelp_dodge, Card.COLOR_RED,    Card.VAL_DODGE, Card.ID_RED_8_DODGE,    8);
+		registerCard(Card.ID_GREEN_8_DODGE,  R.drawable.card_green_8_dodge,  R.string.cardhelp_dodge, Card.COLOR_GREEN,  Card.VAL_DODGE, Card.ID_GREEN_8_DODGE,  8);
+		registerCard(Card.ID_BLUE_8_DODGE,   R.drawable.card_blue_8_dodge,   R.string.cardhelp_dodge, Card.COLOR_BLUE,   Card.VAL_DODGE, Card.ID_BLUE_8_DODGE,   8);
+		registerCard(Card.ID_YELLOW_8_DODGE, R.drawable.card_yellow_8_dodge, R.string.cardhelp_dodge, Card.COLOR_YELLOW, Card.VAL_DODGE, Card.ID_YELLOW_8_DODGE, 8);
+
+		// Clone (Green 2, Yellow 2 — ×2 in deck)
+		registerCard(Card.ID_GREEN_2_CLONE,  R.drawable.card_green_2_clone,  R.string.cardhelp_clone, Card.COLOR_GREEN,  Card.VAL_CLONE, Card.ID_GREEN_2_CLONE,  20);
+		registerCard(Card.ID_YELLOW_2_CLONE, R.drawable.card_yellow_2_clone, R.string.cardhelp_clone, Card.COLOR_YELLOW, Card.VAL_CLONE, Card.ID_YELLOW_2_CLONE, 20);
+
+		// Ping (Blue 1 — directed, ×1 in deck)
+		registerCard(Card.ID_BLUE_1_PING, R.drawable.card_blue_1_ping, R.string.cardhelp_ping, Card.COLOR_BLUE, Card.VAL_PING, Card.ID_BLUE_1_PING, 1);
+
+		// Swap (Green Reverse, Yellow Reverse — ×2 in deck)
+		registerCard(Card.ID_GREEN_R_SWAP,  R.drawable.card_green_r_swap,  R.string.cardhelp_swap, Card.COLOR_GREEN,  Card.VAL_SWAP, Card.ID_GREEN_R_SWAP,  20);
+		registerCard(Card.ID_YELLOW_R_SWAP, R.drawable.card_yellow_r_swap, R.string.cardhelp_swap, Card.COLOR_YELLOW, Card.VAL_SWAP, Card.ID_YELLOW_R_SWAP, 20);
+		*/
+
+		// Backstab (one per colour — Reverse variant, ×4 in deck)
+		registerCard(Card.ID_RED_R_BACKSTAB,    R.drawable.card_back,    R.string.cardhelp_backstab, Card.COLOR_RED,    Card.VAL_R_BACKSTAB, Card.ID_RED_R_BACKSTAB,    20);
+		registerCard(Card.ID_GREEN_R_BACKSTAB,  R.drawable.card_back,  R.string.cardhelp_backstab, Card.COLOR_GREEN,  Card.VAL_R_BACKSTAB, Card.ID_GREEN_R_BACKSTAB,  20);
+		registerCard(Card.ID_BLUE_R_BACKSTAB,   R.drawable.card_back,   R.string.cardhelp_backstab, Card.COLOR_BLUE,   Card.VAL_R_BACKSTAB, Card.ID_BLUE_R_BACKSTAB,   20);
+		registerCard(Card.ID_YELLOW_R_BACKSTAB, R.drawable.card_back, R.string.cardhelp_backstab, Card.COLOR_YELLOW, Card.VAL_R_BACKSTAB, Card.ID_YELLOW_R_BACKSTAB, 20);
+
+		// Dodge (one per colour — 8 variant, ×4 in deck)
+		//registerCard(Card.ID_RED_8_DODGE,    R.drawable.card_back,    R.string.cardhelp_dodge, Card.COLOR_RED,    Card.VAL_DODGE, Card.ID_RED_8_DODGE,    8);
+		//registerCard(Card.ID_GREEN_8_DODGE,  R.drawable.card_back,  R.string.cardhelp_dodge, Card.COLOR_GREEN,  Card.VAL_DODGE, Card.ID_GREEN_8_DODGE,  8);
+		//registerCard(Card.ID_BLUE_8_DODGE,   R.drawable.card_back,   R.string.cardhelp_dodge, Card.COLOR_BLUE,   Card.VAL_DODGE, Card.ID_BLUE_8_DODGE,   8);
+		//registerCard(Card.ID_YELLOW_8_DODGE, R.drawable.card_back, R.string.cardhelp_dodge, Card.COLOR_YELLOW, Card.VAL_DODGE, Card.ID_YELLOW_8_DODGE, 8);
+
+		// Clone (Green 2, Yellow 2 — ×2 in deck)
+		registerCard(Card.ID_GREEN_2_CLONE,  R.drawable.card_back,  R.string.cardhelp_clone, Card.COLOR_GREEN,  Card.VAL_CLONE, Card.ID_GREEN_2_CLONE,  20);
+		registerCard(Card.ID_YELLOW_2_CLONE, R.drawable.card_back, R.string.cardhelp_clone, Card.COLOR_YELLOW, Card.VAL_CLONE, Card.ID_YELLOW_2_CLONE, 20);
+
+		// Ping (Blue 1 — directed, ×1 in deck)
+		registerCard(Card.ID_BLUE_1_PING, R.drawable.card_back, R.string.cardhelp_ping, Card.COLOR_BLUE, Card.VAL_PING, Card.ID_BLUE_1_PING, 1);
+
+		// Swap (Green Reverse, Yellow Reverse — ×2 in deck)
+		registerCard(Card.ID_GREEN_R_SWAP,  R.drawable.card_back,  R.string.cardhelp_swap, Card.COLOR_GREEN,  Card.VAL_SWAP, Card.ID_GREEN_R_SWAP,  20);
+		registerCard(Card.ID_YELLOW_R_SWAP, R.drawable.card_back, R.string.cardhelp_swap, Card.COLOR_YELLOW, Card.VAL_SWAP, Card.ID_YELLOW_R_SWAP, 20);
+
+		// ----- Shared bitmaps -----
+		BitmapFactory.Options opt = new BitmapFactory.Options();
+		m_bmpCardBack         = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.card_back, opt);
+		m_bmpEmoticonAggressor = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.emoticon_aggressor, opt);
+		m_bmpEmoticonVictim   = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.emoticon_victim, opt);
+		m_bmpCardBadge        = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.card_badge, opt);
+
+		m_bmpWinningMessage[Game.SEAT_SOUTH - 1] = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.winner_south, opt);
+		m_bmpWinningMessage[Game.SEAT_WEST  - 1] = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.winner_west,  opt);
+		m_bmpWinningMessage[Game.SEAT_NORTH - 1] = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.winner_north, opt);
+		m_bmpWinningMessage[Game.SEAT_EAST  - 1] = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.winner_east,  opt);
+
+		// ----- Build ordered card-ID array for the catalog grid -----
+		m_cardIDs = m_cardInfo.keySet().toArray(new Integer[0]);
+		// Sort to match the original display order
+		java.util.Arrays.sort(m_cardIDs);
+	}
+
+	/**
+	 * Registers the 13 standard cards for one color (0-9, Draw, Skip, Reverse).
+	 * The special-ID used in the Card constructor mirrors the original code:
+	 * 0 → ID_x_0_HD for RED, ID_x_0_QUITTER for GREEN, etc.; the caller already
+	 * passed the correct cardIds array so we just use id[0] as the special-id for 0-cards.
+	 */
+	private void registerStandardColorBlock(int color, int[] ids, int[] drawables) {
+		// value sequence: 0,1,2,3,4,5,6,7,8,9, VAL_D, VAL_S, VAL_R
+		int[] values  = {0,1,2,3,4,5,6,7,8,9, Card.VAL_D, Card.VAL_S, Card.VAL_R};
+		int[] scores  = {0,1,2,3,4,5,6,7,8,9,      20,       20,       20};
+		int[] helps   = {R.string.cardhelp_0, R.string.cardhelp_1, R.string.cardhelp_2,
+				R.string.cardhelp_3, R.string.cardhelp_4, R.string.cardhelp_5,
+				R.string.cardhelp_6, R.string.cardhelp_7, R.string.cardhelp_8,
+				R.string.cardhelp_9, R.string.cardhelp_d, R.string.cardhelp_s,
+				R.string.cardhelp_r};
+
+		for (int i = 0; i < ids.length; i++) {
+			registerCard(ids[i], drawables[i], helps[i], color, values[i], ids[i], scores[i]);
+		}
 	}
 }
