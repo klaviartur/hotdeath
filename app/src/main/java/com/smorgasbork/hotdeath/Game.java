@@ -720,10 +720,11 @@ public class Game extends Thread {
 				|| checkVal == currVal;
 	}
 
-	private boolean checkCardUnderPenalty(Card c, int checkVal, int checkID, int origCardID) {
+	private boolean checkCardUnderPenalty(Card c, int checkVal, int checkID, int currID) {
 		// AIDS cannot be defended against.
-		if (origCardID == Card.ID_GREEN_3_AIDS) return false;
+		if (currID == Card.ID_GREEN_3_AIDS) return false;
 
+		int origID = m_penalty.getOrigCard().getID();
 		int origVal = m_penalty.getOrigCard().getValue();
 
 		// Holy Defender, Fuck You, and AIDS can defend against most draw penalties.
@@ -732,9 +733,9 @@ public class Game extends Thread {
 				|| checkID == Card.ID_GREEN_3_AIDS;
 
 		boolean origIsAttack = (origVal == Card.VAL_WILD_DRAW
-				&& origCardID != Card.ID_WILD_HOS)
-				|| origCardID == Card.ID_GREEN_0_QUITTER
-				|| origCardID == Card.ID_RED_2_GLASNOST;
+				&& origID != Card.ID_WILD_HOS)
+				|| origID == Card.ID_GREEN_0_QUITTER
+				|| origID == Card.ID_RED_2_GLASNOST;
 
 		if (isDefender && origIsAttack) {
 			m_lastCardCheckedIsDefender = true;
@@ -745,8 +746,8 @@ public class Game extends Thread {
 		if (!m_standardRules
 				&& m_penalty.getSecondaryVictim() == null
 				&& origVal    == Card.VAL_WILD_DRAW
-				&& origCardID != Card.ID_WILD_HOS
-				&& origCardID != Card.ID_WILD_MYSTERY
+				&& origID != Card.ID_WILD_HOS
+				&& origID != Card.ID_WILD_MYSTERY
 				&& checkVal   == Card.VAL_WILD_DRAW
 				&& checkID    != Card.ID_WILD_MYSTERY) {
 			m_lastCardCheckedIsDefender = true;
