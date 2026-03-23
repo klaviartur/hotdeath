@@ -29,7 +29,7 @@
 <string-array name="deck_type_values">
 <item>original</item>
 <item>half</item>
-<item>compact</item>
+<item>hybrid</item>
 <item>extended</item>
 <item>vanilla</item>
 </string-array>
