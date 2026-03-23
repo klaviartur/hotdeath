@@ -1,6 +1,5 @@
 package com.smorgasbork.hotdeath;
 
-
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.SharedPreferences;
@@ -10,8 +9,6 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
 import android.widget.GridView;
 import android.widget.ImageView;
@@ -22,18 +19,23 @@ import android.widget.TextView;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class GameActivity extends Activity 
-{
+public class GameActivity extends Activity {
+
 	public static final String STARTUP_MODE = "com.smorgasbork.hotdeath.startup_mode";
-	
 	public static final int STARTUP_MODE_NEW = 1;
 	public static final int STARTUP_MODE_CONTINUE = 2;
-	
+
+	private static final String TAG = "HDU";
+	private static final String PREF_GAMESTATE = "gamestate";
+
+	// Colors as constants instead of magic literals scattered through the code
+	private static final int COLOR_ENABLED_TEXT  = 0xffffffff;
+	private static final int COLOR_DISABLED_TEXT = 0xff7f7f7f;
+
 	private Dialog m_dlgCardCatalog = null;
 	private Dialog m_dlgCardHelp = null;
 
 	private View m_vMenuPanel = null;
-
 	private Button m_btnFastForward = null;
 	private Button m_btnNextRound = null;
 	private Button m_btnMenuDraw = null;
@@ -43,300 +45,240 @@ public class GameActivity extends Activity
 	private GameTable m_gt;
 	private Game m_game;
 	private GameOptions m_go;
-	
-	public Integer getCardImageID (int id)
-	{
-		return m_gt.getCardImageID (id);
-	}
-	
-	public Integer[] getCardIDs ()
-	{
-		return m_gt.getCardIDs();
-	}
-	
-	public Game getGame ()
-	{
-		return m_game;
-	}
 
-	public Button getBtnNextRound ()
-	{
-		return m_btnNextRound;
-	}
+	// Accessors used by GameTable
 
-	public Button getBtnFastForward ()
-	{
-		return m_btnFastForward;
+	public Integer getCardImageID(int id)  { return m_gt.getCardImageID(id); }
+	public Integer[] getCardIDs()          { return m_gt.getCardIDs(); }
+	public Game getGame()                  { return m_game; }
+	public Button getBtnNextRound()        { return m_btnNextRound; }
+	public Button getBtnFastForward()      { return m_btnFastForward; }
+
+	// Lifecycle
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+
+		int startupMode = getIntent().getIntExtra(STARTUP_MODE, STARTUP_MODE_NEW);
+		m_go = new GameOptions(this);
+		m_game = (startupMode == STARTUP_MODE_CONTINUE) ? tryLoadSavedGame() : null;
+
+		if (m_game == null || m_game.getDeck() == null) {
+			m_game = new Game(this, m_go);
+		}
+
+		m_gt = new GameTable(this, m_game, m_go);
+		m_gt.setId(View.generateViewId());
+
+		setContentView(buildLayout());
+
+		bindMenuButtons();
+
+		m_gt.setBottomMargin(dpToPx(58));
+		m_gt.invalidate();
+		m_gt.requestFocus();
+		m_gt.startGameWhenReady();
 	}
 
 	@Override
-	protected void onCreate(Bundle savedInstanceState) 
-	{
-		super.onCreate(savedInstanceState);
-		
-	    int startup_mode = getIntent().getIntExtra(STARTUP_MODE, STARTUP_MODE_NEW);
-		
-		m_go = new GameOptions (this);
-		
+	protected void onPause() {
+		dismissDialogIfShowing(m_dlgCardHelp);
+		dismissDialogIfShowing(m_dlgCardCatalog);
+
+		getIntent().putExtra(STARTUP_MODE, STARTUP_MODE_CONTINUE);
+		super.onPause();
+
+		m_game.pause();
+		saveGameState();
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		m_game.unpause();
+	}
+
+	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
+		// Ignore orientation changes (paired with manifest setting)
+		super.onConfigurationChanged(newConfig);
+	}
+
+	@Override
+	protected void onDestroy() {
+		m_game.shutdown();
 		m_game = null;
-	    if (startup_mode == STARTUP_MODE_CONTINUE)
-	    {
-	    	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-			String s = prefs.getString("gamestate", "");
+		m_gt = null;
+		m_go = null;
+		super.onDestroy();
+	}
 
-	    	JSONObject o;
-	    	try
-	    	{
-				o = new JSONObject (s);
-				m_game = new Game (o, this, m_go);
-	    	}
-	    	catch (JSONException e)
-	    	{
-				Log.d("HDU", "Creating Game from JSON failed");
-	    	}
-	    }
-	    
-	    // we're here either because the user chose "New game" or because we couldn't
-	    // parse the game state JSON
-	    if (m_game == null || m_game.getDeck() == null)
-	    {
-			m_game = new Game (this, m_go);
-	    }
-	    
-	    m_gt = new GameTable(this, m_game, m_go);
-	    m_gt.setId(View.generateViewId());
-	    
-	    RelativeLayout l = new RelativeLayout (this);
+	// Private helpers
 
-		m_btnNextRound = (Button)getLayoutInflater().inflate(R.layout.action_button, null);
+	/** Attempt to deserialise a saved game; returns null on any failure. */
+	private Game tryLoadSavedGame() {
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		String json = prefs.getString(PREF_GAMESTATE, "");
+		try {
+			return new Game(new JSONObject(json), this, m_go);
+		} catch (JSONException e) {
+			Log.d(TAG, "Creating Game from JSON failed: " + e.getMessage());
+			return null;
+		}
+	}
+
+	private void saveGameState() {
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		prefs.edit()
+				.putString(PREF_GAMESTATE, m_game.getSnapshot())
+				.apply(); // apply() is async and preferred over commit() on the main thread
+	}
+
+	/** Builds the root layout programmatically (mirrors original logic, cleaned up). */
+	private RelativeLayout buildLayout() {
+		RelativeLayout root = new RelativeLayout(this);
+
+		int btnWidth  = dpToPx(160);
+		int btnHeight = dpToPx(42);
+
+		// --- Next Round button ---
+		m_btnNextRound = (Button) getLayoutInflater().inflate(R.layout.action_button, null);
 		m_btnNextRound.setText(getString(R.string.lbl_next_round));
 		m_btnNextRound.setId(View.generateViewId());
 		m_btnNextRound.setVisibility(View.INVISIBLE);
-		m_btnNextRound.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				m_btnNextRound.setVisibility(View.INVISIBLE);
-				m_game.setWaitingToStartRound(false);
-			}
+		m_btnNextRound.setOnClickListener(v -> {
+			m_btnNextRound.setVisibility(View.INVISIBLE);
+			m_game.setWaitingToStartRound(false);
 		});
 
-		m_btnFastForward = (Button)getLayoutInflater().inflate(R.layout.action_button, null);
+		// --- Fast Forward button ---
+		m_btnFastForward = (Button) getLayoutInflater().inflate(R.layout.action_button, null);
 		m_btnFastForward.setText(getString(R.string.lbl_fast_forward));
 		m_btnFastForward.setId(View.generateViewId());
 		m_btnFastForward.setVisibility(View.INVISIBLE);
-		m_btnFastForward.setOnClickListener (v -> {
-            m_btnFastForward.setVisibility (View.INVISIBLE);
-            m_game.setFastForward (true);
-        });
+		m_btnFastForward.setOnClickListener(v -> {
+			m_btnFastForward.setVisibility(View.INVISIBLE);
+			m_game.setFastForward(true);
+		});
 
+		// --- Options menu panel ---
 		m_vMenuPanel = getLayoutInflater().inflate(R.layout.options_menu, null);
 		m_vMenuPanel.setId(View.generateViewId());
 		m_vMenuPanel.setVisibility(View.INVISIBLE);
 
-		final float scale = m_gt.getContext().getResources().getDisplayMetrics().density;
-		int btn_width = (int) (160 * scale + 0.5f);
-		int btn_height = (int) (42 * scale + 0.5f);
+		root.addView(m_gt);
 
-	    l.addView(m_gt);
+		// Menu panel: align to bottom-centre of GameTable
+		RelativeLayout.LayoutParams lpMenu = new RelativeLayout.LayoutParams(
+				LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+		lpMenu.addRule(RelativeLayout.ALIGN_BOTTOM, m_gt.getId());
+		lpMenu.addRule(RelativeLayout.CENTER_HORIZONTAL, m_gt.getId());
+		lpMenu.bottomMargin = dpToPx(8);
+		root.addView(m_vMenuPanel, lpMenu);
 
-		RelativeLayout.LayoutParams lp;
+		// Fast Forward: above the menu panel, centred
+		RelativeLayout.LayoutParams lpFF = new RelativeLayout.LayoutParams(btnWidth, btnHeight);
+		lpFF.addRule(RelativeLayout.ABOVE, m_vMenuPanel.getId());
+		lpFF.addRule(RelativeLayout.CENTER_HORIZONTAL, m_gt.getId());
+		lpFF.bottomMargin = dpToPx(8);
+		root.addView(m_btnFastForward, lpFF);
 
-		lp = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-		lp.addRule(RelativeLayout.ALIGN_BOTTOM, m_gt.getId());
-		lp.addRule(RelativeLayout.CENTER_HORIZONTAL, m_gt.getId());
-		lp.bottomMargin = (int)(8 * scale + 0.5f);
-		//lp.width = btn_width;
-		lp.height = btn_height;
+		// Next Round: centred in parent
+		RelativeLayout.LayoutParams lpNR = new RelativeLayout.LayoutParams(btnWidth, btnHeight);
+		lpNR.addRule(RelativeLayout.CENTER_IN_PARENT, m_gt.getId());
+		lpNR.topMargin = dpToPx(8);
+		root.addView(m_btnNextRound, lpNR);
 
-		l.addView(m_vMenuPanel, lp);
+		root.setFitsSystemWindows(true);
+		return root;
+	}
 
-		lp = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-		lp.addRule(RelativeLayout.ABOVE, m_vMenuPanel.getId());
-		lp.addRule(RelativeLayout.CENTER_HORIZONTAL, m_gt.getId());
-		lp.bottomMargin = (int)(8 * scale + 0.5f);
-		lp.width = btn_width;
-		lp.height = btn_height;
-
-		l.addView(m_btnFastForward, lp);
-
-		lp = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-		lp.addRule(RelativeLayout.CENTER_IN_PARENT, m_gt.getId());
-		lp.topMargin = (int)(8 * scale + 0.5f);
-		lp.width = btn_width;
-		lp.height = btn_height;
-
-		l.addView(m_btnNextRound, lp);
-
-		setContentView (l);
-		l.setFitsSystemWindows(true);
-
-
+	/** Wire up the in-game action buttons after setContentView. */
+	private void bindMenuButtons() {
 		m_btnMenuDraw = findViewById(R.id.btn_menu_draw);
 		m_btnMenuPass = findViewById(R.id.btn_menu_pass);
 		m_btnMenuHelp = findViewById(R.id.btn_menu_help);
 
-		m_btnMenuDraw.setOnClickListener (v -> {
-            m_game.drawPileTapped();
-            showMenuButtons();
-        });
-		m_btnMenuPass.setOnClickListener (v -> {
-            m_game.humanPlayerPass();
-            showMenuButtons();
-        });
-		m_btnMenuHelp.setOnClickListener (v -> showCardCatalog());
+		m_btnMenuDraw.setOnClickListener(v -> {
+			m_game.drawPileTapped();
+			showMenuButtons();
+		});
+		m_btnMenuPass.setOnClickListener(v -> {
+			m_game.humanPlayerPass();
+			showMenuButtons();
+		});
+		m_btnMenuHelp.setOnClickListener(v -> showCardCatalog());
+	}
 
-		m_gt.setBottomMargin((int)(58 * scale + 0.5f));
+	/** Converts dp to pixels using the current display density. */
+	private int dpToPx(int dp) {
+		float density = getResources().getDisplayMetrics().density;
+		return (int) (dp * density + 0.5f);
+	}
 
-	    m_gt.invalidate(); // force view to be laid out before we start the game
-	    m_gt.requestFocus();
-	    
-	    m_gt.startGameWhenReady();
-    }
-
-
-	@Override
-	public void openOptionsMenu() {
-		super.invalidateOptionsMenu();
-		super.openOptionsMenu();
-		Configuration config = getResources().getConfiguration();
-		if ((config.screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) > Configuration.SCREENLAYOUT_SIZE_LARGE) {
-			int originalScreenLayout = config.screenLayout;
-			config.screenLayout = Configuration.SCREENLAYOUT_SIZE_LARGE;
-			super.openOptionsMenu();
-			config.screenLayout = originalScreenLayout;
-		} else {
-			super.openOptionsMenu();
+	private static void dismissDialogIfShowing(Dialog dlg) {
+		if (dlg != null && dlg.isShowing()) {
+			dlg.dismiss();
 		}
 	}
-	
-	@Override
-	protected void onPause ()
-	{
-		if (m_dlgCardHelp != null && m_dlgCardHelp.isShowing())
-		{
-			m_dlgCardHelp.dismiss();
-		}
-		if (m_dlgCardCatalog != null && m_dlgCardCatalog.isShowing())
-		{
-			m_dlgCardCatalog.dismiss();
+
+	// Dialog helpers
+
+	public void showCardHelp() {
+		if (m_dlgCardHelp == null) {
+			m_dlgCardHelp = new TapDismissableDialog(this);
+			m_dlgCardHelp.setContentView(R.layout.dlg_card_help);
 		}
 
-		getIntent().putExtra(GameActivity.STARTUP_MODE, GameActivity.STARTUP_MODE_CONTINUE);
-
-		super.onPause();
-		
-		m_game.pause();
-		String gamestate = m_game.getSnapshot();
-		
-		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-		SharedPreferences.Editor editor = prefs.edit();
-		editor.putString("gamestate", gamestate);
-		editor.commit();
-	}
-	
-	@Override
-	protected void onResume ()
-	{
-		super.onResume ();
-		m_game.unpause();
-	}
-	
-    @Override 
-    public void onConfigurationChanged(Configuration newConfig) { 
-      //ignore orientation change  (use in conjunction with settings in the manifest)
-      super.onConfigurationChanged(newConfig); 
-    }
-    
-    @Override
-    protected void onDestroy() {
-    	m_game.shutdown ();
-		m_game = null;
-		m_gt = null;
-		m_go = null;
-
-		super.onDestroy ();
-    }
-
-    public void showCardHelp ()
-    {
-    	if (m_dlgCardHelp == null)
-    	{
-    		m_dlgCardHelp = new TapDismissableDialog(this);
-    		m_dlgCardHelp.setContentView(R.layout.dlg_card_help);    		
-    	}
-		    	
 		int cid = m_gt.getHelpCardID();
-		Card c = m_gt.getCardByID (cid);
-		if (c != null)
-		{
+		Card c = m_gt.getCardByID(cid);
+		if (c != null) {
 			m_dlgCardHelp.setTitle(m_game.cardToString(c));
-
-			TextView text = m_dlgCardHelp.findViewById(R.id.text);
-			text.setText(m_gt.getCardHelpText(cid));
-
-			ImageView image = m_dlgCardHelp.findViewById(R.id.image);
-			image.setImageBitmap(m_gt.getCardBitmap(cid));
+			((TextView) m_dlgCardHelp.findViewById(R.id.text)).setText(m_gt.getCardHelpText(cid));
+			((ImageView) m_dlgCardHelp.findViewById(R.id.image)).setImageBitmap(m_gt.getCardBitmap(cid));
 		}
+		m_dlgCardHelp.show();
+	}
 
-    	m_dlgCardHelp.show();
-    }
-    
-    public void showCardCatalog ()
-    {
-    	if (m_dlgCardCatalog == null)
-    	{
-    		m_dlgCardCatalog = new Dialog(this);
-    		m_dlgCardCatalog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-    		m_dlgCardCatalog.setContentView(R.layout.dlg_card_catalog);
+	public void showCardCatalog() {
+		if (m_dlgCardCatalog == null) {
+			m_dlgCardCatalog = new Dialog(this);
+			m_dlgCardCatalog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+			m_dlgCardCatalog.setContentView(R.layout.dlg_card_catalog);
+
 			GridView gridview = m_dlgCardCatalog.findViewById(R.id.gridview);
-		    gridview.setAdapter(new CardImageAdapter(this));
-		    
-		    gridview.setOnItemClickListener((parent, v, position, id) -> {
-                CardImageAdapter cia = (CardImageAdapter)((GridView)parent).getAdapter();
-                Integer[] cardids = cia.getCardIDs();
-
-                GameActivity.this.m_gt.setHelpCardID (cardids[position]);
-                //GameActivity.this.showDialog(GameActivity.DIALOG_CARD_HELP);
-                showCardHelp();
-            });
-    	}
-    	
-    	m_dlgCardCatalog.show();
-    }
-
-
-	public void showMenuButtons ()
-	{
-		if (m_game.getCurrPlayer() instanceof HumanPlayer)
-		{
-			if (m_game.getCurrPlayerUnderAttack() || m_game.getCurrPlayerDrawn())
-			{
-				m_btnMenuDraw.setEnabled(false);
-				m_btnMenuDraw.setTextColor(0xff7f7f7f);
-				m_btnMenuPass.setEnabled(true);
-				m_btnMenuPass.setTextColor(0xffffffff);
-			}
-			else
-			{
-				m_btnMenuDraw.setEnabled(true);
-				m_btnMenuDraw.setTextColor(0xffffffff);
-				m_btnMenuPass.setEnabled(false);
-				m_btnMenuPass.setTextColor(0xff7f7f7f);
-			}
+			gridview.setAdapter(new CardImageAdapter(this));
+			gridview.setOnItemClickListener((parent, v, position, id) -> {
+				Integer[] cardIds = ((CardImageAdapter) parent.getAdapter()).getCardIDs();
+				m_gt.setHelpCardID(cardIds[position]);
+				showCardHelp();
+			});
 		}
-		else
-		{
-			m_btnMenuDraw.setEnabled(false);
-			m_btnMenuPass.setEnabled(false);
+		m_dlgCardCatalog.show();
+	}
+
+	// Menu button state management
+
+	public void showMenuButtons() {
+		if (m_game.getCurrPlayer() instanceof HumanPlayer) {
+			boolean canDraw = !m_game.getCurrPlayerUnderAttack() && !m_game.getCurrPlayerDrawn();
+			setButtonEnabled(m_btnMenuDraw, canDraw);
+			setButtonEnabled(m_btnMenuPass, !canDraw);
+		} else {
+			setButtonEnabled(m_btnMenuDraw, false);
+			setButtonEnabled(m_btnMenuPass, false);
 		}
-
-
 		m_vMenuPanel.setVisibility(View.VISIBLE);
 	}
 
-	public void hideMenuButtons ()
-	{
+	public void hideMenuButtons() {
 		m_vMenuPanel.setVisibility(View.INVISIBLE);
 	}
 
+	/** Enables/disables a button and updates its text colour accordingly. */
+	private static void setButtonEnabled(Button btn, boolean enabled) {
+		btn.setEnabled(enabled);
+		btn.setTextColor(enabled ? COLOR_ENABLED_TEXT : COLOR_DISABLED_TEXT);
+	}
 }
