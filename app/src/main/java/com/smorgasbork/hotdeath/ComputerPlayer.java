@@ -262,7 +262,7 @@ public class ComputerPlayer extends Player {
 		if (bestCard != null) {
 			// If the chosen card is Ping, use dedicated victim selection so it
 			// always targets the most threatening opponent.
-			if (bestCard.getValue() == Card.VAL_PING) {
+			if (bestCard.getValue() == Card.VAL_1_PING) {
 				choosePingVictim();
 			}
 			m_playingCard     = bestCard;
@@ -379,7 +379,7 @@ public class ComputerPlayer extends Player {
 		}
 
 		// ── Swap ─────────────────────────────────────────────────────────────
-		if (val == Card.VAL_SWAP) {
+		if (val == Card.VAL_R_SWAP) {
 			Player before = getPlayerBefore(m_seat);
 			if (before != null) {
 				int myCards    = m_hand.getNumCards();
@@ -396,7 +396,7 @@ public class ComputerPlayer extends Player {
 		}
 
 		// ── Clone ─────────────────────────────────────────────────────────────
-		if (val == Card.VAL_CLONE) {
+		if (val == Card.VAL_2_CLONE) {
 			Card prev = m_game.getLastPlayedCard();
 			if (prev == null) return testVal - 10;     // no previous card, weaker play
 			int prevVal = prev.getValue();
@@ -411,7 +411,7 @@ public class ComputerPlayer extends Player {
 		}
 
 		// ── Ping ─────────────────────────────────────────────────────────────
-		if (val == Card.VAL_PING) {
+		if (val == Card.VAL_1_PING) {
 			// Unblockable directed draw-1.
 			// Base bonus for always being useful; scale up when opponentMinCards is
 			// very low because forcing even one extra card onto a near-winning opponent

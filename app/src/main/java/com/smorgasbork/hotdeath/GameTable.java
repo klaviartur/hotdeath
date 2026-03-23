@@ -1201,8 +1201,8 @@ public class GameTable extends View {
 							  int color, int value, int specialId, int score) {
 		BitmapFactory.Options opt = new BitmapFactory.Options();
 		Bitmap bmp = BitmapFactory.decodeResource(getContext().getResources(), imageResId, opt);
-		Card card  = new Card(-1, color, value, specialId, score);
-		m_cardInfo.put(id, new CardInfo(card, imageResId, bmp, helpResId));
+		Card card  = m_game.getDeck().getCard(color, value);
+		if (card != null) { m_cardInfo.put(id, new CardInfo(card, imageResId, bmp, helpResId)); }
 	}
 
 	private void initCards() {
@@ -1350,15 +1350,15 @@ public class GameTable extends View {
 		//registerCard(Card.ID_YELLOW_8_DODGE, R.drawable.card_back, R.string.cardhelp_dodge, Card.COLOR_YELLOW, Card.VAL_DODGE, Card.ID_YELLOW_8_DODGE, 8);
 
 		// Clone (Green 2, Yellow 2 — ×2 in deck)
-		registerCard(Card.ID_GREEN_2_CLONE,  R.drawable.card_back,  R.string.cardhelp_clone, Card.COLOR_GREEN,  Card.VAL_CLONE, Card.ID_GREEN_2_CLONE,  20);
-		registerCard(Card.ID_YELLOW_2_CLONE, R.drawable.card_back, R.string.cardhelp_clone, Card.COLOR_YELLOW, Card.VAL_CLONE, Card.ID_YELLOW_2_CLONE, 20);
+		registerCard(Card.ID_GREEN_2_CLONE,  R.drawable.card_back,  R.string.cardhelp_clone, Card.COLOR_GREEN,  Card.VAL_2_CLONE, Card.ID_GREEN_2_CLONE,  20);
+		registerCard(Card.ID_YELLOW_2_CLONE, R.drawable.card_back, R.string.cardhelp_clone, Card.COLOR_YELLOW, Card.VAL_2_CLONE, Card.ID_YELLOW_2_CLONE, 20);
 
 		// Ping (Blue 1 — directed, ×1 in deck)
-		registerCard(Card.ID_BLUE_1_PING, R.drawable.card_back, R.string.cardhelp_ping, Card.COLOR_BLUE, Card.VAL_PING, Card.ID_BLUE_1_PING, 1);
+		registerCard(Card.ID_BLUE_1_PING, R.drawable.card_back, R.string.cardhelp_ping, Card.COLOR_BLUE, Card.VAL_1_PING, Card.ID_BLUE_1_PING, 1);
 
 		// Swap (Green Reverse, Yellow Reverse — ×2 in deck)
-		registerCard(Card.ID_GREEN_R_SWAP,  R.drawable.card_back,  R.string.cardhelp_swap, Card.COLOR_GREEN,  Card.VAL_SWAP, Card.ID_GREEN_R_SWAP,  20);
-		registerCard(Card.ID_YELLOW_R_SWAP, R.drawable.card_back, R.string.cardhelp_swap, Card.COLOR_YELLOW, Card.VAL_SWAP, Card.ID_YELLOW_R_SWAP, 20);
+		registerCard(Card.ID_GREEN_R_SWAP,  R.drawable.card_back,  R.string.cardhelp_swap, Card.COLOR_GREEN,  Card.VAL_R_SWAP, Card.ID_GREEN_R_SWAP,  20);
+		registerCard(Card.ID_YELLOW_R_SWAP, R.drawable.card_back, R.string.cardhelp_swap, Card.COLOR_YELLOW, Card.VAL_R_SWAP, Card.ID_YELLOW_R_SWAP, 20);
 
 		// ----- Shared bitmaps -----
 		BitmapFactory.Options opt = new BitmapFactory.Options();
@@ -1375,7 +1375,11 @@ public class GameTable extends View {
 		// ----- Build ordered card-ID array for the catalog grid -----
 		m_cardIDs = m_cardInfo.keySet().toArray(new Integer[0]);
 		// Sort to match the original display order
-		java.util.Arrays.sort(m_cardIDs);
+		java.util.Arrays.sort(m_cardIDs, (id1, id2) -> {
+			Card c1 = m_cardInfo.get(id1).card;
+			Card c2 = m_cardInfo.get(id2).card;
+			return Integer.compare(c1.getDeckIndex(), c2.getDeckIndex());
+		});
 	}
 
 	/**

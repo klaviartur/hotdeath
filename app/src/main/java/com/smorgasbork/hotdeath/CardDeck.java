@@ -302,13 +302,13 @@ public class CardDeck {
             { Card.COLOR_YELLOW, Card.VAL_DODGE, Card.ID_YELLOW_8_DODGE, 8 },
              */
 			// Clone (2 total: Green 2, Yellow 2)
-			{ Card.COLOR_GREEN,  Card.VAL_CLONE, Card.ID_GREEN_2_CLONE,  20 },
-			{ Card.COLOR_YELLOW, Card.VAL_CLONE, Card.ID_YELLOW_2_CLONE, 20 },
+			{ Card.COLOR_GREEN,  Card.VAL_2_CLONE, Card.ID_GREEN_2_CLONE,  20 },
+			{ Card.COLOR_YELLOW, Card.VAL_2_CLONE, Card.ID_YELLOW_2_CLONE, 20 },
 			// Ping (Blue 1 directed)
-			{ Card.COLOR_BLUE,   Card.VAL_PING,  Card.ID_BLUE_1_PING,    1  },
+			{ Card.COLOR_BLUE,   Card.VAL_1_PING,  Card.ID_BLUE_1_PING,    1  },
 			// Swap (Green Reverse + Yellow Reverse)
-			{ Card.COLOR_GREEN,  Card.VAL_SWAP,  Card.ID_GREEN_R_SWAP,   20 },
-			{ Card.COLOR_YELLOW, Card.VAL_SWAP,  Card.ID_YELLOW_R_SWAP,  20 },
+			{ Card.COLOR_GREEN,  Card.VAL_R_SWAP,  Card.ID_GREEN_R_SWAP,   20 },
+			{ Card.COLOR_YELLOW, Card.VAL_R_SWAP,  Card.ID_YELLOW_R_SWAP,  20 },
 	};
 
 	private static void addExtendedCards(List<CardDef> defs) {

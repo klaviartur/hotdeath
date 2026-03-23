@@ -141,6 +141,7 @@ public class Game extends Thread {
 
 		m_deckType 		= m_go.getDeckType();
 		m_standardRules = m_deckType == CardDeck.DeckType.VANILLA;
+		m_deck 			= new CardDeck (m_deckType);
 		m_direction     = DIR_NONE;
 
 		m_players[0] = m_go.getComputer4th()
@@ -220,7 +221,7 @@ public class Game extends Thread {
 		synchronized (m_pauseLock) {
 			JSONObject o = new JSONObject();
 			try {
-				o.put("deckType", m_deckType);
+				o.put("deckType", m_deckType.key);
 
 				JSONObject state = new JSONObject();
 				state.put("dealer",       m_dealer.getSeat());
@@ -341,7 +342,6 @@ public class Game extends Thread {
 		m_winner   = 0;
 		for (Player p : m_players) p.resetGame();
 		m_dealer = m_players[new Random().nextInt(4)];
-		m_deck = new CardDeck (m_deckType);
 	}
 
 	public void resetRound()
@@ -695,21 +695,21 @@ public class Game extends Thread {
 		if (currVal == Card.VAL_R_BACKSTAB && checkVal == Card.VAL_R_SKIP) return true;
 		if (currVal == Card.VAL_R_BACKSTAB && checkVal == Card.VAL_R_BACKSTAB) return true;
 		// Swap plays on any Reverse
-		if (currVal == Card.VAL_R       && checkVal == Card.VAL_SWAP)     return true;
-		if (currVal == Card.VAL_R_SKIP  && checkVal == Card.VAL_SWAP)     return true;
-		if (currVal == Card.VAL_R_BACKSTAB && checkVal == Card.VAL_SWAP)  return true;
-		if (currVal == Card.VAL_SWAP    && checkVal == Card.VAL_R)        return true;
-		if (currVal == Card.VAL_SWAP    && checkVal == Card.VAL_R_SKIP)   return true;
-		if (currVal == Card.VAL_SWAP    && checkVal == Card.VAL_R_BACKSTAB) return true;
-		if (currVal == Card.VAL_SWAP    && checkVal == Card.VAL_SWAP)     return true;
+		if (currVal == Card.VAL_R       && checkVal == Card.VAL_R_SWAP)     return true;
+		if (currVal == Card.VAL_R_SKIP  && checkVal == Card.VAL_R_SWAP)     return true;
+		if (currVal == Card.VAL_R_BACKSTAB && checkVal == Card.VAL_R_SWAP)  return true;
+		if (currVal == Card.VAL_R_SWAP && checkVal == Card.VAL_R)        return true;
+		if (currVal == Card.VAL_R_SWAP && checkVal == Card.VAL_R_SKIP)   return true;
+		if (currVal == Card.VAL_R_SWAP && checkVal == Card.VAL_R_BACKSTAB) return true;
+		if (currVal == Card.VAL_R_SWAP && checkVal == Card.VAL_R_SWAP)     return true;
 		// Dodge plays on any 8 (same face value)
 		//if (currVal == 8                && checkVal == Card.VAL_DODGE)    return true;
 		//if (currVal == Card.VAL_DODGE   && checkVal == 8)                 return true;
 		// Clone can be played on any card (handled separately below via color/wild check)
-		if (checkVal == Card.VAL_CLONE) return true;
+		if (checkVal == Card.VAL_2_CLONE) return true;
 		// Ping plays on any 1 (same face value)
-		if (currVal == 1                && checkVal == Card.VAL_PING)     return true;
-		if (currVal == Card.VAL_PING    && checkVal == 1)                 return true;
+		if (currVal == 1                && checkVal == Card.VAL_1_PING)     return true;
+		if (currVal == Card.VAL_1_PING && checkVal == 1)                 return true;
 
 		if (m_standardRules && hasMatch && c.getValue() == Card.VAL_WILD_DRAW) return false;
 
@@ -802,7 +802,7 @@ public class Game extends Thread {
 			return;
 		}
 		// Swap: swap hands with player before you, then reverse
-		if (currVal == Card.VAL_SWAP) {
+		if (currVal == Card.VAL_R_SWAP) {
 			if (virtualPlayer) waitABit(2);
 			Player prev = getPlayerBefore(m_currPlayer);
 			if (prev != null && prev != m_currPlayer) {
@@ -1090,7 +1090,7 @@ public class Game extends Thread {
 		int prevVal = m_prevCard.getValue();
 
 		// Guard: never chain-clone
-		if (prevVal == Card.VAL_CLONE) return;
+		if (prevVal == Card.VAL_2_CLONE) return;
 
 		promptUser(String.format(getString(R.string.msg_clone), cardToString(m_prevCard)));
 
@@ -1135,7 +1135,7 @@ public class Game extends Thread {
 		}
 
 		// ── Reverse family (direction change) ─────────────────────────────────
-		if (prevVal == Card.VAL_R || prevVal == Card.VAL_R_BACKSTAB || prevVal == Card.VAL_SWAP) {
+		if (prevVal == Card.VAL_R || prevVal == Card.VAL_R_BACKSTAB || prevVal == Card.VAL_R_SWAP) {
 			changeDirection();
 			// Backstab also forces a draw-2 onto the player now "before" us
 			if (prevVal == Card.VAL_R_BACKSTAB) {
@@ -1145,7 +1145,7 @@ public class Game extends Thread {
 				}
 			}
 			// Swap also swaps hands with the player now "before" us
-			if (prevVal == Card.VAL_SWAP) {
+			if (prevVal == Card.VAL_R_SWAP) {
 				Player prev = getPlayerBefore(m_currPlayer);
 				if (prev != null && prev != m_currPlayer) {
 					swapHands(m_currPlayer, prev);

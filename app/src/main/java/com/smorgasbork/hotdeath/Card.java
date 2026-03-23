@@ -58,20 +58,20 @@ public class Card implements Animatable {
 	public static final int COLOR_WILD   = 5;
 
 	public static final int VAL_D        = 11;
-	public static final int VAL_S        = 12;
-	public static final int VAL_R        = 13;
-	public static final int VAL_D_SPREAD = 14;
-	public static final int VAL_S_DOUBLE = 15;
+	public static final int VAL_D_SPREAD = 12;
+	public static final int VAL_S        = 13;
+	public static final int VAL_S_DOUBLE = 14;
+	public static final int VAL_R        = 15;
 	public static final int VAL_R_SKIP   = 16;
-	public static final int VAL_WILD     = 17;
-	public static final int VAL_WILD_DRAW = 18;
+	public static final int VAL_WILD     = 20;
+	public static final int VAL_WILD_DRAW = 21;
 
 	// v3 new card values
-	public static final int VAL_R_BACKSTAB = 19;  // Reverse + draw-2-behind
+	public static final int VAL_R_BACKSTAB = 17;  // Reverse + draw-2-behind
 	//public static final int VAL_DODGE      = 20;  // Dodge (numbered 8 slot)
-	public static final int VAL_CLONE      = 21;  // Clone
-	public static final int VAL_PING       = 22;  // Ping (numbered 1 slot)
-	public static final int VAL_SWAP       = 23;  // Swap (reverse slot)
+	public static final int VAL_2_CLONE = 30;  // Clone
+	public static final int VAL_1_PING = 31;  // Ping (numbered 1 slot)
+	public static final int VAL_R_SWAP = 18;  // Swap (reverse slot)
 
 	public static final int ID_RED_0             = 100;
 	public static final int ID_RED_1             = 101;
@@ -311,9 +311,9 @@ public class Card implements Animatable {
 			case VAL_R_SKIP:   return ctx.getString(R.string.cardval_r_skip);
 			case VAL_R_BACKSTAB: return ctx.getString(R.string.cardname_backstab);
 			//case VAL_DODGE:    return ctx.getString(R.string.cardname_dodge);
-			case VAL_CLONE:    return ctx.getString(R.string.cardname_clone);
-			case VAL_PING:     return ctx.getString(R.string.cardname_ping);
-			case VAL_SWAP:     return ctx.getString(R.string.cardname_swap);
+			case VAL_2_CLONE:    return ctx.getString(R.string.cardname_clone);
+			case VAL_1_PING:     return ctx.getString(R.string.cardname_ping);
+			case VAL_R_SWAP:     return ctx.getString(R.string.cardname_swap);
 			default:           return String.valueOf(m_value);
 		}
 	}
