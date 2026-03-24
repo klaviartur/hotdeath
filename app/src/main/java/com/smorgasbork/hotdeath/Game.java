@@ -996,7 +996,6 @@ public class Game extends Thread {
 
 			case Card.ID_BLUE_1_PING:
 				// Ping: directed – chosen player draws exactly 1 card. Unblockable.
-				if (m_currPlayer.getHand().getNumCards() == 0) break;
 				if (!virtualPlayer) {
 					m_currPlayer.chooseVictim();
 					if (m_stopping) break;

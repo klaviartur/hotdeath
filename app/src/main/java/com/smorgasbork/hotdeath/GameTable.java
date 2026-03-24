@@ -1354,7 +1354,7 @@ public class GameTable extends View {
 		registerCard(Card.ID_YELLOW_2_CLONE, R.drawable.card_back, R.string.cardhelp_clone, Card.COLOR_YELLOW, Card.VAL_2_CLONE, Card.ID_YELLOW_2_CLONE, 20);
 
 		// Ping (Blue 1 — directed, ×1 in deck)
-		registerCard(Card.ID_BLUE_1_PING, R.drawable.card_back, R.string.cardhelp_ping, Card.COLOR_BLUE, Card.VAL_1_PING, Card.ID_BLUE_1_PING, 1);
+		registerCard(Card.ID_BLUE_1_PING, R.drawable.card_blue_1_ping, R.string.cardhelp_ping, Card.COLOR_BLUE, Card.VAL_1_PING, Card.ID_BLUE_1_PING, 1);
 
 		// Swap (Green Reverse, Yellow Reverse — ×2 in deck)
 		registerCard(Card.ID_GREEN_R_SWAP,  R.drawable.card_back,  R.string.cardhelp_swap, Card.COLOR_GREEN,  Card.VAL_R_SWAP, Card.ID_GREEN_R_SWAP,  20);
