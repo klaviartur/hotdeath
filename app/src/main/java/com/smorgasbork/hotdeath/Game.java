@@ -697,9 +697,6 @@ public class Game extends Thread {
 		//if (currVal == Card.VAL_DODGE   && checkVal == 8)                 return true;
 		// Clone can be played on any card (handled separately below via color/wild check)
 		if (checkVal == Card.VAL_2_CLONE) return true;
-		// Ping plays on any 1 (same face value)
-		if (currVal == 1                && checkVal == Card.VAL_1_PING)     return true;
-		if (currVal == Card.VAL_1_PING && checkVal == 1)                 return true;
 
 		if (m_standardRules && hasMatch && c.getValue() == Card.VAL_WILD_DRAW) return false;
 

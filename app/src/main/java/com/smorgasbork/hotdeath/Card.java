@@ -70,7 +70,6 @@ public class Card implements Animatable {
 	public static final int VAL_R_BACKSTAB = 17;  // Reverse + draw-2-behind
 	//public static final int VAL_DODGE      = 20;  // Dodge (numbered 8 slot)
 	public static final int VAL_2_CLONE = 30;  // Clone
-	public static final int VAL_1_PING = 31;  // Ping (numbered 1 slot)
 	public static final int VAL_R_SWAP = 18;  // Swap (reverse slot)
 
 	public static final int ID_RED_0             = 100;
@@ -312,7 +311,6 @@ public class Card implements Animatable {
 			case VAL_R_BACKSTAB: return ctx.getString(R.string.cardname_backstab);
 			//case VAL_DODGE:    return ctx.getString(R.string.cardname_dodge);
 			case VAL_2_CLONE:    return ctx.getString(R.string.cardname_clone);
-			case VAL_1_PING:     return ctx.getString(R.string.cardname_ping);
 			case VAL_R_SWAP:     return ctx.getString(R.string.cardname_swap);
 			default:           return String.valueOf(m_value);
 		}

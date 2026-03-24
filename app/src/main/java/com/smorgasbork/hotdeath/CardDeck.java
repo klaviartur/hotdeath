@@ -305,7 +305,7 @@ public class CardDeck {
 			{ Card.COLOR_GREEN,  Card.VAL_2_CLONE, Card.ID_GREEN_2_CLONE,  20 },
 			{ Card.COLOR_YELLOW, Card.VAL_2_CLONE, Card.ID_YELLOW_2_CLONE, 20 },
 			// Ping (Blue 1 directed)
-			{ Card.COLOR_BLUE,   Card.VAL_1_PING,  Card.ID_BLUE_1_PING,    1  },
+			{ Card.COLOR_BLUE,   1,				   Card.ID_BLUE_1_PING,    1  },
 			// Swap (Green Reverse + Yellow Reverse)
 			{ Card.COLOR_GREEN,  Card.VAL_R_SWAP,  Card.ID_GREEN_R_SWAP,   20 },
 			{ Card.COLOR_YELLOW, Card.VAL_R_SWAP,  Card.ID_YELLOW_R_SWAP,  20 },

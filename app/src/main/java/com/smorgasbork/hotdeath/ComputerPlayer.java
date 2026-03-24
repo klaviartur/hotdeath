@@ -262,7 +262,7 @@ public class ComputerPlayer extends Player {
 		if (bestCard != null) {
 			// If the chosen card is Ping, use dedicated victim selection so it
 			// always targets the most threatening opponent.
-			if (bestCard.getValue() == Card.VAL_1_PING) {
+			if (bestCard.getID() == Card.ID_BLUE_1_PING) {
 				choosePingVictim();
 			}
 			m_playingCard     = bestCard;
@@ -411,7 +411,7 @@ public class ComputerPlayer extends Player {
 		}
 
 		// ── Ping ─────────────────────────────────────────────────────────────
-		if (val == Card.VAL_1_PING) {
+		if (tc.getID() == Card.ID_BLUE_1_PING) {
 			// Unblockable directed draw-1.
 			// Base bonus for always being useful; scale up when opponentMinCards is
 			// very low because forcing even one extra card onto a near-winning opponent
