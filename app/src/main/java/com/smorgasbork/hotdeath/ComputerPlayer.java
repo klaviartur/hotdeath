@@ -40,12 +40,12 @@ public class ComputerPlayer extends Player {
 	private double m_cachedBaseBalance  = Double.NaN;
 	private int    m_cachedHandSnapshot = -1; // m_hand.getNumCards() when cache was set
 
-	public ComputerPlayer(Game g, GameOptions go) {
-		super(g, go);
+	public ComputerPlayer(int seat, Game g, GameOptions go) {
+		super(seat, g, go);
 	}
 
-	public ComputerPlayer(JSONObject o, Game g, GameOptions go) throws JSONException {
-		super(o, g, go);
+	public ComputerPlayer(int seat, JSONObject o, Game g, GameOptions go) throws JSONException {
+		super(seat, o, g, go);
 	}
 
 	// -------------------------------------------------------------------------

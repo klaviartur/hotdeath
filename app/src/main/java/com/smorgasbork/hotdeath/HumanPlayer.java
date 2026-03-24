@@ -15,12 +15,12 @@ public class HumanPlayer extends Player {
 	private volatile boolean m_victimDecision         = false;
 	private volatile boolean m_numCardsToDealDecision = false;
 
-	public HumanPlayer(Game g, GameOptions go) {
-		super(g, go);
+	public HumanPlayer(int seat, Game g, GameOptions go) {
+		super(seat, g, go);
 	}
 
-	public HumanPlayer(JSONObject o, Game g, GameOptions go) throws JSONException {
-		super(o, g, go);
+	public HumanPlayer(int seat, JSONObject o, Game g, GameOptions go) throws JSONException {
+		super(seat, o, g, go);
 	}
 
 	// -------------------------------------------------------------------------

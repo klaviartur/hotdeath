@@ -145,13 +145,11 @@ public class Game extends Thread {
 		m_direction     = DIR_NONE;
 
 		m_players[0] = m_go.getComputer4th()
-				? new ComputerPlayer(this, m_go)
-				: new HumanPlayer(this, m_go);
-		m_players[1] = new ComputerPlayer(this, m_go);
-		m_players[2] = new ComputerPlayer(this, m_go);
-		m_players[3] = new ComputerPlayer(this, m_go);
-
-		assignSeats();
+				? new ComputerPlayer(SEAT_SOUTH, this, m_go)
+				: new HumanPlayer(SEAT_SOUTH, this, m_go);
+		m_players[1] = new ComputerPlayer(SEAT_WEST, this, m_go);
+		m_players[2] = new ComputerPlayer(SEAT_NORTH, this, m_go);
+		m_players[3] = new ComputerPlayer(SEAT_EAST, this, m_go);
 	}
 
 	/** Resume saved game. */
@@ -183,13 +181,11 @@ public class Game extends Thread {
 
 			JSONArray players = gamestate.getJSONArray("players");
 			m_players[0] = m_go.getComputer4th()
-					? new ComputerPlayer(players.getJSONObject(0), this, m_go)
-					: new HumanPlayer(players.getJSONObject(0), this, m_go);
-			m_players[1] = new ComputerPlayer(players.getJSONObject(1), this, m_go);
-			m_players[2] = new ComputerPlayer(players.getJSONObject(2), this, m_go);
-			m_players[3] = new ComputerPlayer(players.getJSONObject(3), this, m_go);
-
-			assignSeats();
+					? new ComputerPlayer(SEAT_SOUTH, players.getJSONObject(0), this, m_go)
+					: new HumanPlayer(SEAT_SOUTH, players.getJSONObject(0), this, m_go);
+			m_players[1] = new ComputerPlayer(SEAT_WEST, players.getJSONObject(1), this, m_go);
+			m_players[2] = new ComputerPlayer(SEAT_NORTH, players.getJSONObject(2), this, m_go);
+			m_players[3] = new ComputerPlayer(SEAT_EAST, players.getJSONObject(3), this, m_go);
 
 			m_penalty   = new Penalty(gamestate.getJSONObject("penalty"), this, m_deck);
 			m_currPlayer = m_players[nCurrPlayer];
@@ -199,13 +195,6 @@ public class Game extends Thread {
 		} catch (JSONException e) {
 			Log.e(TAG, "Failed to restore game from JSON: " + e.getMessage());
 		}
-	}
-
-	private void assignSeats() {
-		m_players[0].setSeat(SEAT_SOUTH);
-		m_players[1].setSeat(SEAT_WEST);
-		m_players[2].setSeat(SEAT_NORTH);
-		m_players[3].setSeat(SEAT_EAST);
 	}
 
 	// -------------------------------------------------------------------------
@@ -468,20 +457,21 @@ public class Game extends Thread {
 			}
 		}
 
-		m_currCard  = m_drawPile.drawCard();
-		m_currColor = m_currCard.getColor();
-		m_discardPile.addCard(m_currCard, false);
+		do {
+			m_currCard = m_drawPile.drawCard();
+			m_currColor = m_currCard.getColor();
+			m_discardPile.addCard(m_currCard, false);
 
-		if (m_currCard.getValue() == Card.VAL_R || m_currCard.getValue() == Card.VAL_R_SKIP) {
-			changeDirection();
-		}
+			if ((m_currCard.getValue() == Card.VAL_R || m_currCard.getValue() == Card.VAL_R_SKIP)
+					&& !m_standardRules) {
+				changeDirection();
+			}
+			m_gt.moveCardToDiscardPile(m_currCard);
+		} while ( m_standardRules && m_currColor == Card.COLOR_WILD);
 
-		m_gt.moveCardToDiscardPile(m_currCard);
-		handleSpecialCards(true);
+		if (!m_standardRules) { handleSpecialCards(true); }
 
-		if (m_nextPlayerPreset != null) {
-			m_currPlayer = nextPlayer();
-		}
+		if (m_nextPlayerPreset != null || m_standardRules) { m_currPlayer = nextPlayer(); }
 	}
 
 	// -------------------------------------------------------------------------

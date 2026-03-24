@@ -53,7 +53,7 @@ public class CardDeck {
 		}
 
 		public static DeckType fromKey(String key) {
-			if (key == null) return VANILLA;
+			if (key == null) return STANDARD;
 			for (DeckType type : values()) {
 				if (type.key.equals(key)) return type;
 			}

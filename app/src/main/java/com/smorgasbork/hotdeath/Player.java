@@ -49,7 +49,8 @@ public class Player {
 
 	// ── constructors ──────────────────────────────────────────────────────────
 
-	public Player(Game game, GameOptions go) {
+	public Player(int seat, Game game, GameOptions go) {
+		m_seat			 = seat;
 		m_game           = game;
 		m_go             = go;
 		m_skill          = 1;
@@ -59,8 +60,8 @@ public class Player {
 		m_lastDrawn      = null;
 	}
 
-	public Player(JSONObject o, Game game, GameOptions go) throws JSONException {
-		this(game, go);
+	public Player(int seat, JSONObject o, Game game, GameOptions go) throws JSONException {
+		this(seat, game, go);
 		m_hand              = new Hand(o.getJSONObject("hand"), this, game.getDeck(), go);
 		m_totalScore        = o.getInt("totalScore");
 		m_lastScore         = o.getInt("lastScore");
