@@ -492,7 +492,7 @@ public class Game extends Thread {
 		if (m_stopping) return false;
 
 		if (m_currPlayer.getHand().hasValidCards(this) && !m_currPlayer.getWantsToPass()) {
-			handleValidCardsTurn();
+			if (!handleValidCardsTurn()) { return false; }
 		} else {
 			handleNoValidCardsTurn();
 		}
@@ -511,17 +511,18 @@ public class Game extends Thread {
 		return true;
 	}
 
-	private void handleValidCardsTurn() {
+	private boolean handleValidCardsTurn() {
 		if (m_currPlayer.getWantsToPlayCard()) {
-			executeCardPlay();
+			return executeCardPlay();
 		} else if (m_currPlayer.getWantsToDraw() && !getCurrPlayerDrawn()) {
 			executeDrawCard();
 		} else if (m_currPlayer.getWantsToPass() && getCurrPlayerDrawn()) {
 			executePass();
 		}
+		return true;
 	}
 
-	private void executeCardPlay() {
+	private boolean executeCardPlay() {
 		m_prevCard = m_currCard;
 		m_currCard = m_currPlayer.getPlayingCard();
 		m_currPlayer.getHand().removeCard(m_currCard);
@@ -537,7 +538,7 @@ public class Game extends Thread {
 		m_currColor = m_currCard.getColor();
 		m_gt.moveCardToDiscardPile(m_currCard);
 		handleSpecialCards(false);
-		if (m_stopping) return;
+		if (m_stopping) return false;
 
 		// if previous player set us up, and we did not throw something
 		// that would negate the penalty, then we get penalized now
@@ -548,14 +549,12 @@ public class Game extends Thread {
 		{
 			assessPenalty();
 		}
-
-
-
 		if (m_penalty.getType() == Penalty.PENTYPE_NONE && m_currPlayer.getHand().getNumCards() == 0) {
 			finishRound(m_currPlayer);
-			return;
+			return false;
 		}
 		m_currPlayer = nextPlayer();
+		return true;
 	}
 
 	private void executeDrawCard() {
@@ -1386,8 +1385,8 @@ public class Game extends Thread {
 			showNextRoundButton(true);
 		} else {
 			m_winner = m_players[minPlayer].getSeat();
-			redrawTable();
 		}
+		redrawTable();
 	}
 
 	private void calculateScore(Player winner) {

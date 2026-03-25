@@ -427,21 +427,4 @@ public class Card implements Animatable {
 	private static float lerp(float a, float b, float t) {
 		return a + t * (b - a);
 	}
-
-	// Returns the canonical ID for catalog display.
-	// Variant cards (same mechanic, different color) map to one representative.
-	//public int getCatalogID() {
-		//switch (m_id) {
-			//case ID_GREEN_R_BACKSTAB:
-			//case ID_BLUE_R_BACKSTAB:
-			//case ID_YELLOW_R_BACKSTAB:  return ID_RED_R_BACKSTAB;
-			//case ID_GREEN_8_DODGE:
-			//case ID_BLUE_8_DODGE:
-			//case ID_YELLOW_8_DODGE:     return ID_RED_8_DODGE;
-			//case ID_YELLOW_2_CLONE:     return ID_GREEN_2_CLONE;
-			//case ID_YELLOW_R_SWAP:      return ID_GREEN_R_SWAP;
-			// Ping only has one variant, no mapping needed.
-			//default: return m_id;
-		//}
-	//}
 }

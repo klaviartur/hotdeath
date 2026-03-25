@@ -1198,7 +1198,7 @@ public class GameTable extends View {
 	 * is handled by the caller passing the correct resId/helpId.
 	 */
 	private void registerCard(int id, int imageResId, int helpResId,
-							  int color, int value, int specialId, int score) {
+							  int color, int value) {
 		BitmapFactory.Options opt = new BitmapFactory.Options();
 		Bitmap bmp = BitmapFactory.decodeResource(getContext().getResources(), imageResId, opt);
 		Card card  = m_game.getDeck().getCard(color, value);
@@ -1261,55 +1261,55 @@ public class GameTable extends View {
 						R.drawable.card_yellow_r});
 
 		// ----- Wild cards -----
-		registerCard(Card.ID_WILD,           R.drawable.card_wild,            R.string.cardhelp_wild,           Card.COLOR_WILD, Card.VAL_WILD,      Card.ID_WILD,           50);
-		registerCard(Card.ID_WILD_DRAW_FOUR, R.drawable.card_wild_drawfour,   R.string.cardhelp_wild_drawfour,  Card.COLOR_WILD, Card.VAL_WILD_DRAW,  Card.ID_WILD_DRAW_FOUR, 50);
-		registerCard(Card.ID_WILD_HOS,       R.drawable.card_wild_hos,        R.string.cardhelp_wild_hos,       Card.COLOR_WILD, Card.VAL_WILD_DRAW,  Card.ID_WILD_HOS,       0);
-		registerCard(Card.ID_WILD_HD,        R.drawable.card_wild_hd,         R.string.cardhelp_wild_hd,        Card.COLOR_WILD, Card.VAL_WILD_DRAW,  Card.ID_WILD_HD,        100);
-		registerCard(Card.ID_WILD_MYSTERY,   R.drawable.card_wild_mystery,    R.string.cardhelp_wild_mystery,   Card.COLOR_WILD, Card.VAL_WILD_DRAW,  Card.ID_WILD_MYSTERY,   0);
-		registerCard(Card.ID_WILD_DB,        R.drawable.card_wild_db,         R.string.cardhelp_wild_db,        Card.COLOR_WILD, Card.VAL_WILD_DRAW,  Card.ID_WILD_DB,        100);
+		registerCard(Card.ID_WILD,           R.drawable.card_wild,            R.string.cardhelp_wild,           Card.COLOR_WILD, Card.VAL_WILD);
+		registerCard(Card.ID_WILD_DRAW_FOUR, R.drawable.card_wild_drawfour,   R.string.cardhelp_wild_drawfour,  Card.COLOR_WILD, Card.VAL_WILD_DRAW);
+		registerCard(Card.ID_WILD_HOS,       R.drawable.card_wild_hos,        R.string.cardhelp_wild_hos,       Card.COLOR_WILD, Card.VAL_WILD_DRAW);
+		registerCard(Card.ID_WILD_HD,        R.drawable.card_wild_hd,         R.string.cardhelp_wild_hd,        Card.COLOR_WILD, Card.VAL_WILD_DRAW);
+		registerCard(Card.ID_WILD_MYSTERY,   R.drawable.card_wild_mystery,    R.string.cardhelp_wild_mystery,   Card.COLOR_WILD, Card.VAL_WILD_DRAW);
+		registerCard(Card.ID_WILD_DB,        R.drawable.card_wild_db,         R.string.cardhelp_wild_db,        Card.COLOR_WILD, Card.VAL_WILD_DRAW);
 
 		// ----- Special / variant cards -----
 		registerCard(Card.ID_RED_0_HD,        R.drawable.card_red_0_hd,
 				ff ? R.string.cardhelp_red_0_hd_ff : R.string.cardhelp_red_0_hd,
-				Card.COLOR_RED, 0, Card.ID_RED_0_HD, 0);
-		registerCard(Card.ID_RED_2_GLASNOST,  R.drawable.card_red_2_glasnost,  R.string.cardhelp_red_2_glasnost, Card.COLOR_RED, 2, Card.ID_RED_2_GLASNOST, 75);
-		registerCard(Card.ID_RED_5_MAGIC,     R.drawable.card_red_5_magic,     R.string.cardhelp_red_5_magic,    Card.COLOR_RED, 5, Card.ID_RED_5_MAGIC,    -5);
-		registerCard(Card.ID_RED_D_SPREADER,  R.drawable.card_red_d_spreader,  R.string.cardhelp_d_spread,       Card.COLOR_RED, Card.VAL_D_SPREAD, Card.ID_RED_D_SPREADER,  60);
-		registerCard(Card.ID_RED_S_DOUBLE,    R.drawable.card_red_s_double,    R.string.cardhelp_s_double,       Card.COLOR_RED, Card.VAL_S_DOUBLE, Card.ID_RED_S_DOUBLE,    40);
-		registerCard(Card.ID_RED_R_SKIP,      R.drawable.card_red_r_skip,      R.string.cardhelp_r_skip,         Card.COLOR_RED, Card.VAL_R_SKIP,   Card.ID_RED_R_SKIP,      40);
+				Card.COLOR_RED, 0);
+		registerCard(Card.ID_RED_2_GLASNOST,  R.drawable.card_red_2_glasnost,  R.string.cardhelp_red_2_glasnost, Card.COLOR_RED, 2);
+		registerCard(Card.ID_RED_5_MAGIC,     R.drawable.card_red_5_magic,     R.string.cardhelp_red_5_magic,    Card.COLOR_RED, 5);
+		registerCard(Card.ID_RED_D_SPREADER,  R.drawable.card_red_d_spreader,  R.string.cardhelp_d_spread,       Card.COLOR_RED, Card.VAL_D_SPREAD);
+		registerCard(Card.ID_RED_S_DOUBLE,    R.drawable.card_red_s_double,    R.string.cardhelp_s_double,       Card.COLOR_RED, Card.VAL_S_DOUBLE);
+		registerCard(Card.ID_RED_R_SKIP,      R.drawable.card_red_r_skip,      R.string.cardhelp_r_skip,         Card.COLOR_RED, Card.VAL_R_SKIP);
 
 		registerCard(Card.ID_GREEN_0_QUITTER, R.drawable.card_green_0_quitter,
 				ff ? R.string.cardhelp_green_0_quitter_ff : R.string.cardhelp_green_0_quitter,
-				Card.COLOR_GREEN, 0, Card.ID_GREEN_0_QUITTER, 100);
+				Card.COLOR_GREEN, 0);
 		registerCard(Card.ID_GREEN_3_AIDS,
 				ff ? R.drawable.card_green_3_aids_ff : R.drawable.card_green_3_aids,
 				ff ? R.string.cardhelp_green_3_aids_ff : R.string.cardhelp_green_3_aids,
-				Card.COLOR_GREEN, 3, Card.ID_GREEN_3_AIDS, 3);
-		registerCard(Card.ID_GREEN_4_IRISH,   R.drawable.card_green_4_irish,   R.string.cardhelp_green_4_irish,  Card.COLOR_GREEN, 4, Card.ID_GREEN_4_IRISH,    75);
-		registerCard(Card.ID_GREEN_D_SPREADER,R.drawable.card_green_d_spreader,R.string.cardhelp_d_spread,       Card.COLOR_GREEN, Card.VAL_D_SPREAD, Card.ID_GREEN_D_SPREADER, 60);
-		registerCard(Card.ID_GREEN_S_DOUBLE,  R.drawable.card_green_s_double,  R.string.cardhelp_s_double,       Card.COLOR_GREEN, Card.VAL_S_DOUBLE, Card.ID_GREEN_S_DOUBLE,   40);
-		registerCard(Card.ID_GREEN_R_SKIP,    R.drawable.card_green_r_skip,    R.string.cardhelp_r_skip,         Card.COLOR_GREEN, Card.VAL_R_SKIP,   Card.ID_GREEN_R_SKIP,     40);
+				Card.COLOR_GREEN, 3);
+		registerCard(Card.ID_GREEN_4_IRISH,   R.drawable.card_green_4_irish,   R.string.cardhelp_green_4_irish,  Card.COLOR_GREEN, 4);
+		registerCard(Card.ID_GREEN_D_SPREADER,R.drawable.card_green_d_spreader,R.string.cardhelp_d_spread,       Card.COLOR_GREEN, Card.VAL_D_SPREAD);
+		registerCard(Card.ID_GREEN_S_DOUBLE,  R.drawable.card_green_s_double,  R.string.cardhelp_s_double,       Card.COLOR_GREEN, Card.VAL_S_DOUBLE);
+		registerCard(Card.ID_GREEN_R_SKIP,    R.drawable.card_green_r_skip,    R.string.cardhelp_r_skip,         Card.COLOR_GREEN, Card.VAL_R_SKIP);
 
 		registerCard(Card.ID_BLUE_0_FUCK_YOU,
 				ff ? R.drawable.card_blue_0_fuckyou_ff : R.drawable.card_blue_0_fuckyou,
 				ff ? R.string.cardhelp_blue_0_fuck_you_ff : R.string.cardhelp_blue_0_fuck_you,
-				Card.COLOR_BLUE, 0, Card.ID_BLUE_0_FUCK_YOU, 0);
-		registerCard(Card.ID_BLUE_2_SHIELD,   R.drawable.card_blue_2_shield,   R.string.cardhelp_blue_2_shield,  Card.COLOR_BLUE, 2, Card.ID_BLUE_2_SHIELD,    0);
-		registerCard(Card.ID_BLUE_D_SPREADER, R.drawable.card_blue_d_spreader, R.string.cardhelp_d_spread,       Card.COLOR_BLUE, Card.VAL_D_SPREAD, Card.ID_BLUE_D_SPREADER, 60);
-		registerCard(Card.ID_BLUE_S_DOUBLE,   R.drawable.card_blue_s_double,   R.string.cardhelp_s_double,       Card.COLOR_BLUE, Card.VAL_S_DOUBLE, Card.ID_BLUE_S_DOUBLE,   40);
-		registerCard(Card.ID_BLUE_R_SKIP,     R.drawable.card_blue_r_skip,     R.string.cardhelp_r_skip,         Card.COLOR_BLUE, Card.VAL_R_SKIP,   Card.ID_BLUE_R_SKIP,     40);
+				Card.COLOR_BLUE, 0);
+		registerCard(Card.ID_BLUE_2_SHIELD,   R.drawable.card_blue_2_shield,   R.string.cardhelp_blue_2_shield,  Card.COLOR_BLUE, 2);
+		registerCard(Card.ID_BLUE_D_SPREADER, R.drawable.card_blue_d_spreader, R.string.cardhelp_d_spread,       Card.COLOR_BLUE, Card.VAL_D_SPREAD);
+		registerCard(Card.ID_BLUE_S_DOUBLE,   R.drawable.card_blue_s_double,   R.string.cardhelp_s_double,       Card.COLOR_BLUE, Card.VAL_S_DOUBLE);
+		registerCard(Card.ID_BLUE_R_SKIP,     R.drawable.card_blue_r_skip,     R.string.cardhelp_r_skip,         Card.COLOR_BLUE, Card.VAL_R_SKIP);
 
 		registerCard(Card.ID_YELLOW_0_SHITTER,
 				ff ? R.drawable.card_yellow_0_shitter_ff : R.drawable.card_yellow_0_shitter,
 				ff ? R.string.cardhelp_yellow_0_shitter_ff : R.string.cardhelp_yellow_0_shitter,
-				Card.COLOR_YELLOW, 0, Card.ID_YELLOW_0_SHITTER, 0);
-		registerCard(Card.ID_YELLOW_1_MAD,    R.drawable.card_yellow_1_mad,    R.string.cardhelp_yellow_1_mad,   Card.COLOR_YELLOW, 1, Card.ID_YELLOW_1_MAD,     100);
+				Card.COLOR_YELLOW, 0);
+		registerCard(Card.ID_YELLOW_1_MAD,    R.drawable.card_yellow_1_mad,    R.string.cardhelp_yellow_1_mad,   Card.COLOR_YELLOW, 1);
 		registerCard(Card.ID_YELLOW_69,       R.drawable.card_yellow_69,
 				ff ? R.string.cardhelp_yellow_69_ff : R.string.cardhelp_yellow_69,
-				Card.COLOR_YELLOW, 6, Card.ID_YELLOW_69, 6);
-		registerCard(Card.ID_YELLOW_D_SPREADER,R.drawable.card_yellow_d_spreader,R.string.cardhelp_d_spread,     Card.COLOR_YELLOW, Card.VAL_D_SPREAD, Card.ID_YELLOW_D_SPREADER, 60);
-		registerCard(Card.ID_YELLOW_S_DOUBLE, R.drawable.card_yellow_s_double, R.string.cardhelp_s_double,       Card.COLOR_YELLOW, Card.VAL_S_DOUBLE, Card.ID_YELLOW_S_DOUBLE,   40);
-		registerCard(Card.ID_YELLOW_R_SKIP,   R.drawable.card_yellow_r_skip,   R.string.cardhelp_r_skip,         Card.COLOR_YELLOW, Card.VAL_R_SKIP,   Card.ID_YELLOW_R_SKIP,     40);
+				Card.COLOR_YELLOW, 6);
+		registerCard(Card.ID_YELLOW_D_SPREADER,R.drawable.card_yellow_d_spreader,R.string.cardhelp_d_spread,     Card.COLOR_YELLOW, Card.VAL_D_SPREAD);
+		registerCard(Card.ID_YELLOW_S_DOUBLE, R.drawable.card_yellow_s_double, R.string.cardhelp_s_double,       Card.COLOR_YELLOW, Card.VAL_S_DOUBLE);
+		registerCard(Card.ID_YELLOW_R_SKIP,   R.drawable.card_yellow_r_skip,   R.string.cardhelp_r_skip,         Card.COLOR_YELLOW, Card.VAL_R_SKIP);
 
 		// ----- v3 new cards -----
 		/*
@@ -1338,10 +1338,10 @@ public class GameTable extends View {
 		*/
 
 		// Backstab (one per colour — Reverse variant, ×4 in deck)
-		registerCard(Card.ID_RED_R_BACKSTAB,    R.drawable.card_back,    R.string.cardhelp_backstab, Card.COLOR_RED,    Card.VAL_R_BACKSTAB, Card.ID_RED_R_BACKSTAB,    20);
-		registerCard(Card.ID_GREEN_R_BACKSTAB,  R.drawable.card_back,  R.string.cardhelp_backstab, Card.COLOR_GREEN,  Card.VAL_R_BACKSTAB, Card.ID_GREEN_R_BACKSTAB,  20);
-		registerCard(Card.ID_BLUE_R_BACKSTAB,   R.drawable.card_back,   R.string.cardhelp_backstab, Card.COLOR_BLUE,   Card.VAL_R_BACKSTAB, Card.ID_BLUE_R_BACKSTAB,   20);
-		registerCard(Card.ID_YELLOW_R_BACKSTAB, R.drawable.card_back, R.string.cardhelp_backstab, Card.COLOR_YELLOW, Card.VAL_R_BACKSTAB, Card.ID_YELLOW_R_BACKSTAB, 20);
+		registerCard(Card.ID_RED_R_BACKSTAB,    R.drawable.card_back,    R.string.cardhelp_backstab, Card.COLOR_RED,    Card.VAL_R_BACKSTAB);
+		registerCard(Card.ID_GREEN_R_BACKSTAB,  R.drawable.card_back,  R.string.cardhelp_backstab, Card.COLOR_GREEN,  Card.VAL_R_BACKSTAB);
+		registerCard(Card.ID_BLUE_R_BACKSTAB,   R.drawable.card_back,   R.string.cardhelp_backstab, Card.COLOR_BLUE,   Card.VAL_R_BACKSTAB);
+		registerCard(Card.ID_YELLOW_R_BACKSTAB, R.drawable.card_back, R.string.cardhelp_backstab, Card.COLOR_YELLOW, Card.VAL_R_BACKSTAB);
 
 		// Dodge (one per colour — 8 variant, ×4 in deck)
 		//registerCard(Card.ID_RED_8_DODGE,    R.drawable.card_back,    R.string.cardhelp_dodge, Card.COLOR_RED,    Card.VAL_DODGE, Card.ID_RED_8_DODGE,    8);
@@ -1350,15 +1350,15 @@ public class GameTable extends View {
 		//registerCard(Card.ID_YELLOW_8_DODGE, R.drawable.card_back, R.string.cardhelp_dodge, Card.COLOR_YELLOW, Card.VAL_DODGE, Card.ID_YELLOW_8_DODGE, 8);
 
 		// Clone (Green 2, Yellow 2 — ×2 in deck)
-		registerCard(Card.ID_GREEN_2_CLONE,  R.drawable.card_back,  R.string.cardhelp_clone, Card.COLOR_GREEN,  Card.VAL_2_CLONE, Card.ID_GREEN_2_CLONE,  20);
-		registerCard(Card.ID_YELLOW_2_CLONE, R.drawable.card_back, R.string.cardhelp_clone, Card.COLOR_YELLOW, Card.VAL_2_CLONE, Card.ID_YELLOW_2_CLONE, 20);
+		registerCard(Card.ID_GREEN_2_CLONE,  R.drawable.card_back,  R.string.cardhelp_clone, Card.COLOR_GREEN,  Card.VAL_2_CLONE);
+		registerCard(Card.ID_YELLOW_2_CLONE, R.drawable.card_back, R.string.cardhelp_clone, Card.COLOR_YELLOW, Card.VAL_2_CLONE);
 
 		// Ping (Blue 1 — directed, ×1 in deck)
-		registerCard(Card.ID_BLUE_1_PING, R.drawable.card_blue_1_ping, R.string.cardhelp_ping, Card.COLOR_BLUE, 1, Card.ID_BLUE_1_PING, 1);
+		registerCard(Card.ID_BLUE_1_PING, R.drawable.card_blue_1_ping, R.string.cardhelp_ping, Card.COLOR_BLUE, 1);
 
 		// Swap (Green Reverse, Yellow Reverse — ×2 in deck)
-		registerCard(Card.ID_GREEN_R_SWAP,  R.drawable.card_back,  R.string.cardhelp_swap, Card.COLOR_GREEN,  Card.VAL_R_SWAP, Card.ID_GREEN_R_SWAP,  20);
-		registerCard(Card.ID_YELLOW_R_SWAP, R.drawable.card_back, R.string.cardhelp_swap, Card.COLOR_YELLOW, Card.VAL_R_SWAP, Card.ID_YELLOW_R_SWAP, 20);
+		registerCard(Card.ID_GREEN_R_SWAP,  R.drawable.card_back,  R.string.cardhelp_swap, Card.COLOR_GREEN,  Card.VAL_R_SWAP);
+		registerCard(Card.ID_YELLOW_R_SWAP, R.drawable.card_back, R.string.cardhelp_swap, Card.COLOR_YELLOW, Card.VAL_R_SWAP);
 
 		// ----- Shared bitmaps -----
 		BitmapFactory.Options opt = new BitmapFactory.Options();
@@ -1399,7 +1399,7 @@ public class GameTable extends View {
 				R.string.cardhelp_r};
 
 		for (int i = 0; i < ids.length; i++) {
-			registerCard(ids[i], drawables[i], helps[i], color, values[i], ids[i], scores[i]);
+			registerCard(ids[i], drawables[i], helps[i], color, values[i]);
 		}
 	}
 }

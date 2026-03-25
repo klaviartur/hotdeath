@@ -1,7 +1,5 @@
 package com.smorgasbork.hotdeath;
 
-import android.util.Log;
-
 /**
  * Singleton that owns the rotation/scale state of the turn-pointer arrow.
  * Implements {@link Animatable} so it participates in the shared animation loop.
