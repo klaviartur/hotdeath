@@ -889,12 +889,11 @@ public class GameTable extends View {
 	 */
 	private HandLayout buildHandLayout(int seat, boolean tableCards, int numShowing, int spacing) {
 		HandLayout l = new HandLayout();
-		int numCards = (numShowing < 1) ? 1 : numShowing; // avoid negative-size rects
 
 		switch (seat) {
 			case Game.SEAT_SOUTH:
 				l.dx = spacing; l.dy = 0;
-				int wSouth = (numCards - 1) * spacing + m_cardWidth;
+				int wSouth = (numShowing < 1) ? 0 : (numShowing - 1) * spacing + m_cardWidth;
 				l.x = m_ptSeat[Game.SEAT_SOUTH - 1].x - wSouth / 2;
 				l.y = tableCards
 						? m_ptSeat[Game.SEAT_SOUTH - 1].y - m_cardHeight * 2 / 3
@@ -903,7 +902,7 @@ public class GameTable extends View {
 				break;
 			case Game.SEAT_WEST:
 				l.dx = 0; l.dy = spacing;
-				int hWest = (numCards - 1) * spacing + m_cardHeight;
+				int hWest = (numShowing < 1) ? 0 : (numShowing - 1) * spacing + m_cardHeight;
 				l.x = tableCards
 						? m_ptSeat[Game.SEAT_WEST - 1].x + m_cardWidth / 2
 						: m_ptSeat[Game.SEAT_WEST - 1].x;
@@ -912,7 +911,7 @@ public class GameTable extends View {
 				break;
 			case Game.SEAT_NORTH:
 				l.dx = spacing; l.dy = 0;
-				int wNorth = (numCards - 1) * spacing + m_cardWidth;
+				int wNorth = (numShowing < 1) ? 0 : (numShowing - 1) * spacing + m_cardWidth;
 				l.x = m_ptSeat[Game.SEAT_NORTH - 1].x - wNorth / 2;
 				l.y = tableCards
 						? m_ptSeat[Game.SEAT_NORTH - 1].y + m_cardHeight / 2
@@ -922,7 +921,7 @@ public class GameTable extends View {
 			case Game.SEAT_EAST:
 			default:
 				l.dx = 0; l.dy = spacing;
-				int hEast = (numCards - 1) * spacing + m_cardHeight;
+				int hEast = (numShowing < 1) ? 0 : (numShowing - 1) * spacing + m_cardHeight;
 				l.x = tableCards
 						? m_ptSeat[Game.SEAT_EAST - 1].x - m_cardWidth / 2
 						: m_ptSeat[Game.SEAT_EAST - 1].x;
